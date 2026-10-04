@@ -124,20 +124,19 @@ export const SCENARIOS = [
 
   {
     name: 'a compiled static rule really applies in the browser (the page does not block the injected <style>)',
-    async run(b, t) {
+    async run(b) {
       await open(b);
+      // A real catalog setting whose element exists on every logged-out page.
+      const id = 'yt.masthead.hideVoiceSearch';
+      const button = 'ytd-masthead #voice-search-button';
       const { css } = await state(b);
-      if (!css.includes('yt.general.tempHideLogo')) {
-        t.skip('the TEMP test setting is gone (Phase 2b catalog); per-setting effects are covered by the selector checks');
-        return;
-      }
-      const logo = 'ytd-masthead #logo';
-      await waitFor(b, (sel) => Boolean(document.querySelector(sel)), logo, { what: 'the logo' });
-      assert.notEqual((await b.evaluate(elementInfo, logo)).display, 'none');
-      await b.setStorage({ settings: { 'yt.general.tempHideLogo': true } });
-      await waitFor(b, (sel) => getComputedStyle(document.querySelector(sel)).display === 'none', logo, { what: 'the logo to disappear' });
+      assert.ok(css.includes(id), `the compiled sheet contains rules for ${id}`);
+      await waitFor(b, (sel) => Boolean(document.querySelector(sel)), button, { what: 'the voice search button' });
+      assert.notEqual((await b.evaluate(elementInfo, button)).display, 'none');
+      await b.setStorage({ settings: { [id]: true } });
+      await waitFor(b, (sel) => getComputedStyle(document.querySelector(sel)).display === 'none', button, { what: 'the button to disappear' });
       await b.setStorage({ settings: {} });
-      await waitFor(b, (sel) => getComputedStyle(document.querySelector(sel)).display !== 'none', logo, { what: 'the logo to come back' });
+      await waitFor(b, (sel) => getComputedStyle(document.querySelector(sel)).display !== 'none', button, { what: 'the button to come back' });
     },
   },
 
