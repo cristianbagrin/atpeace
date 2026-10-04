@@ -14,7 +14,7 @@ export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 /**
  * The shared scripts every context loads first, in order. Mirror of the lists in manifest.json,
  * src/background/sw-chrome.js and the pages' <script> tags (tests/unit/manifest.test.mjs checks the
- * manifest and the service worker against it).
+ * manifest and the service worker against it). See SCHEMA_SCRIPTS for what follows.
  */
 export const CORE_SCRIPTS = [
   'src/shared/namespace.js',
@@ -22,6 +22,29 @@ export const CORE_SCRIPTS = [
   'src/shared/util.js',
   'src/shared/messages.js',
 ];
+
+/**
+ * The schema + settings stack, in load order: registry, cross-site settings, the YouTube catalog
+ * (one file per section; Phase 2b fills them), presets, settings storage, state helpers. Both
+ * the background and the YouTube content script load exactly this block right after CORE_SCRIPTS
+ * (tests/unit/manifest.test.mjs checks that the manifest and sw-chrome.js agree).
+ */
+export const SCHEMA_SCRIPTS = [
+  'src/shared/schema-core.js',
+  'src/shared/schema/general.js',
+  'src/shared/schema/pause.js',
+  'src/shared/schema/focus.js',
+  'src/shared/schema/advanced.js',
+  ...[
+    'general', 'masthead', 'guide', 'home', 'watch', 'player', 'comments', 'search', 'shorts', 'subscriptions', 'channel', 'filters',
+  ].map((name) => `src/sites/youtube/schema/${name}.js`),
+  'src/shared/presets.js',
+  'src/shared/settings.js',
+  'src/shared/state.js',
+];
+
+/** What the YouTube content script needs on top of CORE + SCHEMA (feature files go between page.js and main.js). */
+export const YOUTUBE_SCRIPTS = ['src/content/engine.js', 'src/sites/youtube/page.js', 'src/sites/youtube/main.js'];
 
 let loadCounter = 0;
 

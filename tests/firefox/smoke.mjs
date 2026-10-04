@@ -216,7 +216,11 @@ test('extension loads as a temporary add-on and its background answers GET_STATU
 
   const manifest = await driver.executeAsyncScript((done) => done(browser.runtime.getManifest()));
   assert.equal(manifest.browser_specific_settings.gecko.id, EXT_ID);
-  assert.equal(manifest.background.scripts.length, 5);
+  // The load-order list grows with every phase (tests/unit/manifest.test.mjs guards its content);
+  // here it only matters that Firefox sees the whole list, background.js last.
+  // (getManifest() reports them as absolute moz-extension:// URLs.)
+  assert.ok(manifest.background.scripts.at(-1).endsWith('/src/background/background.js'));
+  assert.ok(manifest.background.scripts.some((script) => script.endsWith('/src/shared/settings.js')));
 });
 
 test('Firefox reports no manifest warnings or errors for the extension', async () => {

@@ -4,7 +4,8 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, posix } from 'node:path';
-import { ROOT, CORE_SCRIPTS } from './_load.mjs';
+import { readdirSync } from 'node:fs';
+import { ROOT, CORE_SCRIPTS, SCHEMA_SCRIPTS } from './_load.mjs';
 
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
 const manifest = JSON.parse(read('manifest.json'));
@@ -76,6 +77,31 @@ describe('script load-order lists stay in sync', () => {
     const isolated = manifest.content_scripts.filter((cs) => cs.world !== 'MAIN');
     assert.ok(isolated.length > 0);
     for (const cs of isolated) assert.deepEqual(cs.js.slice(0, CORE_SCRIPTS.length), CORE_SCRIPTS);
+  });
+
+  test('background.scripts = core + schema stack + background.js, exactly', () => {
+    assert.deepEqual(manifest.background.scripts, [...CORE_SCRIPTS, ...SCHEMA_SCRIPTS, 'src/background/background.js']);
+  });
+
+  test('YouTube content script = core + schema stack, then engine, page, (features), main last', () => {
+    const youtube = manifest.content_scripts.find((cs) => cs.world !== 'MAIN');
+    assert.deepEqual(youtube.js.slice(0, CORE_SCRIPTS.length + SCHEMA_SCRIPTS.length), [...CORE_SCRIPTS, ...SCHEMA_SCRIPTS]);
+    const rest = youtube.js.slice(CORE_SCRIPTS.length + SCHEMA_SCRIPTS.length);
+    assert.deepEqual([rest[0], rest[1]], ['src/content/engine.js', 'src/sites/youtube/page.js']);
+    assert.equal(rest.at(-1), 'src/sites/youtube/main.js');
+    // Everything between page.js and main.js is a feature file.
+    for (const f of rest.slice(2, -1)) assert.match(f, /^src\/sites\/youtube\/features\/[\w-]+\.js$/, f);
+  });
+
+  test('every schema file on disk is in the load order (a forgotten file would silently not register)', () => {
+    const onDisk = [
+      ...readdirSync(join(ROOT, 'src/shared/schema')).map((f) => `src/shared/schema/${f}`),
+      ...readdirSync(join(ROOT, 'src/sites/youtube/schema')).map((f) => `src/sites/youtube/schema/${f}`),
+    ].filter((f) => f.endsWith('.js'));
+    for (const f of onDisk) {
+      assert.ok(manifest.background.scripts.includes(f), `background.scripts misses ${f}`);
+      assert.ok(manifest.content_scripts[0].js.includes(f), `content script misses ${f}`);
+    }
   });
 
   test('MAIN-world scripts never load the AtPeace namespace or extension API', () => {
