@@ -1,15 +1,18 @@
 #!/usr/bin/env node
-/* global document, window, getComputedStyle, Node */
+/* global document, getComputedStyle */
 // yt-probe — look at the live YouTube DOM from the command line (maintenance / research tool).
 //
-//   node tools/yt-probe.mjs <url | /path | saved.html> [options]
+//   node tools/yt-probe.mjs <url | /path> [options]            live page (one load)
+//   node tools/yt-probe.mjs <a.dom.json> [b.dom.json …] [options]   offline snapshots (no network)
 //
 // A *.dom.json or *.html argument is OFFLINE mode: it opens a dump previously written with --dom
 // (exact tree, rebuilt with createElement, no HTML parser involved) or --html (re-parsed HTML:
 // the parser may re-nest elements that were invalid HTML in the live DOM, e.g. <a> in <a>), so you
 // can run --count / --root / --eval against a snapshot without touching youtube.com. Prefer
 // --dom; confirm anything structural (parent/child combinators) with a live run. Snapshots carry
-// no CSS, so "vis" counts are meaningless offline.
+// no CSS, so "vis" counts are meaningless offline. With several snapshots and --count/--count-file
+// the output is a matrix (one row per selector, one column per snapshot): the quickest way to
+// check a selector list against every page type you have captured.
 //
 // Outline mode (default): prints a collapsed DOM outline of one or more root selectors:
 //   tag#id.non-generated-classes[key attributes]  — runs of same-shape siblings are collapsed
@@ -27,11 +30,12 @@
 //                       selector. Selectors are used verbatim (use --count-file for many).
 //   --count-file <f>    File with one selector per line (blank lines and lines starting
 //                       with # are ignored). Optional "  # comment" suffix is stripped.
-//   --shot <file.png>   Save a screenshot (add --full for the whole scroll height)
+//   --shot <file.png>   Save a screenshot, live only (add --full for the whole scroll height)
 //   --dom <file.dom.json>  Save an exact tree snapshot (tag/attrs/text; scripts+styles removed)
 //   --html <file>       Save the rendered DOM as HTML (scripts/styles removed) for grepping
 //   --eval <js>         Evaluate a JS expression in the page and print the JSON result
 //   --click <sel>       Click the first match of this selector before dumping (repeatable)
+//   --wait-for <sel>    After the fixed wait, also wait (max 20 s) until this selector exists
 //   --wait <ms>         Wait after load (default 9000)
 //   --scroll <n>        Scroll n x 1000 px, 1.5 s apart, to trigger lazy content (default 2)
 //   --profile <dir>     Use a persistent browser profile (cookies survive between runs)
@@ -230,6 +234,7 @@ function parse() {
       dom: { type: 'string' },
       eval: { type: 'string' },
       click: { type: 'string', multiple: true },
+      'wait-for': { type: 'string' },
       wait: { type: 'string', default: '9000' },
       scroll: { type: 'string', default: '2' },
       profile: { type: 'string' },
@@ -239,20 +244,38 @@ function parse() {
       help: { type: 'boolean', short: 'h', default: false },
     },
   });
-  return { values, url: positionals[0] };
+  return { values, targets: positionals };
+}
+
+const isSnapshot = (t) => /\.(dom\.json|html?)$/i.test(t) && existsSync(t);
+
+/** Open one target (URL or snapshot) in `page`. Returns false when Google served its captcha page. */
+async function open(page, t, o) {
+  if (isSnapshot(t)) {
+    if (/\.dom\.json$/i.test(t)) {
+      await page.goto('about:blank');
+      await page.evaluate(loadDomInPage, await readFile(t, 'utf8'));
+      return true;
+    }
+    return load(page, pathToFileURL(resolve(t)).href, { wait: 300, scroll: 0 });
+  }
+  const url = /^https?:/.test(t) ? t : 'https://www.youtube.com' + (t.startsWith('/') ? t : '/' + t);
+  const ok = await load(page, url, { wait: +o.wait, scroll: +o.scroll });
+  if (ok && o['wait-for']) await page.waitForSelector(o['wait-for'], { timeout: 20000, state: 'attached' }).catch(() => console.error('--wait-for timed out:', o['wait-for']));
+  return ok;
 }
 
 async function main() {
-  const { values: o, url } = parse();
-  if (o.help || !url) {
+  const { values: o, targets } = parse();
+  if (o.help || !targets.length) {
     console.log((await readFile(new URL(import.meta.url), 'utf8')).split('\n').filter((l) => l.startsWith('//')).map((l) => l.slice(3)).join('\n'));
-    process.exit(url || o.help ? 0 : 1);
+    process.exit(targets.length || o.help ? 0 : 1);
   }
-  const offline = /\.(dom\.json|html?)$/i.test(url) && existsSync(url);
-  const domJson = offline && /\.dom\.json$/i.test(url);
-  const target = offline
-    ? pathToFileURL(resolve(url)).href
-    : /^https?:/.test(url) ? url : 'https://www.youtube.com' + (url.startsWith('/') ? url : '/' + url);
+  const offline = targets.every(isSnapshot);
+  if (!offline && targets.length > 1) {
+    console.error('Give exactly one URL, or any number of saved snapshots (*.dom.json / *.html).');
+    process.exit(1);
+  }
 
   const countSels = [...(o.count ?? [])];
   if (o['count-file']) {
@@ -266,52 +289,59 @@ async function main() {
   const attrs = [...DEFAULT_ATTRS, ...o.attrs.split(',').map((s) => s.trim()).filter(Boolean)];
 
   const { page, close } = await launch({ profile: o.profile, headed: o.headed, viewport: o.viewport, offline });
-  const result = { url: target };
+  const results = [];
   try {
-    let ok = true;
-    if (domJson) {
-      await page.goto('about:blank');
-      await page.evaluate(loadDomInPage, await readFile(url, 'utf8'));
-    } else {
-      ok = await load(page, target, offline ? { wait: 300, scroll: 0 } : { wait: +o.wait, scroll: +o.scroll });
+    for (const t of targets) {
+      const ok = await open(page, t, o);
+      const result = { target: t, url: isSnapshot(t) ? `snapshot ${t}` : page.url(), title: await page.title() };
+      if (!ok) {
+        console.error('Google served the "/sorry/" captcha page. Wait ~5 minutes (it is rate-limiting this IP/cookie) and retry.');
+        process.exitCode = 2;
+        return;
+      }
+      for (const sel of o.click ?? []) {
+        try { await page.locator(sel).first().click({ timeout: 5000 }); await page.waitForTimeout(1500); } catch (e) { console.error('click failed:', sel, String(e.message).split('\n')[0]); }
+      }
+      // --eval takes a JS *expression* (e.g. 'document.title' or '[...document.links].length').
+      if (o.eval) result.eval = await page.evaluate(`(() => (${o.eval}))()`);
+      if (countSels.length) result.counts = await page.evaluate(countInPage, countSels);
+      if (!countSels.length && !o.eval) {
+        result.outline = await page.evaluate(outlineInPage, { roots, depth: +o.depth, maxClasses: +o.classes, attrs, withText: o.text });
+      }
+      if (o.shot && !offline) await page.screenshot({ path: o.shot, fullPage: o.full });
+      if (o.html) await writeFile(o.html, await page.evaluate(serialiseInPage));
+      if (o.dom) await writeFile(o.dom, await page.evaluate(domToJsonInPage));
+      results.push(result);
     }
-    result.finalUrl = domJson ? target : page.url();
-    result.title = await page.title();
-    if (!ok) {
-      console.error('Google served the "/sorry/" captcha page. Wait a while / use a fresh profile (no --profile) and retry.');
-      process.exitCode = 2;
-      return;
-    }
-    for (const sel of o.click ?? []) {
-      try { await page.locator(sel).first().click({ timeout: 5000 }); await page.waitForTimeout(1500); } catch (e) { console.error('click failed:', sel, String(e.message).split('\n')[0]); }
-    }
-    // --eval takes a JS *expression* (e.g. 'document.title' or '[...document.links].length').
-    if (o.eval) result.eval = await page.evaluate(`(() => (${o.eval}))()`);
-    if (countSels.length) result.counts = await page.evaluate(countInPage, countSels);
-    if (!countSels.length && !o.eval) {
-      result.outline = await page.evaluate(outlineInPage, { roots, depth: +o.depth, maxClasses: +o.classes, attrs, withText: o.text });
-    }
-    if (o.shot) await page.screenshot({ path: o.shot, fullPage: o.full });
-    if (o.html) await writeFile(o.html, await page.evaluate(serialiseInPage));
-    if (o.dom) await writeFile(o.dom, await page.evaluate(domToJsonInPage));
   } finally {
     await close();
   }
 
   if (o.json) {
-    console.log(JSON.stringify(result, null, 2));
+    console.log(JSON.stringify(results.length === 1 ? results[0] : results, null, 2));
     return;
   }
-  console.log(`URL    ${result.finalUrl}\nTITLE  ${result.title}`);
-  if (result.eval !== undefined) console.log(JSON.stringify(result.eval, null, 2));
-  if (result.counts) {
-    const w = Math.min(90, Math.max(...result.counts.map((c) => c.sel.length)));
-    for (const c of result.counts) {
-      console.log(c.error ? `ERR   ${c.sel}  (${c.error})` : `${String(c.total).padStart(5)} / ${String(c.visible).padStart(4)}vis  ${c.sel.padEnd(w)}  ${c.sample}`);
-    }
+  if (results.length > 1 && countSels.length) {
+    // Matrix: one row per selector, one column per snapshot.
+    const names = results.map((r) => r.target.replace(/^.*\//, '').replace(/\.(dom\.json|html?)$/i, ''));
+    console.log('selector'.padEnd(70) + names.map((n) => n.slice(0, 14).padStart(15)).join(''));
+    countSels.forEach((sel, i) => {
+      console.log((sel.length > 68 ? sel.slice(0, 67) + '…' : sel).padEnd(70) + results.map((r) => String(r.counts[i].error ? 'ERR' : r.counts[i].total).padStart(15)).join(''));
+    });
+    return;
   }
-  if (result.outline) console.log(result.outline);
-  if (o.shot) console.log('screenshot ->', o.shot);
+  for (const r of results) {
+    console.log(`URL    ${r.url}\nTITLE  ${r.title}`);
+    if (r.eval !== undefined) console.log(JSON.stringify(r.eval, null, 2));
+    if (r.counts) {
+      const w = Math.min(90, Math.max(...r.counts.map((c) => c.sel.length)));
+      for (const c of r.counts) {
+        console.log(c.error ? `ERR   ${c.sel}  (${c.error})` : `${String(c.total).padStart(5)} / ${String(c.visible).padStart(4)}vis  ${c.sel.padEnd(w)}  ${c.sample}`);
+      }
+    }
+    if (r.outline) console.log(r.outline);
+  }
+  if (o.shot && !offline) console.log('screenshot ->', o.shot);
   if (o.html) console.log('html       ->', o.html);
   if (o.dom) console.log('dom        ->', o.dom);
 }
