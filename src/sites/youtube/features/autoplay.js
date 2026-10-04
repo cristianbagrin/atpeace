@@ -25,6 +25,8 @@
 
   /** Per video: at most this many toggle clicks (a toggle that keeps coming back is not ours to fight forever). */
   const MAX_CLICKS = 4;
+  /** After a navigation the switch is looked at again once a second for this many seconds; later changes are caught by the mutation bus. */
+  const MAX_RECHECKS = 5;
   const RECHECK_MS = 1000;
   const THROTTLE_MS = 800;
 
@@ -47,6 +49,7 @@
   let current = null; // ctx
   let videoId = null;
   let clicks = 0;
+  let rechecks = 0;
   let lastCheck = 0;
   let recheckTimer = null;
   let bridgeAsked = false;
@@ -79,7 +82,14 @@
       bridge()?.call('setAutonav', false);
     }
     // Look again: the controls are re-rendered per video and the switch may not exist yet.
-    if (clicks < MAX_CLICKS) recheckTimer = setTimeout(ensureAutonavOff, RECHECK_MS);
+    if (clicks < MAX_CLICKS && rechecks++ < MAX_RECHECKS) recheckTimer = setTimeout(ensureAutonavOff, RECHECK_MS);
+  }
+
+  /** A new video (or a settings change): the click and recheck budgets start over. */
+  function resetBudgets() {
+    clicks = 0;
+    rechecks = 0;
+    bridgeAsked = false;
   }
 
   /** The "Up next" countdown overlay's cancel button, when it is showing. */
@@ -125,8 +135,7 @@
 
   const onNavStart = () => {
     navStartedAt = Date.now();
-    clicks = 0;
-    bridgeAsked = false;
+    resetBudgets();
   };
 
   const onEnded = (event) => {
@@ -169,15 +178,13 @@
       const id = shared.videoIdOf(ctx.url);
       if (id !== videoId) {
         videoId = id;
-        clicks = 0;
-        bridgeAsked = false;
+        resetBudgets();
       }
       ensureAutonavOff();
     },
     onSettings(ctx) {
       current = ctx;
-      clicks = 0;
-      bridgeAsked = false;
+      resetBudgets();
       ensureAutonavOff();
     },
     onMutations(ctx) {
