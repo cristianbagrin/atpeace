@@ -462,6 +462,16 @@ describe('feature lifecycle', () => {
     assert.deepEqual(a.calls.map((c) => c[0]), ['destroy', 'init', 'onNavigate']);
   });
 
+  test('ignoresMaster: a feature that opts out keeps running when the master switch is off', async () => {
+    const guard = recorder('guard', [], { ignoresMaster: true, isActive: () => true });
+    const hider = recorder('hider', ['yt.watch.hideRelated']);
+    const w = await boot({ stored: { 'yt.watch.hideRelated': true }, features: [guard, hider] });
+    guard.calls.length = hider.calls.length = 0;
+    await change(w, { 'general.enabled': false });
+    assert.deepEqual(hider.calls, [['destroy']]);
+    assert.ok(!guard.calls.some((c) => c[0] === 'destroy'), 'guard must not be destroyed by the master switch');
+  });
+
   test('a feature can bring its own isActive(); it is re-evaluated on navigation too', async () => {
     const f = recorder('watch-only', ['yt.watch.disableAutoplay'], { isActive: (ctx) => ctx.settings['yt.watch.disableAutoplay'] && ctx.page === 'watch' });
     const w = await boot({ stored: { 'yt.watch.disableAutoplay': true }, features: [f] });

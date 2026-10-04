@@ -24,11 +24,14 @@
 // mutation observer exists only while an enabled feature asks for it.
 //
 // FEATURE INTERFACE (all hooks optional, all wrapped in try/catch, async hooks may reject safely)
-//   { id, settings: ['yt.watch.disableAutoplay', …], observes?: boolean, isActive?(ctx),
-//     init?(ctx), onSettings?(ctx, changedIds), onNavigate?(ctx), onMutations?(ctx, addedRoots),
-//     destroy?(ctx) }
+//   { id, settings: ['yt.watch.disableAutoplay', …], observes?: boolean, ignoresMaster?: boolean,
+//     isActive?(ctx), init?(ctx), onSettings?(ctx, changedIds), onNavigate?(ctx),
+//     onMutations?(ctx, addedRoots), destroy?(ctx) }
 //   - Active = engine master switch on AND (isActive(ctx) if given, else any of `settings` is "on":
 //     true, a non-zero number, a non-empty list, or a string other than show/allow/default/off/none).
+//     `ignoresMaster: true` skips the master-switch condition: the master switch only governs how
+//     YouTube looks/behaves, while Mindful Pause / Focus enforcement (session guard, time tracker)
+//     must keep working when it is off — otherwise flipping it would escape a focus block.
 //     It is re-evaluated after every settings change and every navigation.
 //   - Becoming active: init(ctx), then onNavigate(ctx) (so the current page is handled by the same
 //     code path), and, if `observes`, one onMutations(ctx, [documentElement]) for an initial scan.
@@ -320,7 +323,7 @@
     }
 
     function wantsActive(rec) {
-      if (ctx.settings?.[MASTER_ID] === false) return false;
+      if (ctx.settings?.[MASTER_ID] === false && rec.feature.ignoresMaster !== true) return false;
       try {
         return isFeatureActive(rec.feature, ctx);
       } catch (err) {
