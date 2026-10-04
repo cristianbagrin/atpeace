@@ -36,4 +36,29 @@ Conventions every later phase MUST follow:
 - Pause defaults: `pause.enabled` false (onboarding asks), `pause.sessionMinutes` values are the
   strings `'5'`…`'60'`.
 
-## 2b — pending (appended when it lands)
+## 2b — YouTube catalog — approved
+
+140 YouTube settings (general 15, masthead 10, guide 19, home 8, watch 35, player 13, comments 7,
+search 8, shorts 5, subs 5, channel 11, filters 4), 396 one-selector rules (~71 KB CSS).
+`validateRegistry()` clean, `AP.presets.diagnose()` clean (Gentle 23 / Focused 32 / Deep work 46
+YouTube settings). Selector report: 0 invalid, 0 over-broad; zero-match selectors are
+deliberate (bridge tags, signed-in-only UI, ads not served logged out, playback-only player
+states, legacy A/B variants) and listed in `docs/selector-report.md`. Firefox 157 checks: `:has()`,
+`:nth-child(1 of S)`, blur-until-hover, grayscale on `<html>` keeps `position:fixed` (R4 resolved).
+
+Screens reviewed: search before/after (chips, shelves, metadata gone; Filters stays), watch with
+related hidden (player widens to 1394 px). **Bug found:** the player's control bar keeps its old
+width after a CSS layout change → assigned to 3b (dispatch `resize` after layout-affecting
+changes).
+
+Judgement calls accepted: in-stream ad layers are never hidden (would hide Skip); the autoplay
+"Up next" countdown is not hidden (it's the warning); Premium modal dialogs not hidden (backdrop
+would block the page); positional/guessy selectors dropped. Every `data-at-peace-action` rule
+excludes containers, so the bridge must tag button hosts only.
+
+Opus removed the Phase 2a TEMP settings and pointed the engine scenario at
+`yt.masthead.hideVoiceSearch`.
+
+Open for the user's verification checklist (Phase 5): signed-in UI (masthead Create/notifications,
+guide personal entries + channel list, home feed shelves, subscriptions feed), ads, player
+playback states, Mixes.
