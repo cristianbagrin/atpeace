@@ -136,6 +136,7 @@ test('friction "phrase": the sentence must be typed (case and punctuation do not
   assert.equal(await end.isDisabled(), true);
   await page.fill('#phrase', 'I am choosing to end');
   assert.equal(await end.isDisabled(), true);
+  await page.waitForTimeout(500);
   await shot(page, 'blocked-phrase');
   await page.fill('#phrase', 'i am choosing, to END my focus session!');
   assert.equal(await end.isEnabled(), true);

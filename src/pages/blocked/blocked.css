@@ -152,6 +152,10 @@ a.btn {
   max-width: 420px;
 }
 
+.unlock input[type="text"] + .row {
+  margin-top: var(--u2);
+}
+
 .unlock .hint {
   font-variant-numeric: tabular-nums;
 }

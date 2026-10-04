@@ -21,8 +21,9 @@ test('real youtube.com: pause, continue, expiry overlay, then a block', async (t
   assert.ok(page.url().startsWith(extUrl('src/pages/pause/pause.html')), 'redirected to the pause page before any request went out');
   await waitPauseState(page, 'choosing');
   await page.click('#continue');
-  await page.waitForURL((u) => u.hostname === 'www.youtube.com', { timeout: 20_000 });
+  await page.waitForURL((u) => u.protocol !== 'chrome-extension:', { timeout: 20_000 });
   if (page.url().includes('/sorry/')) return t.skip('Google served its captcha page (/sorry/); try again later');
+  assert.equal(new URL(page.url()).hostname, 'www.youtube.com');
   await page.waitForFunction(() => document.documentElement.getAttribute('data-at-peace-loaded') === '1', null, { timeout: 20_000 });
   assert.ok(page.url().startsWith('https://www.youtube.com/watch?v=aqz-KE-bpKQ'));
   assert.ok((await readState()).state.sessions.youtube > Date.now());
