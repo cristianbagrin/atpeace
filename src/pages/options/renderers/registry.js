@@ -15,7 +15,7 @@
 //     save(newValue): Promise<void>   validates and stores the value; rejects with a readable
 //                                     Error when the schema refuses it (show error.message inline)
 //     api: AP.api,  h: AP.ui.h,  toast(message),  ui: AP.ui,  def,
-//     inputId, describedBy            ids to put on the main input / its description, so the row's
+//     inputId, labelId, describedBy   ids to put on the main input / the row label / its description, so the row's
 //                                     <label> and description are read with it
 //   }
 //

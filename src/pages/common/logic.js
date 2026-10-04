@@ -115,6 +115,17 @@
     return AP.schema.isHidingValue(dep, values?.[dep.id]) ? { enabled: true, needs: null } : { enabled: false, needs: dep };
   }
 
+  /**
+   * Why a row is switched off, in one calm sentence.
+   * @param {import('../../shared/schema-core.js').SettingDef|null} needs the setting it waits for
+   */
+  function requiresHint(needs) {
+    if (!needs) return '';
+    if (needs.type === 'toggle') return `Turn on “${needs.label}” to use this.`;
+    if (needs.type === 'select') return `Applies once you change “${needs.label}”.`;
+    return `Applies once “${needs.label}” is set.`;
+  }
+
   /** A list of plain strings (word list), as opposed to objects or a multi-select. */
   const isStringList = (def) => def.type === 'list' && !def.options && typeof def.item !== 'function';
 
@@ -413,6 +424,7 @@
     bulkState,
     bulkPatch,
     requiresState,
+    requiresHint,
     isStringList,
     quickSettings,
     fold,

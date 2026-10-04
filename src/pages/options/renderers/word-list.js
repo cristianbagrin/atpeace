@@ -13,13 +13,13 @@
         id: ctx.inputId,
         describedBy: ctx.describedBy,
         regexLines: true,
+        placeholder: 'One per line, for example:\nspoiler\n/colou?r/i',
         onError: (message) => {
           problem.textContent = message ?? '';
           problem.hidden = !message;
         },
       });
-      const help = h('p', { class: 'field-help' }, 'One per line, not case-sensitive. Wrap a line in slashes to use a regular expression, like /colou?r/i.');
-      const el = h('div', { class: 'word-list' }, control.el, help, problem);
+      const el = h('div', { class: 'word-list' }, control.el, problem);
       el.control = control;
       return el;
     },

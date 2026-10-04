@@ -1,12 +1,50 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>At Peace</title>
+  <link rel="stylesheet" href="../common/tokens.css">
+  <link rel="stylesheet" href="../common/base.css">
+  <link rel="stylesheet" href="popup.css">
+  <script src="../common/theme-boot.js"></script>
 </head>
 <body>
-  <h1>At Peace</h1>
-  <p>Popup placeholder (replaced in Phase 3a).</p>
+  <header class="head">
+    <h1 class="wordmark"><span class="seal" aria-hidden="true"></span>At Peace</h1>
+    <div class="master" id="master"></div>
+  </header>
+  <div id="banner"></div>
+  <main id="content" aria-busy="true"></main>
+  <footer class="foot" id="foot"></footer>
+
+  <!-- Shared classic scripts, in the same order as the YouTube content script (manifest.json). -->
+  <script src="../../shared/namespace.js"></script>
+  <script src="../../shared/browser-api.js"></script>
+  <script src="../../shared/util.js"></script>
+  <script src="../../shared/messages.js"></script>
+  <script src="../../shared/schema-core.js"></script>
+  <script src="../../shared/schema/general.js"></script>
+  <script src="../../shared/schema/pause.js"></script>
+  <script src="../../shared/schema/focus.js"></script>
+  <script src="../../shared/schema/advanced.js"></script>
+  <script src="../../sites/youtube/schema/general.js"></script>
+  <script src="../../sites/youtube/schema/masthead.js"></script>
+  <script src="../../sites/youtube/schema/guide.js"></script>
+  <script src="../../sites/youtube/schema/home.js"></script>
+  <script src="../../sites/youtube/schema/watch.js"></script>
+  <script src="../../sites/youtube/schema/player.js"></script>
+  <script src="../../sites/youtube/schema/comments.js"></script>
+  <script src="../../sites/youtube/schema/search.js"></script>
+  <script src="../../sites/youtube/schema/shorts.js"></script>
+  <script src="../../sites/youtube/schema/subscriptions.js"></script>
+  <script src="../../sites/youtube/schema/channel.js"></script>
+  <script src="../../sites/youtube/schema/filters.js"></script>
+  <script src="../../shared/presets.js"></script>
+  <script src="../../shared/settings.js"></script>
+  <script src="../../shared/state.js"></script>
+  <script src="../common/logic.js"></script>
+  <script src="../common/components.js"></script>
+  <script type="module" src="popup.js"></script>
 </body>
 </html>

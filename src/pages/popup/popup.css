@@ -1,0 +1,241 @@
+/* Popup: ~360 px of linen. Ledger rows for the quick toggles, one Focus block, today's numbers,
+   two quiet links at the bottom. */
+
+html {
+  width: 360px;
+}
+
+body {
+  width: 360px;
+  padding: 10px var(--u3) var(--u2);
+  font-size: 13px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 30px;
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 20px;
+}
+
+.master {
+  display: flex;
+  align-items: center;
+  gap: var(--u1);
+}
+
+.master-state {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+[data-master="on"] .master-state {
+  color: var(--olive);
+}
+
+.block {
+  margin-top: var(--u2);
+}
+
+.block > .caps {
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* Bulk chips: Shorts, Recommendations, Comments. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: var(--u1);
+}
+
+.chips .caps {
+  margin-right: 1px;
+  font-size: 10.5px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 2px 7px 2px 6px;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+}
+
+.chip:hover {
+  background: var(--paper-2);
+  border-color: var(--ink);
+}
+
+.chip[data-state="all"] {
+  border-color: var(--ink);
+}
+
+.dot {
+  position: relative;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+}
+
+.chip[data-state="all"] .dot {
+  background: var(--ink);
+}
+
+.chip[data-state="partly"] .dot::after {
+  content: "";
+  position: absolute;
+  inset: 1.5px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+/* Ledger rows. */
+.ledger {
+  margin-top: var(--u1);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--u2);
+  min-height: 30px;
+  padding: 1px 0;
+}
+
+.row + .row {
+  border-top: 1px solid var(--rule);
+}
+
+.row-label {
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.row.is-toggle .row-label::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+
+.row .select {
+  flex: none;
+  max-width: 156px;
+}
+
+.row .select select {
+  width: 100%;
+  min-height: 24px;
+  padding: 1px 24px 1px 8px;
+  font-size: 12.5px;
+}
+
+[data-master="off"] .chips,
+[data-master="off"] .ledger {
+  opacity: 0.5;
+}
+
+/* Focus. */
+.focus-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1.35fr;
+  gap: var(--u1);
+}
+
+.focus-buttons .btn {
+  padding-inline: 4px;
+}
+
+.note {
+  margin-top: var(--u1);
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.note.is-error {
+  color: var(--danger);
+}
+
+.count {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--u2);
+}
+
+.count-clock {
+  font-size: 30px;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+}
+
+.count-until {
+  color: var(--ink-2);
+}
+
+.friction {
+  margin-top: var(--u1);
+}
+
+.friction-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--u2);
+  margin-top: var(--u1);
+}
+
+.friction input[type="text"] {
+  margin-top: var(--u1);
+}
+
+.confirm-bar {
+  margin-top: var(--u1);
+  padding: var(--u1) 0;
+  border-top: 1px solid var(--rule);
+}
+
+/* Today. */
+.today {
+  line-height: 1.5;
+}
+
+.today .caps {
+  margin-right: 4px;
+}
+
+/* Footer. */
+.foot {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--u2);
+  margin-top: var(--u2);
+  padding-top: var(--u1);
+  border-top: 1px solid var(--rule);
+}
+
+.banner {
+  margin-top: var(--u1);
+  flex-direction: column;
+  align-items: flex-start;
+}

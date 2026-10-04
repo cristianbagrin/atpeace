@@ -211,9 +211,11 @@
    * @typedef {Object} ControlOptions
    * @property {string} [id]           id for the main input (so a <label for> can point at it)
    * @property {string} [describedBy]  id of the element describing it
+   * @property {string} [labelledBy]   id of the element naming it (needed for checkbox groups, which a <label for> cannot name)
    * @property {(message: string|null) => void} [onError]  inline problem text (null clears it)
    * @property {(items: string[]) => {line:number, message:string}[]} [validateLines]  list editors only
    * @property {boolean} [regexLines]  list editors: check /regex/flags lines
+   * @property {string} [placeholder]  list editors: hint shown while the field is empty
    */
 
   const DEBOUNCE_MS = { number: 400, text: 600, textarea: 700, list: 600, json: 900 };
@@ -245,7 +247,7 @@
     };
     const kind = controlKind(def);
     const later = AP.util.debounce(commit, DEBOUNCE_MS[kind] ?? 500);
-    const ctx = { id, describedBy, commit, later, report, options };
+    const ctx = { id, describedBy, labelledBy: options.labelledBy ?? null, commit, later, report, options };
     switch (kind) {
       case 'toggle':
         return toggleControl(def, value, ctx);
@@ -308,6 +310,7 @@
   }
 
   function numberControl(def, value, { id, describedBy, commit, later, report }) {
+    const unitId = `${id}-unit`;
     const input = h('input', {
       type: 'number',
       id,
@@ -315,7 +318,7 @@
       min: def.min,
       max: def.max,
       step: def.step,
-      'aria-describedby': describedBy,
+      'aria-describedby': [describedBy, def.unit ? unitId : null].filter(Boolean).join(' ') || null,
       value,
     });
     const flag = (invalid) => input.setAttribute('aria-invalid', invalid ? 'true' : 'false');
@@ -338,7 +341,7 @@
       if (result.ok) commit(result.value);
       else report(result.message);
     });
-    const unit = def.unit ? h('span', { class: 'unit' }, def.unit) : null;
+    const unit = def.unit ? h('span', { class: 'unit', id: unitId }, def.unit) : null;
     return {
       el: h('span', { class: 'number-field' }, input, unit),
       get: () => Number(input.value),
@@ -391,6 +394,7 @@
       rows: 7,
       spellcheck: false,
       class: 'is-mono',
+      placeholder: options.placeholder,
       'aria-describedby': describedBy,
       value: (value ?? []).join('\n'),
     });
@@ -433,13 +437,13 @@
     };
   }
 
-  function checksControl(def, value, { id, describedBy, commit }) {
+  function checksControl(def, value, { id, describedBy, labelledBy, commit }) {
     const boxes = def.options.map((o) => h('input', { type: 'checkbox', value: o.value, checked: (value ?? []).includes(o.value) }));
     const selected = () => def.options.filter((o, i) => boxes[i].checked).map((o) => o.value);
     for (const box of boxes) box.addEventListener('change', () => commit(selected()));
     const el = h(
       'fieldset',
-      { class: 'checks', id, 'aria-describedby': describedBy },
+      { class: 'checks', id, role: 'group', 'aria-labelledby': labelledBy, 'aria-describedby': describedBy },
       def.options.map((o, i) => h('label', { class: 'check' }, boxes[i], h('span', null, o.label))),
     );
     return {
