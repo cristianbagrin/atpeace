@@ -15,9 +15,11 @@
     FOCUS_END: 'FOCUS_END',
     HEARTBEAT: 'HEARTBEAT', // { siteKey }
     CLOSE_TAB: 'CLOSE_TAB', // closes sender.tab.id
-    GET_STATUS: 'GET_STATUS', // → { block, sessions, today stats, schedule } (Phase 0: { version })
+    GET_STATUS: 'GET_STATUS', // → { block, sessions, activeSchedules, today, limit, … } (see src/background/sessions.js)
     OPEN_OPTIONS: 'OPEN_OPTIONS', // { section? }
     START_PICKER: 'START_PICKER',
+    LIMIT_GRACE: 'LIMIT_GRACE', // {} → "5 more minutes" after the daily limit (Phase 3c)
+    BLOCKED_OPENED: 'BLOCKED_OPENED', // { siteKey, reason } the blocked page loaded → stats.blockedHits (Phase 3c)
   });
 
   // Chrome and Firefox both say "Could not establish connection. Receiving end does not exist."

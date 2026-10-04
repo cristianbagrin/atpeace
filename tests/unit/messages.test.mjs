@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 describe('AP.msg.TYPES', () => {
-  test('declares every message from PLAN §8.1, each equal to its own name', () => {
+  test('declares every message from PLAN §8.1 (+ Phase 3c additions), each equal to its own name', () => {
     const expected = [
       'PAUSE_CONTINUE',
       'PAUSE_TURN_BACK',
@@ -29,6 +29,8 @@ describe('AP.msg.TYPES', () => {
       'GET_STATUS',
       'OPEN_OPTIONS',
       'START_PICKER',
+      'LIMIT_GRACE',
+      'BLOCKED_OPENED',
     ];
     assert.deepEqual(Object.keys(AP.msg.TYPES).sort(), [...expected].sort());
     for (const name of expected) assert.equal(AP.msg.TYPES[name], name);

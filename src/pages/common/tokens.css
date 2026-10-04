@@ -1,0 +1,76 @@
+/* Design tokens (PLAN §9): "ink on linen". Light is the default; dark is chosen with
+   <html data-theme="dark"> or, for "Match my system", data-theme="system" + the media query.
+   data-theme is set synchronously by theme-boot.js and kept in sync by AP.ui.applyTheme().
+
+   Contrast, measured with WCAG 2.x (tests/unit/contrast.test.mjs keeps these honest):
+     --ink    on --paper   13.3 : 1 light, 13.9 : 1 dark   (body text, needs 7)
+     --ink-2  on --paper    5.9 : 1 light,  7.3 : 1 dark   (secondary text, needs 4.5)
+     --edge   on --paper    3.7 : 1 light,  4.0 : 1 dark   (borders of controls, needs 3)
+     --rule is decoration only (row hairlines), about 1.5 : 1 by design, never the only cue. */
+
+:root {
+  color-scheme: light;
+
+  --paper: #F3EEE3;   /* background */
+  --paper-2: #EAE2D1; /* raised rows, inputs */
+  --ink: #1B2050;     /* text */
+  --ink-2: #5E5A55;   /* secondary text */
+  --rule: #B9C4D3;    /* hairlines between rows (decorative) */
+  --edge: #757A8A;    /* borders of interactive controls */
+  --clay: #8E7266;    /* muted accent, focus rings (PLAN: #9A8074, darkened to keep 3:1 on --paper-2) */
+  --olive: #6F6429;   /* positive / "saved" text (PLAN: #7C7034, darkened to reach 4.5:1) */
+  --seal: #E5600F;    /* the one loud accent */
+  --danger: #A93A28;  /* PLAN: #B3412F, darkened to reach 4.5:1 on --paper-2 */
+  --veil: rgb(27 32 80 / 0.38); /* behind dialogs */
+
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Charter, Georgia, serif;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* 7 px rhythm */
+  --u1: 7px;
+  --u2: 14px;
+  --u3: 21px;
+  --u4: 28px;
+  --u5: 42px;
+  --u6: 56px;
+  --radius: 3px;
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --t-quick: 200ms;
+  --t-slow: 400ms;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --paper: #14162B;
+  --paper-2: #1C1F3A;
+  --ink: #E9E3D6;
+  --ink-2: #A8A3B8;
+  --rule: #33385C;
+  --edge: #6F74A0;
+  --clay: #B79E91;
+  --olive: #C2B46A;
+  --seal: #F47A2E;
+  --danger: #E07A68;
+  --veil: rgb(4 5 14 / 0.62);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+    color-scheme: dark;
+
+    --paper: #14162B;
+    --paper-2: #1C1F3A;
+    --ink: #E9E3D6;
+    --ink-2: #A8A3B8;
+    --rule: #33385C;
+    --edge: #6F74A0;
+    --clay: #B79E91;
+    --olive: #C2B46A;
+    --seal: #F47A2E;
+    --danger: #E07A68;
+    --veil: rgb(4 5 14 / 0.62);
+  }
+}
