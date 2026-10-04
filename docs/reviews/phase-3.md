@@ -31,3 +31,33 @@ Follow-ups (assigned to Phase 4/5):
    "Your week".
 4. `advanced.lock` and `advanced.customRules` still use the raw JSON editor (Phase 4 renderers).
 5. Remove the `// TEMP (Phase 2a test)` settings once the catalog lands (Opus).
+
+## 3c — Mindful Pause, Focus, schedules, limit, stats, background — approved
+
+Verified by Opus: `npm test` 639/639; `pause.spec` + `focus.spec` 46/46 (Chromium, YouTube stubbed
+with `context.route` so no Google traffic); `tests/firefox/mindful.mjs` 9 pass / 3 skipped (the
+3 need live YouTube, which currently serves a `/sorry/` captcha to this IP). Screens reviewed:
+breathing page, choice state ("Close YouTube" primary, "Continue for [15 minutes]" split control),
+blocked page with wait friction (hollow seal, big mono countdown), session-expiry overlay on live
+YouTube. Calm, faithful to §9.
+
+Design points worth keeping:
+- One idempotent, serialized `reconcile()` derives sessions/blocks/override/DNR/alarms from
+  storage; GET_STATUS reconciles too, so state self-heals after the event page sleeps.
+- Pause page never traps the user (falls back to lifting its own rules) and refuses hostile
+  hashes (only configured pause sites are valid targets).
+- Focus blocks can only be extended by a second start (a short block can't cut a strict one).
+- Pause/blocks ignore the master switch; YouTube redirects respect it.
+
+APIs/contracts added: `state.blocks[]` (all blocks in force; `state.block` = primary),
+`state.sessionMinutes`, messages `LIMIT_GRACE`, `BLOCKED_OPENED`; GET_STATUS adds `blocks`, `now`.
+
+Follow-ups:
+6. 3b must add `src/sites/youtube/redirects.js` to `background.scripts` + `sw-chrome.js` (allowed
+   by the manifest test already) — verify in the 3b review that home/shorts/channel DNR redirects
+   are live end to end.
+7. Pause-sites/schedules renderers inject their own `<style>`; fold into `options.css` (polish).
+8. Testing strategy while Google captcha-gates the IP: stub `www.youtube.com` with
+   `context.route` serving pages rebuilt from the research DOM snapshots
+   (`tests/e2e/artifacts/research/*.dom.json`, `tools/yt-probe.mjs` helpers) so content scripts
+   still inject (URL matches) without Google traffic.
