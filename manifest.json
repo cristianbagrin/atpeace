@@ -1,0 +1,97 @@
+{
+  "manifest_version": 3,
+  "name": "At Peace",
+  "version": "0.1.0",
+  "description": "A calm, intentional YouTube. Hide what you don't want to see and add a breath before you open the feed.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "at-peace@cristianbagrin",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": ["storage", "alarms", "declarativeNetRequest", "scripting"],
+  "host_permissions": ["*://*.youtube.com/*"],
+  "optional_host_permissions": ["*://*/*"],
+  "background": {
+    "scripts": [
+      "src/shared/namespace.js",
+      "src/shared/browser-api.js",
+      "src/shared/util.js",
+      "src/shared/messages.js",
+      "src/background/background.js"
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://www.youtube.com/*"],
+      "js": [
+        "src/shared/namespace.js",
+        "src/shared/browser-api.js",
+        "src/shared/util.js",
+        "src/shared/messages.js",
+        "src/sites/youtube/main.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": ["*://www.youtube.com/*"],
+      "js": ["src/sites/youtube/page-bridge.js"],
+      "run_at": "document_start",
+      "all_frames": false,
+      "world": "MAIN"
+    }
+  ],
+  "action": {
+    "default_title": "At Peace",
+    "default_popup": "src/pages/popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "96": "icons/icon-96.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "options_ui": {
+    "page": "src/pages/options/options.html",
+    "open_in_tab": true
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/pages/pause/*",
+        "src/pages/blocked/*",
+        "src/pages/common/*"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "commands": {
+    "toggle-enabled": {
+      "suggested_key": { "default": "Alt+Shift+P" },
+      "description": "Turn At Peace on or off"
+    },
+    "focus-25": {
+      "suggested_key": { "default": "Alt+Shift+F" },
+      "description": "Block YouTube for 25 minutes"
+    },
+    "open-picker": {
+      "suggested_key": { "default": "Alt+Shift+H" },
+      "description": "Pick an element to hide"
+    }
+  }
+}

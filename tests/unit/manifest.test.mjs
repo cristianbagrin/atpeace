@@ -1,0 +1,114 @@
+// Guards the invariants PLAN §3.1 asks every agent to maintain by hand: load-order lists that must
+// stay in sync, files that must exist, and the CSP rules for extension pages.
+import { test, describe } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync, existsSync } from 'node:fs';
+import { join, posix } from 'node:path';
+import { ROOT, CORE_SCRIPTS } from './_load.mjs';
+
+const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
+const manifest = JSON.parse(read('manifest.json'));
+const exists = (rel) => existsSync(join(ROOT, rel));
+
+describe('manifest.json', () => {
+  test('identity and platform', () => {
+    assert.equal(manifest.manifest_version, 3);
+    assert.equal(manifest.name, 'At Peace');
+    assert.equal(manifest.version, JSON.parse(read('package.json')).version);
+    const gecko = manifest.browser_specific_settings.gecko;
+    assert.equal(gecko.id, 'at-peace@cristianbagrin');
+    assert.equal(gecko.strict_min_version, '140.0');
+    assert.deepEqual(gecko.data_collection_permissions, { required: ['none'] });
+  });
+
+  test('permissions', () => {
+    assert.deepEqual([...manifest.permissions].sort(), ['alarms', 'declarativeNetRequest', 'scripting', 'storage']);
+    assert.deepEqual(manifest.host_permissions, ['*://*.youtube.com/*']);
+    assert.deepEqual(manifest.optional_host_permissions, ['*://*/*']);
+  });
+
+  test('keyboard commands (PLAN §8.5)', () => {
+    const keys = Object.fromEntries(Object.entries(manifest.commands).map(([k, v]) => [k, v.suggested_key.default]));
+    assert.deepEqual(keys, { 'toggle-enabled': 'Alt+Shift+P', 'focus-25': 'Alt+Shift+F', 'open-picker': 'Alt+Shift+H' });
+    for (const cmd of Object.values(manifest.commands)) assert.ok(cmd.description);
+  });
+
+  test('every file the manifest references exists', () => {
+    const files = [
+      ...Object.values(manifest.icons),
+      ...Object.values(manifest.action.default_icon),
+      manifest.action.default_popup,
+      manifest.options_ui.page,
+      ...manifest.background.scripts,
+      ...manifest.content_scripts.flatMap((cs) => cs.js),
+    ];
+    for (const f of files) assert.ok(exists(f), `missing: ${f}`);
+  });
+
+  test('web_accessible_resources cover the DNR redirect targets for all URLs', () => {
+    const wars = manifest.web_accessible_resources;
+    assert.ok(wars.every((w) => w.matches.includes('<all_urls>')));
+    const resources = wars.flatMap((w) => w.resources);
+    for (const dir of ['pause', 'blocked']) {
+      assert.ok(resources.includes(`src/pages/${dir}/*`), dir);
+      assert.ok(exists(`src/pages/${dir}/${dir}.html`), dir);
+    }
+  });
+});
+
+describe('script load-order lists stay in sync', () => {
+  test('background.scripts starts with the core scripts, namespace first', () => {
+    assert.deepEqual(manifest.background.scripts.slice(0, CORE_SCRIPTS.length), CORE_SCRIPTS);
+    assert.equal(manifest.background.scripts.at(-1), 'src/background/background.js');
+  });
+
+  test('src/background/sw-chrome.js importScripts() the same list as background.scripts', () => {
+    const src = read('src/background/sw-chrome.js');
+    const call = /importScripts\(([^)]*)\)/s.exec(src);
+    assert.ok(call, 'importScripts call not found');
+    const listed = [...call[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+    // paths in sw-chrome.js are relative to src/background/
+    const resolved = listed.map((p) => posix.normalize(posix.join('src/background', p)));
+    assert.deepEqual(resolved, manifest.background.scripts);
+  });
+
+  test('every content script entry in the isolated world starts with the core scripts', () => {
+    const isolated = manifest.content_scripts.filter((cs) => cs.world !== 'MAIN');
+    assert.ok(isolated.length > 0);
+    for (const cs of isolated) assert.deepEqual(cs.js.slice(0, CORE_SCRIPTS.length), CORE_SCRIPTS);
+  });
+
+  test('MAIN-world scripts never load the AtPeace namespace or extension API', () => {
+    for (const cs of manifest.content_scripts.filter((c) => c.world === 'MAIN')) {
+      for (const f of cs.js) {
+        assert.ok(!CORE_SCRIPTS.includes(f), f);
+        const code = read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, ''); // comments may mention them
+        assert.doesNotMatch(code, /AtPeace|\bchrome\.|\bbrowser\./, `${f} must not use extension APIs`);
+      }
+    }
+  });
+});
+
+describe('extension pages obey the CSP rules (PLAN §3.2)', () => {
+  const pages = [
+    manifest.action.default_popup,
+    manifest.options_ui.page,
+    'src/pages/pause/pause.html',
+    'src/pages/blocked/blocked.html',
+  ];
+
+  for (const page of pages) {
+    test(`${page}: no inline scripts or handlers, every <script src> exists`, () => {
+      const html = read(page);
+      assert.match(html, /<title>[^<]+<\/title>/);
+      assert.doesNotMatch(html, /<script(?![^>]*\bsrc=)[^>]*>/i, 'inline <script>');
+      assert.doesNotMatch(html, /\son[a-z]+\s*=/i, 'inline event handler');
+      assert.doesNotMatch(html, /javascript:/i);
+      const dir = posix.dirname(page);
+      for (const m of html.matchAll(/<script[^>]*\bsrc="([^"]+)"/gi)) {
+        const target = posix.normalize(posix.join(dir, m[1]));
+        assert.ok(exists(target), `${page} loads missing ${target}`);
+      }
+    });
+  }
+});

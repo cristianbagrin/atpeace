@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>At Peace</title>
+  <!-- A persimmon sun resting on a short indigo horizon. Bold, and aligned to an 8-unit grid
+       (1 px at 16 px) so it stays crisp at the smallest size. -->
+  <circle cx="64" cy="52" r="36" fill="#E5600F"/>
+  <line x1="24" y1="96" x2="104" y2="96" stroke="#1B2050" stroke-width="16" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,6 @@
+node_modules/
+web-ext-artifacts/
+tests/e2e/artifacts/
+.cache/
+*.xpi
+.DS_Store
