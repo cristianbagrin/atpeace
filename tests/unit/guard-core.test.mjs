@@ -346,6 +346,53 @@ describe('guard controller: blocks', () => {
   });
 });
 
+describe('guard controller: reads', () => {
+  test('a change that arrives while a read is running makes it read again (nothing newer is missed)', async () => {
+    const h = harness({ state: {} });
+    let release;
+    const gate = new Promise((r) => (release = r));
+    let reads = 0;
+    const guard = G.create({
+      siteKey: 'youtube',
+      env: {
+        now: () => T0,
+        read: async () => {
+          reads++;
+          if (reads === 1) await gate;
+          return { state: reads === 1 ? {} : { blocks: [{ reason: 'focus', until: T0 + MIN, siteKeys: ['youtube'] }] }, settings: {} };
+        },
+        onStorageChange: () => () => {},
+        onWake: () => () => {},
+        urlFor: (p) => p,
+        pageUrl: () => 'u',
+        navigate: (u) => h.log.navigations.push(u),
+        closeTab: async () => ({ ok: true }),
+        showOverlay: () => {},
+        hideOverlay: () => {},
+        keepPaused: () => {},
+      },
+    });
+    const first = guard.refresh();
+    guard.refresh(); // a second change while the first read is still pending
+    release();
+    await first;
+    assert.equal(reads, 2);
+    assert.equal(h.log.navigations.length, 1, 'the newer state (a block) was acted on');
+  });
+
+  test('after sending the tab away the guard stops reading storage for a few seconds', async () => {
+    const h = harness({ state: { blocks: [{ reason: 'focus', until: T0 + 25 * MIN, siteKeys: ['youtube'] }] } });
+    await h.guard.start();
+    const before = h.log.reads;
+    await h.change({ state: {}, settings: {} });
+    await h.wake();
+    assert.equal(h.log.reads, before, 'no read while the page is unloading');
+    await h.advance(3500);
+    await h.wake();
+    assert.equal(h.log.reads, before + 1, 'and normal again afterwards');
+  });
+});
+
 describe('guard controller: sites resolved from storage (user-added sites)', () => {
   test('resolveSiteKey runs on the first read; a page of an unconfigured site does nothing', async () => {
     const sites = [{ siteKey: 'reddit.com', domain: 'reddit.com' }];

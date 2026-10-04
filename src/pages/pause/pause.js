@@ -246,6 +246,17 @@ function goOn() {
   location.replace(target);
 }
 
+/** Emergency exit for a dead background: remove the pause rules (ids 200–299) so the person is not bounced back. */
+async function liftPauseRules() {
+  try {
+    const rules = await AP.api.declarativeNetRequest.getDynamicRules();
+    const ids = rules.map((r) => r.id).filter((id) => id >= 200 && id < 300);
+    if (ids.length > 0) await AP.api.declarativeNetRequest.updateDynamicRules({ removeRuleIds: ids });
+  } catch {
+    /* nothing more to try */
+  }
+}
+
 async function continueToSite() {
   if (leaving || state !== 'choosing') return;
   leaving = true;
@@ -264,6 +275,9 @@ async function continueToSite() {
   // again. If it did not answer at all, go on anyway: the person must never be trapped here.
   // ("blocked": a focus block started meanwhile; loading the site lets the block rule show its page.)
   if (res?.ok || ['no-receiver', 'context-invalidated', 'blocked'].includes(res?.error)) {
+    // With no answer the pause rule is still in place and would send the load straight back here;
+    // this page can lift it itself (the next time the background runs it puts the right rules back).
+    if (!res?.ok && res?.error !== 'blocked') await liftPauseRules();
     goOn();
     return;
   }

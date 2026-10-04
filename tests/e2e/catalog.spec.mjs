@@ -281,6 +281,26 @@ group('home: hiding the sidebar leaves no gutter; the nudge and the feed hide cl
   await apply({ 'yt.home.feedMode': 'show' });
   await expectShown('feed column (show)', ['ytd-browse[page-subtype="home"] #primary']);
   await shot('home-after');
+
+  // Narrow window: YouTube collapses the guide to the icon strip (page starts at x = 72). Hiding the strip must
+  // give that width back, with the strip's own setting and with "hide the whole sidebar".
+  await apply({});
+  await page.setViewportSize({ width: 1100, height: 800 });
+  try {
+    await page.waitForFunction(() => document.querySelector('ytd-app')?.hasAttribute('mini-guide-visible'), null, { timeout: 10_000 });
+    await sleep(800);
+    assert.equal((await rect('ytd-page-manager')).x, 72, 'precondition: the icon strip is docked at 1100 px');
+    await shot('home-narrow-before');
+    await apply({ 'yt.guide.hideMini': true });
+    await expectHidden('icon strip', ['ytd-mini-guide-renderer']);
+    assert.equal((await rect('ytd-page-manager')).x, 0, 'the page starts at the left edge once the strip is hidden');
+    await shot('home-narrow-mini-hidden');
+    await apply({ 'yt.guide.hideAll': true });
+    assert.equal((await rect('ytd-page-manager')).x, 0, 'and with the whole sidebar hidden');
+    await apply({});
+  } finally {
+    await page.setViewportSize({ width: 1440, height: 900 });
+  }
 });
 
 group('home: shelves, Shorts cards and posts hide as whole grid items (synthetic cards)', async () => {
@@ -313,6 +333,24 @@ group('home: shelves, Shorts cards and posts hide as whole grid items (synthetic
   assert.equal(await state('other'), 'none', 'every extra row goes');
   assert.equal(await state('shelf'), 'none');
   assert.notEqual(await state('video'), 'none', 'but never a video card');
+
+  // Category bar: no chips are served logged out, so give the page one. The translucent backdrop behind the top
+  // bar grows to cover a chip bar (112 px) and must shrink back to the bar's own height (56 px) when the chips go.
+  await apply({});
+  await page.evaluate(() => {
+    const header = document.querySelector('ytd-browse[page-subtype="home"] ytd-rich-grid-renderer > #header');
+    header.removeAttribute('hidden');
+    header.appendChild(document.createElement('ytd-feed-filter-chip-bar-renderer')).setAttribute('data-test-id', 'chips');
+    const glass = document.querySelector('#frosted-glass');
+    glass.classList.remove('without-chipbar');
+    glass.classList.add('with-chipbar');
+  });
+  assert.notEqual(await state('chips'), 'none', 'precondition: the synthetic chip bar is shown');
+  assert.equal((await rect('#frosted-glass')).h, 112, 'precondition: the backdrop covers the chip bar');
+  await apply({ 'yt.home.hideChips': true });
+  assert.equal(await state('chips'), 'none', 'the chip bar goes');
+  assert.equal((await rect('#frosted-glass')).h, 56, 'and the backdrop shrinks back to the top bar: no frosted strip is left behind');
+  assert.notEqual(await state('video'), 'none');
 });
 
 // ---------------------------------------------------------------------------------------------

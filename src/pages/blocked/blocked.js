@@ -140,7 +140,9 @@ async function refresh() {
     /* keep the last settings */
   }
   status = await fetchStatus();
-  block = pickBlock(status.blocks ?? [], Date.now());
+  // The background's clock decides what is still running: judging by this page's own clock a few ms
+  // later could call a block over while the background has not yet removed its rule.
+  block = pickBlock(status.blocks ?? [], status.now ?? Date.now());
   render();
 }
 

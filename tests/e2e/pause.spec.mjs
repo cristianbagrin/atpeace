@@ -200,6 +200,29 @@ test('Close in a tab with nothing to go back to closes the tab', async () => {
   await opener.close();
 });
 
+test('never a trap: if the background does not answer, Continue still navigates; if it refuses, the page says so and Close still works', async () => {
+  const page = await newTab();
+  await page.goto(WATCH, { waitUntil: 'domcontentloaded' });
+  await waitPauseState(page, 'choosing');
+  // The background refuses: a calm note, the button comes back.
+  await page.evaluate(() => {
+    chrome.runtime.sendMessage = () => Promise.resolve({ ok: false, error: 'handler-failed' });
+  });
+  await page.click('#continue');
+  await page.waitForFunction(() => document.getElementById('note').textContent !== '');
+  assert.match(await page.locator('#note').textContent(), /did not work/);
+  assert.equal(await page.locator('#continue').isEnabled(), true);
+  assert.equal(await page.locator('#continue').textContent(), 'Continue for');
+  assert.equal(page.url().startsWith(extUrl('src/pages/pause/pause.html')), true);
+  // The background does not answer at all: go on anyway.
+  await page.evaluate(() => {
+    chrome.runtime.sendMessage = () => Promise.reject(new Error('Could not establish connection. Receiving end does not exist.'));
+  });
+  await page.click('#continue');
+  await page.waitForURL(WATCH, { timeout: 10_000 });
+  await page.close();
+});
+
 test('Escape is Close; it never trips over the select', async () => {
   const { opener, popup: page } = await openLinkTab(YT);
   await waitPauseState(page, 'choosing');
@@ -292,7 +315,7 @@ test('a pause for a user-added site: rule, page, label and its own session', asy
     ],
   });
   const rules = await dnrRules();
-  assert.deepEqual(rules.map((r) => r.condition.regexFilter), ['^https?://([a-z0-9-]+\\.)*example\\.org/.*', '^https?://(www\\.|m\\.)?youtube\\.com/.*']);
+  assert.deepEqual(rules.map((r) => r.condition.regexFilter), ['^https?://([a-z0-9-]+\\.)*example\\.org(:[0-9]+)?/.*', '^https?://(www\\.|m\\.)?youtube\\.com/.*']);
   // The redirect itself needs the browser to have granted access to the site (permissions.request, asked
   // for when the site is added), which a test cannot click. So the page is opened the way the rule would.
   const page = await newTab();
@@ -397,6 +420,21 @@ test('the master switch is no way out: with At Peace turned off the pause still 
   await page.waitForURL(WATCH, { timeout: 10_000 });
   await configureSession(Date.now() + 2000);
   await page.waitForSelector('[data-at-peace-overlay]', { state: 'attached', timeout: 10_000 });
+  await page.close();
+});
+
+test('the session ends by itself: the background alarm brings the pause rule back (nobody asks it to)', async () => {
+  assert.equal((await send('PAUSE_CONTINUE', { siteKey: 'youtube', minutes: 5 })).ok, true);
+  assert.deepEqual(await dnrRules(), []);
+  await configureSession(Date.now() + 3000);
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+  assert.deepEqual(await dnrRules(), [], 'still running');
+  await new Promise((resolve) => setTimeout(resolve, 3500));
+  assert.equal((await dnrRules()).length, 1, 'the pause is back');
+  assert.deepEqual((await readState()).state.sessions, {});
+  const page = await newTab();
+  await page.goto(YT, { waitUntil: 'domcontentloaded' });
+  assert.ok(page.url().startsWith(extUrl('src/pages/pause/pause.html')));
   await page.close();
 });
 

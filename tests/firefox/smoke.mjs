@@ -209,7 +209,10 @@ test('extension loads as a temporary add-on and its background answers GET_STATU
   assert.deepEqual(errors, []);
 
   const status = await sendMessage({ type: 'GET_STATUS' });
-  assert.deepEqual(status, { ok: true, version: '0.1.0' });
+  // Phase 3c answers the full Contract C3 shape (src/background/sessions.js), not just { ok, version }.
+  assert.equal(status.ok, true);
+  assert.equal(status.version, '0.1.0');
+  for (const key of ['block', 'sessions', 'scheduleOverride', 'activeSchedules', 'today', 'limit']) assert.ok(key in status, `GET_STATUS has ${key}`);
 
   const unknown = await sendMessage({ type: 'NO_SUCH_MESSAGE' });
   assert.deepEqual(unknown, { ok: false, error: 'unknown' });

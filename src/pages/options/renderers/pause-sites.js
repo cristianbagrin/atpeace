@@ -98,6 +98,7 @@
           sites = next;
           showError(null);
           if (successMessage) ctx.toast(successMessage);
+          refreshAccess(); // access may have changed behind our back; the rows say what is true now
           return true;
         } catch (err) {
           showError(String(err?.message ?? '') || 'That could not be saved.');
@@ -106,6 +107,8 @@
           draw();
         }
       };
+
+      const refreshAccess = () => sites.filter((s) => s.siteKey !== 'youtube').forEach(checkAccess);
 
       const checkAccess = async (site) => {
         try {
@@ -215,7 +218,6 @@
       input.addEventListener('input', () => showError(null));
 
       // Access can change behind our back (about:addons, another tab).
-      const refreshAccess = () => sites.filter((s) => s.siteKey !== 'youtube').forEach(checkAccess);
       for (const eventName of ['onAdded', 'onRemoved']) api.permissions?.[eventName]?.addListener(refreshAccess);
 
       root.apply = (next) => {

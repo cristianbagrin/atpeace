@@ -26,6 +26,8 @@
   const MAX_TIMER_MS = 2_147_000_000;
   const HEARTBEAT_MS = 30_000;
   const MIN_BEAT_GAP_MS = 25_000;
+  /** After a redirect the page is going away: skip storage reads this long (they would resolve into an unloading page). */
+  const LEAVE_QUIET_MS = 3000;
 
   const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
@@ -201,6 +203,10 @@
     const memory = { knownUntil: null, knownMinutes: null };
     let overlayFor = null; // the session end the overlay was shown for
     let redirected = false;
+    let leaveUntil = 0; // after sending the tab away, no more storage reads for a moment (the page is unloading)
+    let again = false;
+
+    const leaving = () => redirected && env.now() < leaveUntil;
 
     const clearTimer = () => {
       if (timer !== null) env.clearTimeout(timer);
@@ -253,6 +259,7 @@
           clearTimer();
           if (!redirected) {
             redirected = true;
+            leaveUntil = now + LEAVE_QUIET_MS;
             try {
               options.pauseMedia?.();
             } catch {
@@ -294,18 +301,30 @@
       }
     }
 
-    /** Re-reads storage, then evaluates. Concurrent calls share one read. */
+    /**
+     * Re-reads storage, then evaluates. Calls that arrive while a read is running share it, and make
+     * it run once more afterwards (what they heard about may be newer than what that read saw).
+     */
     function refresh() {
-      reading ??= (async () => {
+      if (leaving()) return Promise.resolve();
+      if (reading) {
+        again = true;
+        return reading;
+      }
+      reading = (async () => {
         try {
-          const got = await env.read();
-          snapshot = parseSnapshot(got);
-          if (siteKey === null && options.resolveSiteKey) siteKey = options.resolveSiteKey(snapshot);
-          evaluate();
+          do {
+            again = false;
+            const got = await env.read();
+            snapshot = parseSnapshot(got);
+            if (siteKey === null && options.resolveSiteKey) siteKey = options.resolveSiteKey(snapshot);
+            evaluate();
+          } while (again && !leaving());
         } catch (err) {
           AP.log('guard could not read state', err); // e.g. the extension was reloaded under this page
         } finally {
           reading = null;
+          again = false;
         }
       })();
       return reading;

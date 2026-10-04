@@ -33,6 +33,7 @@ export const extUrl = (path) => `moz-extension://${UUID}/${path}`;
 export { firefox };
 
 /**
+ * @param {{ prefs?: Record<string, string|number|boolean> }} [config] extra Firefox preferences, applied last
  * @returns {Promise<{
  *   driver: import('selenium-webdriver').WebDriver,
  *   logEntries: any[],
@@ -44,7 +45,7 @@ export { firefox };
  *   close: () => Promise<void>,
  * }>}
  */
-export async function launchFirefox() {
+export async function launchFirefox({ prefs = {} } = {}) {
   for (const f of [FIREFOX_BIN, GECKODRIVER_BIN]) {
     if (!existsSync(f)) throw new Error(`Missing ${f}. Run: bash tests/firefox/setup.sh`);
   }
@@ -80,6 +81,8 @@ export async function launchFirefox() {
   options.setPreference('network.connectivity-service.enabled', false);
   options.setPreference('extensions.update.enabled', false);
   options.setPreference('app.normandy.enabled', false);
+  // Per-spec extras (e.g. Phase 3c resolves a test hostname to localhost and auto-grants optional permissions).
+  for (const [name, value] of Object.entries(prefs)) options.setPreference(name, value);
   options.setPreference('browser.safebrowsing.malware.enabled', false);
   options.setPreference('browser.safebrowsing.phishing.enabled', false);
 

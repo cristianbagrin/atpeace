@@ -27,6 +27,8 @@ test('background service worker is alive and answers GET_STATUS', async () => {
   const status = await page.evaluate(() => chrome.runtime.sendMessage({ type: 'GET_STATUS' }));
   assert.equal(status.ok, true);
   assert.equal(status.version, '0.1.0');
+  // Phase 3c: the full Contract C3 shape.
+  for (const key of ['block', 'sessions', 'scheduleOverride', 'activeSchedules', 'today', 'limit']) assert.ok(key in status, `GET_STATUS has ${key}`);
 
   const unknown = await page.evaluate(() => chrome.runtime.sendMessage({ type: 'NO_SUCH_MESSAGE' }));
   assert.deepEqual(unknown, { ok: false, error: 'unknown' });

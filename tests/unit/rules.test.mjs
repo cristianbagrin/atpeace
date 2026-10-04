@@ -123,15 +123,15 @@ describe('computeRules', () => {
       const rules = compute(withSites(REDDIT, { siteKey: 'news.example.co.uk', domain: 'news.example.co.uk', enabled: true }));
       assert.deepEqual(ids(rules), [200, 201, 202]);
       // ids follow the sorted site keys: news…, reddit.com, youtube
-      assert.equal(rules[0].condition.regexFilter, '^https?://([a-z0-9-]+\\.)*news\\.example\\.co\\.uk/.*');
-      assert.equal(rules[1].condition.regexFilter, '^https?://([a-z0-9-]+\\.)*reddit\\.com/.*');
+      assert.equal(rules[0].condition.regexFilter, '^https?://([a-z0-9-]+\\.)*news\\.example\\.co\\.uk(:[0-9]+)?/.*');
+      assert.equal(rules[1].condition.regexFilter, '^https?://([a-z0-9-]+\\.)*reddit\\.com(:[0-9]+)?/.*');
       assert.equal(rules[2].condition.regexFilter, R.YOUTUBE_REGEX);
       for (const r of rules) assert.doesNotMatch(r.condition.regexFilter, /\(\?[=!<]|\\[1-9]/);
     });
 
     test('the regex matches the domain and its subdomains, but not look-alikes', () => {
       const re = new RegExp(R.siteRegex(REDDIT), 'i');
-      for (const url of ['https://reddit.com/', 'http://www.reddit.com/r/x?y=1', 'https://old.reddit.com/', 'https://a.b.reddit.com/z']) assert.ok(re.test(url), url);
+      for (const url of ['https://reddit.com/', 'http://reddit.com:8080/x', 'http://www.reddit.com/r/x?y=1', 'https://old.reddit.com/', 'https://a.b.reddit.com/z']) assert.ok(re.test(url), url);
       for (const url of ['https://notreddit.com/', 'https://reddit.com.evil.example/', 'https://evil.example/reddit.com/', 'https://redditXcom/']) assert.ok(!re.test(url), url);
       assert.equal(new RegExp(R.siteRegex(REDDIT), 'i').exec('https://www.reddit.com/r/x?y=1#f')[0], 'https://www.reddit.com/r/x?y=1#f', '\\0 is the whole URL');
     });
@@ -158,7 +158,7 @@ describe('computeRules', () => {
     test('focus block for a user site: block rule with that site\'s regex', () => {
       const rules = compute(withSites(REDDIT), stateOf({ blocks: [{ reason: 'focus', until: NOW + MIN, siteKeys: ['reddit.com'] }] }));
       const block = rules.find((r) => r.id < 200);
-      assert.equal(block.condition.regexFilter, '^https?://([a-z0-9-]+\\.)*reddit\\.com/.*');
+      assert.equal(block.condition.regexFilter, '^https?://([a-z0-9-]+\\.)*reddit\\.com(:[0-9]+)?/.*');
     });
   });
 

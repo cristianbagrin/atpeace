@@ -132,8 +132,9 @@
 
       const globalError = h('p', { class: 'field-error', role: 'alert', hidden: true });
       const body = h('div', { class: 'sched-list' });
-      const addButton = h('button', { type: 'button', class: 'btn add', id: ctx.inputId }, 'Add a schedule');
-      const root = h('div', { class: ROOT_CLASS }, body, addButton, globalError);
+      const addButton = h('button', { type: 'button', class: 'btn add' }, 'Add a schedule');
+      // (ctx.inputId is not put on the button: a <label for> would then rename it "Weekly schedules".)
+      const root = h('div', { class: ROOT_CLASS, role: 'group', 'aria-label': def.label }, body, addButton, globalError);
 
       /** What gets stored: only what the schema keeps. */
       const clean = (s) => ({
@@ -263,10 +264,9 @@
       function draw() {
         const focused = document.activeElement;
         const path = focused && root.contains(focused) ? focused.getAttribute('aria-label') : null;
-        body.replaceChildren(
-          draft.length === 0 ? h('p', { class: 'empty' }, 'No schedules yet. Add one to close a site at the same times every week.') : null,
-          ...draft.map(card),
-        );
+        const children = draft.map(card);
+        if (draft.length === 0) children.push(h('p', { class: 'empty' }, 'No schedules yet. Add one to close a site at the same times every week.'));
+        body.replaceChildren(...children);
         addButton.disabled = draft.length >= MAX_SCHEDULES;
         // Keep the keyboard where it was after a redraw.
         if (path) [...body.querySelectorAll('[aria-label]')].find((el) => el.getAttribute('aria-label') === path)?.focus();

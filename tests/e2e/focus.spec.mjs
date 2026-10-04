@@ -23,7 +23,6 @@ beforeEach(async () => {
   await resetStorage();
 });
 
-const state = (page) => page.evaluate(() => document.body.dataset.state);
 const waitState = (page, s, timeout = 10_000) => page.waitForFunction((x) => document.body.dataset.state === x, s, { timeout });
 
 async function blockedTab(url = WATCH) {

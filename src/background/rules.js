@@ -40,7 +40,7 @@
    */
   function siteRegex(site) {
     if (site.siteKey === 'youtube') return YOUTUBE_REGEX;
-    return `^https?://([a-z0-9-]+\\.)*${escapeRegex(site.domain)}/.*`;
+    return `^https?://([a-z0-9-]+\\.)*${escapeRegex(site.domain)}(:[0-9]+)?/.*`;
   }
 
   const redirectRule = (id, priority, regex, target) => ({

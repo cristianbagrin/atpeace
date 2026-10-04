@@ -75,6 +75,14 @@ export async function shot(page, name) {
   return path;
 }
 
+/** Saves a screenshot of one element (a row of the options page, say). */
+export async function shotEl(locator, name) {
+  await mkdir(SHOTS, { recursive: true });
+  const path = join(SHOTS, `${name}.png`);
+  await locator.screenshot({ path });
+  return path;
+}
+
 /** Waits for the pause page to reach a state: 'breathing' | 'choosing' | 'session' | 'invalid'. */
 export async function waitPauseState(page, state, timeout = 10_000) {
   await page.waitForFunction((s) => document.body?.dataset.state === s, state, { timeout });

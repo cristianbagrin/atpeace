@@ -45,8 +45,11 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_SNAPSHOTS = join(ROOT, 'tests', 'e2e', 'artifacts', 'research');
 const DEFAULT_PROFILE = join(homedir(), '.cache', 'at-peace', 'yt-profile');
 const AREA_LIMIT = 0.6;
-/** Settings whose whole point is to blank most of the page (the feed, the Shorts player, a channel's Home rows). */
-const BROAD_BY_DESIGN = new Set(['yt.home.feedMode', 'yt.shorts.mode', 'yt.channel.hideHomeShelves', 'yt.home.hideOtherShelves']);
+/**
+ * Settings whose whole point is to blank most of the page (the feed, the Shorts player, a channel's Home rows,
+ * the comments when the page is scrolled down to them).
+ */
+const BROAD_BY_DESIGN = new Set(['yt.home.feedMode', 'yt.shorts.mode', 'yt.channel.hideHomeShelves', 'yt.home.hideOtherShelves', 'yt.comments.hideAll']);
 
 // ---------------------------------------------------------------------------------------------
 // Which snapshot / live page is which YouTube page type (AP.yt.page.TYPES)
@@ -175,6 +178,9 @@ function inspectInPage({ selectors, withArea }) {
         const vw = window.innerWidth;
         const vh = window.innerHeight;
         for (const el of els) {
+          // A closed drawer is a full-screen host with visibility:hidden; what cannot be seen does not count.
+          const style = getComputedStyle(el);
+          if (style.visibility === 'hidden' || style.opacity === '0') continue;
           for (const r of el.getClientRects()) {
             const x0 = Math.max(0, r.left);
             const x1 = Math.min(vw, r.right);
@@ -193,8 +199,6 @@ function inspectInPage({ selectors, withArea }) {
       out[sel] = { error: String(err.message || err).split('\n')[0] };
     }
   }
-  // Layout is only meaningful live; offline snapshots carry no CSS.
-  void getComputedStyle;
   return out;
 }
 
