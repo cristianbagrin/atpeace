@@ -74,7 +74,18 @@
     '.ytp-videowall-still',
     '.ytp-ce-element',
   ];
+  // Whole thumbnail boxes (picture AND the badges on it), for "Hide": the box keeps its size.
+  const THUMBNAIL_BOXES = [
+    'yt-thumbnail-view-model',
+    'ytd-thumbnail',
+    'ytd-playlist-thumbnail',
+    'yt-collection-thumbnail-view-model',
+    '.ytp-modern-videowall-still-image',
+    '.ytp-videowall-still-image',
+    '.ytp-ce-covering-image',
+  ];
   const images = `:is(${THUMBNAIL_IMAGES.join(', ')})`;
+  const boxes = `:is(${THUMBNAIL_BOXES.join(', ')})`;
   const cards = `:is(${THUMBNAIL_CARDS.join(', ')})`;
   /** Blur / grey the picture, and undo it while the pointer is over its card. */
   const filtered = (filter) => [
@@ -110,7 +121,7 @@
       id: 'yt.general.thumbnails',
       group: 'Look',
       label: 'Thumbnails',
-      description: 'Blur or grey out video thumbnails (they come back when you point at one), or leave the space empty.',
+      description: 'Blur or grey out video thumbnails (they come back when you point at one), or leave an empty space where they were.',
       type: 'select',
       default: 'show',
       options: [
@@ -125,8 +136,9 @@
       variants: {
         blur: { rules: filtered('blur(14px)') },
         grayscale: { rules: filtered('grayscale(1)') },
-        // visibility (not display) keeps the grid cell the same size, so cards do not jump.
-        hide: { rules: [`:scope-on ${images} { visibility: hidden !important; }`] },
+        // visibility (not display) keeps the grid cell the same size, so cards do not jump; the badges
+        // on the picture (length, LIVE, progress) go with it instead of floating over an empty box.
+        hide: { rules: [`:scope-on ${boxes} { visibility: hidden !important; }`] },
       },
       quick: true,
       since: '0.1.0',
@@ -174,6 +186,8 @@
         `${LOCKUP_STATS_ROW} > :nth-child(1 of .ytContentMetadataViewModelMetadataText)`,
         `${LOCKUP_STATS_ROW} > .ytContentMetadataViewModelDelimiter`,
         'yt-lockup-view-model .ytContentMetadataViewModelLeadingIcon',
+        // Live streams show "764 watching" alone in the row after the channel name (no bullet to key on).
+        'yt-lockup-view-model:has(badge-shape.ytBadgeShapeThumbnailLive) .ytContentMetadataViewModelMetadataRow:nth-child(2 of .ytContentMetadataViewModelMetadataRow):not(:has(.ytContentMetadataViewModelBadge))',
         // Shorts cards: the sub-heading is only the view count.
         '.shortsLockupViewModelHostOutsideMetadataSubhead',
         // Legacy renderers (search results, hashtag pages, old grids): first span = views.

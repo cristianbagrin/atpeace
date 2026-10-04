@@ -1,14 +1,99 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>At Peace</title>
+  <link rel="stylesheet" href="../common/tokens.css">
+  <link rel="stylesheet" href="../common/base.css">
+  <link rel="stylesheet" href="pause.css">
+  <script src="../common/theme-boot.js"></script>
 </head>
-<body>
-  <h1>At Peace</h1>
-  <p>Pause page placeholder (replaced in Phase 3c).</p>
-  <p id="target"></p>
+<body data-state="loading">
+  <div class="page">
+    <header class="top">
+      <h1 class="wordmark"><span class="seal" aria-hidden="true"></span>At Peace</h1>
+    </header>
+
+    <main class="column" id="column">
+      <div class="horizon" aria-hidden="true"><div class="sun" id="sun"></div></div>
+
+      <!-- Every layer sits in the same grid cell, so switching between them never moves the page. -->
+      <div class="panel">
+        <section class="layer breath" id="breath" aria-live="polite">
+          <p class="guidance" id="guidance">Breathe in…</p>
+          <p class="countdown mono" id="countdown" aria-hidden="true" hidden></p>
+        </section>
+
+        <section class="layer choice" id="choice" aria-labelledby="question" inert>
+          <h2 class="question" id="question">Do you want to open this site?</h2>
+          <p class="count-line" id="count-line" hidden></p>
+          <div class="intention" id="intention-wrap" hidden>
+            <label class="caps" for="intention" id="intention-label">What did you come for?</label>
+            <input type="text" id="intention" maxlength="140" autocomplete="off" spellcheck="false" placeholder="A few words, just for you">
+          </div>
+          <div class="actions">
+            <button type="button" class="btn btn-primary big" id="close" disabled>Close</button>
+            <div class="split" id="split">
+              <button type="button" class="go" id="continue" disabled>Continue for</button>
+              <span class="select"><select id="minutes" aria-label="How long" disabled></select></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="layer session" id="session" aria-labelledby="session-line" inert>
+          <h2 class="question" id="session-line"></h2>
+          <p class="count-line" id="session-sub">A session is already running.</p>
+          <div class="actions">
+            <button type="button" class="btn btn-primary big" id="session-go">Continue</button>
+            <button type="button" class="btn big" id="session-close">Close</button>
+          </div>
+        </section>
+
+        <section class="layer invalid" id="invalid" aria-labelledby="invalid-line" inert>
+          <h2 class="question" id="invalid-line">There is nothing to open here.</h2>
+          <p class="count-line">This page appears when a site you chose to pause is about to open.</p>
+          <div class="actions">
+            <button type="button" class="btn btn-primary big" id="invalid-close">Close this tab</button>
+          </div>
+        </section>
+      </div>
+
+      <p class="note" id="note" role="status"></p>
+    </main>
+
+    <footer class="foot">
+      <p class="target mono" id="target"></p>
+    </footer>
+  </div>
+
+  <!-- Shared classic scripts, in the same order as the YouTube content script (manifest.json). -->
+  <script src="../../shared/namespace.js"></script>
+  <script src="../../shared/browser-api.js"></script>
+  <script src="../../shared/util.js"></script>
+  <script src="../../shared/messages.js"></script>
+  <script src="../../shared/schema-core.js"></script>
+  <script src="../../shared/schema/general.js"></script>
+  <script src="../../shared/schema/pause.js"></script>
+  <script src="../../shared/schema/focus.js"></script>
+  <script src="../../shared/schema/advanced.js"></script>
+  <script src="../../sites/youtube/schema/general.js"></script>
+  <script src="../../sites/youtube/schema/masthead.js"></script>
+  <script src="../../sites/youtube/schema/guide.js"></script>
+  <script src="../../sites/youtube/schema/home.js"></script>
+  <script src="../../sites/youtube/schema/watch.js"></script>
+  <script src="../../sites/youtube/schema/player.js"></script>
+  <script src="../../sites/youtube/schema/comments.js"></script>
+  <script src="../../sites/youtube/schema/search.js"></script>
+  <script src="../../sites/youtube/schema/shorts.js"></script>
+  <script src="../../sites/youtube/schema/subscriptions.js"></script>
+  <script src="../../sites/youtube/schema/channel.js"></script>
+  <script src="../../sites/youtube/schema/filters.js"></script>
+  <script src="../../shared/presets.js"></script>
+  <script src="../../shared/settings.js"></script>
+  <script src="../../shared/state.js"></script>
+  <script src="../common/logic.js"></script>
+  <script src="../common/components.js"></script>
   <script type="module" src="pause.js"></script>
 </body>
 </html>

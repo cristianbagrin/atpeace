@@ -51,6 +51,11 @@
       "src/shared/presets.js",
       "src/shared/settings.js",
       "src/shared/state.js",
+      "src/background/store.js",
+      "src/background/stats.js",
+      "src/background/sessions.js",
+      "src/background/rules.js",
+      "src/background/guards.js",
       "src/background/background.js"
     ]
   },
@@ -84,6 +89,10 @@
         "src/shared/state.js",
         "src/content/engine.js",
         "src/sites/youtube/page.js",
+        "src/content/overlay.js",
+        "src/content/guard-core.js",
+        "src/sites/youtube/features/session-guard.js",
+        "src/sites/youtube/features/time-tracker.js",
         "src/sites/youtube/main.js"
       ],
       "run_at": "document_start",

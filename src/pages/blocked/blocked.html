@@ -1,14 +1,69 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>At Peace</title>
+  <link rel="stylesheet" href="../common/tokens.css">
+  <link rel="stylesheet" href="../common/base.css">
+  <link rel="stylesheet" href="blocked.css">
+  <script src="../common/theme-boot.js"></script>
 </head>
-<body>
-  <h1>At Peace</h1>
-  <p>Blocked page placeholder (replaced in Phase 3c).</p>
-  <p id="target"></p>
+<body data-state="loading">
+  <div class="page">
+    <header class="top">
+      <h1 class="wordmark"><span class="seal" aria-hidden="true"></span>At Peace</h1>
+    </header>
+
+    <main class="column">
+      <!-- The seal is hollow here: closed. It fills in when the block ends. -->
+      <div class="horizon" aria-hidden="true"><div class="ring"></div></div>
+
+      <h2 class="title" id="title"></h2>
+      <p class="sub" id="sub"></p>
+
+      <div class="time" id="time" hidden>
+        <p class="clock mono" id="clock" role="timer" aria-live="off"></p>
+        <p class="until" id="until"></p>
+      </div>
+
+      <div class="cta" id="cta"></div>
+      <section class="unlock" id="unlock" aria-label="Ending this early"></section>
+      <p class="note" id="note" role="status"></p>
+    </main>
+
+    <footer class="foot">
+      <p class="target mono" id="target"></p>
+    </footer>
+  </div>
+
+  <!-- Shared classic scripts, in the same order as the YouTube content script (manifest.json). -->
+  <script src="../../shared/namespace.js"></script>
+  <script src="../../shared/browser-api.js"></script>
+  <script src="../../shared/util.js"></script>
+  <script src="../../shared/messages.js"></script>
+  <script src="../../shared/schema-core.js"></script>
+  <script src="../../shared/schema/general.js"></script>
+  <script src="../../shared/schema/pause.js"></script>
+  <script src="../../shared/schema/focus.js"></script>
+  <script src="../../shared/schema/advanced.js"></script>
+  <script src="../../sites/youtube/schema/general.js"></script>
+  <script src="../../sites/youtube/schema/masthead.js"></script>
+  <script src="../../sites/youtube/schema/guide.js"></script>
+  <script src="../../sites/youtube/schema/home.js"></script>
+  <script src="../../sites/youtube/schema/watch.js"></script>
+  <script src="../../sites/youtube/schema/player.js"></script>
+  <script src="../../sites/youtube/schema/comments.js"></script>
+  <script src="../../sites/youtube/schema/search.js"></script>
+  <script src="../../sites/youtube/schema/shorts.js"></script>
+  <script src="../../sites/youtube/schema/subscriptions.js"></script>
+  <script src="../../sites/youtube/schema/channel.js"></script>
+  <script src="../../sites/youtube/schema/filters.js"></script>
+  <script src="../../shared/presets.js"></script>
+  <script src="../../shared/settings.js"></script>
+  <script src="../../shared/state.js"></script>
+  <script src="../common/logic.js"></script>
+  <script src="../common/components.js"></script>
   <script type="module" src="blocked.js"></script>
 </body>
 </html>

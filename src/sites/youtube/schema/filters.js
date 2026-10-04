@@ -20,7 +20,7 @@
       id: 'yt.filters.keywords',
       group: 'Hide videos',
       label: 'Words to hide',
-      description: `Hides any video whose title or description contains one of these words or phrases. Wrap a pattern in slashes for a regular expression, like /spoiler|leak/i. ${LIST_NOTE}`,
+      description: `Hides any video whose title contains one of these words or phrases. Wrap a pattern in slashes for a regular expression, like /spoiler|leak/i. ${LIST_NOTE}`,
       type: 'list',
       default: [],
       maxItems: 500,

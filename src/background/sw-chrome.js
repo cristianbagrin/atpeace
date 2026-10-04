@@ -26,5 +26,10 @@ importScripts(
   '../shared/presets.js',
   '../shared/settings.js',
   '../shared/state.js',
+  './store.js',
+  './stats.js',
+  './sessions.js',
+  './rules.js',
+  './guards.js',
   './background.js',
 );

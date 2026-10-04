@@ -1603,3 +1603,66 @@ Habits that kept this research honest: (1) take `--dom` snapshots (never re-pars
 | `watch-rick.html`, `watch-rick.player-early.html` | the first (re-parsed) Rick Astley dumps — only source of end-screen class names |
 | `feed-trending.*`, `feed-explore.*`, `feed-you.*`, `channel-playlists.*` | HTML dumps proving the trending/explore redirect and the signed-out feeds |
 
+
+---
+
+## 8. Phase 2b: how the catalog uses this research (decisions and new findings)
+
+The catalog lives in `src/sites/youtube/schema/*.js`; `npm run selectors` writes `docs/selector-report.md`
+(per selector: matches on the snapshots, ✅/⚠️/❌, plus a check that nothing page-wide is hit). Where the
+catalog differs from the entries above, **the catalog is right**; the reasons:
+
+**Verified in a second browser.** Real Firefox 157 (headless, extension installed): `html { filter: grayscale(1) }`
+keeps the masthead `position: fixed` at `top: 0` after scrolling (risk R4 resolved; the filter is on `<html>`,
+never on `<body>`). `:has()`, `:not(:has())`, `:nth-child(1 of S)`, blur-until-hover and the guide gutter fix behave
+as in Chromium.
+
+**Changed or refined**
+- **Ads:** `.video-ads` / `.ytp-ad-module` are *not* hidden by any setting. They hold the ad's Skip button; hiding
+  them leaves an ad playing with no way to skip it. `watch.hidePlayerAds` hides only the companion slot, the ads
+  engagement panel and `.ytp-ad-overlay-container` (banner overlay). `ytp-autonav-endscreen-countdown-overlay` is
+  not hidden either (it is the only warning that autoplay is about to switch videos).
+- **Premium upsells:** the two modal dialog selectors (`tp-yt-paper-dialog:has(upsell-view-model)`,
+  offline promo) were dropped: hiding a modal dialog leaves its backdrop behind and blocks the page.
+- **Thumbnails:** blur/grayscale are on the `<img>` (badges stay crisp); "hide" is `visibility:hidden` on the whole
+  thumbnail box (picture *and* its badges), so the card keeps its size and no duration pill floats over a blank box.
+  Reveal-on-hover is `:is(card):hover :is(img)`; the reveal outweighs the filter by specificity. **Caveat found
+  live:** YouTube's hover preview (`#video-preview`, `ytd-video-preview`) is a separate element drawn over the
+  card; once it appears the pointer is no longer "on the card" and the picture underneath re-blurs. The preview
+  itself is not blurred. Pair thumbnails with `general.disableHoverPreview` if that matters.
+- **`hideWatched`** is limited to home, subscriptions, channel pages, search and the watch sidebar (not history,
+  not playlists, where watched videos are the content).
+- **`channel.hideHomeShelves`:** item sections also hold the Posts and Playlists tabs. The rule only applies while
+  the **first** `yt-tab-shape` (always Home) is `aria-selected="true"`: `ytd-browse[page-subtype="channels"]:has(
+  yt-tab-group-shape [role=tablist] > yt-tab-shape:first-child[aria-selected="true"]) ytd-item-section-renderer…`
+  (verified: Home tab = 5 sections hidden, Videos tab = none). Language-free, no bridge needed.
+- **Tabs** (`hideShortsTab`, `hidePostsTab`, `hideStoreTab` + new `hideLiveTab`, `hidePlaylistsTab`,
+  `hidePodcastsTab`) are only `yt-tab-shape[data-at-peace-tab="…"]` (bridge, contract C5).
+- **`watch.hideRelated`** collapses `#secondary` unless a playlist is playing (`#playlist:not([hidden])`), live chat
+  is open (`[live-chat-present-and-expanded]`) or an engagement panel is expanded
+  (`ytd-engagement-panel-section-list-renderer[visibility="ENGAGEMENT_PANEL_VISIBILITY_EXPANDED"]`, verified attribute).
+  With `hideLiveChat` also on, the chat condition is dropped (rule gated on both tokens). Verified in both browsers:
+  player 996 → 1394 px (Chromium), 877 → 1006 px (Firefox); with a playlist the column stays.
+- **`watch.hideViewCount` / `hideUploadDate`:** in `#info` a normal video is `span(views) span span(date) span [a]`, a live
+  stream `span(date) span a` with the viewer count in `#view-count` — hence `:nth-child(1):has(~ span:nth-child(3))`
+  for views and `:nth-child(3)` plus `:nth-child(1):not(:has(~ span:nth-child(3)))` for the date. The hover tooltip
+  (`tp-yt-paper-tooltip`) holds both numbers and goes with either setting.
+- **Live viewer counts in cards:** a live lockup shows `N watching` alone in the 2nd metadata row (no bullet).
+  `general.hideViewCounts` hides it with `yt-lockup-view-model:has(badge-shape.ytBadgeShapeThumbnailLive) …:nth-child(2 of
+  .ytContentMetadataViewModelMetadataRow):not(:has(.ytContentMetadataViewModelBadge))` (verified on watch-live: the 5 live
+  cards). Known leak: a live card whose *first* row is the viewer count (channel Videos tab).
+- **Legacy cards:** hiding the first `#metadata-line` span leaves the separator bullet, drawn as `::before` of the 2nd span;
+  `hideViewCounts` removes it (`span:nth-of-type(2)::before { display:none }`, verified).
+- **Bridge-tag guard:** every `data-at-peace-action` selector ends in `:not(ytd-menu-renderer, #actions, #actions-inner,
+  #menu, #top-level-buttons-computed, #flexible-item-buttons)`, so a bridge that tags a *container* of the button row can
+  never hide the whole row. The bridge must tag the button hosts themselves.
+- **Dropped guesses:** `ytd-secondary-search-container-renderer`, `target-id*="ai"` (Ask), positional Share/Save
+  (`+ yt-button-view-model`, `:last-of-type`): a reordered row would hide the wrong button. `ytd-guide-section-renderer:has(
+  a[href^="/@"])` for the channel list was replaced (the signed-in "You" section's "Your channel" also links to a handle).
+- **`guide.hideExploreSection`** also keys on the Gaming/News/Sports topic channels and `/feed/trending`; **`hideCreate`** is
+  `#buttons > :is(ytd-button-renderer, ytd-topbar-menu-button-renderer):has(+ ytd-notification-topbar-button-renderer)`
+  ("whatever sits before the bell"); both are signed-in structure and unverified.
+
+**Test gotcha (live):** appending children to a YouTube custom element *before* inserting it is useless: Polymer stamps
+its template on insertion and drops them. Synthetic cards in `tests/e2e/catalog.spec.mjs` are inserted first and filled
+afterwards. Also keep the mouse off the cards in tests: a pointer resting on a card reveals its thumbnail.

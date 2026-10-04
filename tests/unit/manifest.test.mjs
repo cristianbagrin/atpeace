@@ -79,8 +79,13 @@ describe('script load-order lists stay in sync', () => {
     for (const cs of isolated) assert.deepEqual(cs.js.slice(0, CORE_SCRIPTS.length), CORE_SCRIPTS);
   });
 
-  test('background.scripts = core + schema stack + background.js, exactly', () => {
-    assert.deepEqual(manifest.background.scripts, [...CORE_SCRIPTS, ...SCHEMA_SCRIPTS, 'src/background/background.js']);
+  test('background.scripts = core + schema stack + (background modules, redirect catalog) + background.js last', () => {
+    const scripts = manifest.background.scripts;
+    const head = CORE_SCRIPTS.length + SCHEMA_SCRIPTS.length;
+    assert.deepEqual(scripts.slice(0, head), [...CORE_SCRIPTS, ...SCHEMA_SCRIPTS]);
+    assert.equal(scripts.at(-1), 'src/background/background.js');
+    // Between: the background modules (Phase 3c) and the shared YouTube redirect catalog (Contract C2).
+    for (const f of scripts.slice(head, -1)) assert.match(f, /^src\/background\/[\w-]+\.js$|^src\/sites\/youtube\/redirects\.js$/, f);
   });
 
   test('YouTube content script = core + schema stack, then engine, page, (features), main last', () => {
@@ -89,8 +94,18 @@ describe('script load-order lists stay in sync', () => {
     const rest = youtube.js.slice(CORE_SCRIPTS.length + SCHEMA_SCRIPTS.length);
     assert.deepEqual([rest[0], rest[1]], ['src/content/engine.js', 'src/sites/youtube/page.js']);
     assert.equal(rest.at(-1), 'src/sites/youtube/main.js');
-    // Everything between page.js and main.js is a feature file.
-    for (const f of rest.slice(2, -1)) assert.match(f, /^src\/sites\/youtube\/features\/[\w-]+\.js$/, f);
+    // Everything between page.js and main.js is a feature file, or a helper the features share:
+    // the redirect catalog (Contract C2), the overlay and the pause/focus guard core (Phase 3c).
+    const SHARED = ['src/sites/youtube/redirects.js', 'src/content/overlay.js', 'src/content/guard-core.js'];
+    for (const f of rest.slice(2, -1)) {
+      if (!SHARED.includes(f)) assert.match(f, /^src\/sites\/youtube\/features\/[\w-]+\.js$/, f);
+    }
+    // Helpers load before the features that call them.
+    const at = (f) => rest.indexOf(f);
+    for (const f of ['session-guard', 'time-tracker']) {
+      assert.ok(at(`src/sites/youtube/features/${f}.js`) > at('src/content/guard-core.js'), `${f} loads after guard-core.js`);
+      assert.ok(at('src/content/guard-core.js') > at('src/content/overlay.js'), 'guard-core.js loads after overlay.js');
+    }
   });
 
   test('every schema file on disk is in the load order (a forgotten file would silently not register)', () => {

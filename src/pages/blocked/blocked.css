@@ -1,0 +1,201 @@
+/* The blocked page (PLAN §9): the pause page's ground, but the seal is HOLLOW (an outline) to say
+   "closed", the remaining time is large and mono, and any way out is a quiet control at the bottom. */
+
+:root {
+  --sun: clamp(96px, 20vmin, 168px);
+  --column: min(480px, 100%);
+  --edge-pad: 7vw;
+}
+
+.page {
+  overflow-x: clip;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: var(--u4) var(--edge-pad) var(--u3);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font: 600 15px/1 var(--font-serif);
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+}
+
+.column {
+  align-self: center;
+  width: var(--column);
+  margin-left: calc(38vw - var(--edge-pad));
+  padding-bottom: var(--u5);
+  opacity: 0;
+  transition: opacity var(--t-slow) var(--ease);
+}
+
+body:not([data-state="loading"]) .column {
+  opacity: 1;
+}
+
+.horizon {
+  /* Edge to edge: the line spans the whole window, the sun stands at the column's left. */
+  display: flex;
+  align-items: flex-end;
+  width: 100vw;
+  height: calc(var(--sun) + 1px);
+  margin: 0 0 var(--u4) -38vw;
+  padding-left: 38vw;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Hollow: closed. Filled: free to go. */
+.ring {
+  width: calc(var(--sun) * 0.8);
+  height: calc(var(--sun) * 0.8);
+  margin-bottom: -1px;
+  border: 2px solid var(--seal);
+  border-radius: 50%;
+  background: transparent;
+  transition: background-color 600ms var(--ease);
+}
+
+body[data-state="free"] .ring {
+  background: var(--seal);
+}
+
+.title {
+  font: 400 clamp(27px, 3.6vw, 34px) / 1.25 var(--font-serif);
+  max-width: 22ch;
+}
+
+.sub {
+  margin-top: var(--u1);
+  max-width: 42ch;
+  color: var(--ink-2);
+  font-size: 15px;
+}
+
+.time {
+  margin-top: var(--u4);
+}
+
+.clock {
+  font-size: clamp(52px, 9vw, 88px);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.until {
+  margin-top: var(--u1);
+  color: var(--ink-2);
+  font-size: 15px;
+}
+
+.cta {
+  margin-top: var(--u4);
+}
+
+.cta:empty {
+  margin-top: 0;
+}
+
+a.btn {
+  text-decoration: none;
+}
+
+.btn.big {
+  min-height: 44px;
+  padding: 8px var(--u3);
+  font-size: 16px;
+}
+
+/* ------------------------------------------------------------------ the quiet way out */
+
+.unlock {
+  margin-top: var(--u5);
+  padding-top: var(--u2);
+  border-top: 1px solid var(--rule);
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.unlock:empty {
+  display: none;
+}
+
+.unlock p + *,
+.unlock .row + .row {
+  margin-top: var(--u1);
+}
+
+.unlock .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--u2);
+}
+
+.unlock .phrase {
+  margin: var(--u1) 0;
+  color: var(--ink);
+  font: italic 400 19px/1.4 var(--font-serif);
+}
+
+.unlock input[type="text"] {
+  max-width: 420px;
+}
+
+.unlock .hint {
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  min-height: 1.5em;
+  margin-top: var(--u2);
+  color: var(--danger);
+  font-size: 14px;
+}
+
+.note:empty {
+  margin-top: 0;
+}
+
+.foot {
+  min-height: 21px;
+}
+
+.target {
+  max-width: min(100%, 64ch);
+  margin-left: calc(38vw - var(--edge-pad));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+@media (max-width: 720px) {
+  .column,
+  .target {
+    margin-left: 0;
+  }
+
+  .horizon {
+    margin-left: calc(-1 * var(--edge-pad));
+    padding-left: var(--edge-pad);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .column,
+  .ring {
+    transition-duration: 1ms;
+  }
+}

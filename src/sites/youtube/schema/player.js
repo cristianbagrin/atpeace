@@ -27,7 +27,7 @@
       type: 'toggle',
       default: false,
       tags: ['recommendations', 'player'],
-      hide: ['#movie_player .ytp-ce-element', '.ytp-ce-element'],
+      hide: ['.ytp-ce-element'],
       since: '0.1.0',
     },
     {
