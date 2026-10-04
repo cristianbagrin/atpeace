@@ -27,6 +27,8 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Ids of settings these tests exercised, for the coverage report. */
 const covered = new Set();
+/** Groups skipped because Google served its captcha: the coverage check cannot judge an incomplete run. */
+const skippedGroups = [];
 
 let page;
 let previous = new Set(); // toggle/select tokens set by the last apply()
@@ -171,7 +173,10 @@ function group(name, fn) {
     try {
       await fn(t);
     } catch (err) {
-      if (err?.code === 'YT_SORRY') return t.skip(`${err.message}; run again in a few minutes`);
+      if (err?.code === 'YT_SORRY') {
+        skippedGroups.push(name);
+        return t.skip(`${err.message}; run again in a few minutes`);
+      }
       throw err;
     }
   });
@@ -698,6 +703,7 @@ group('hashtag page: legacy card renderers get the same card settings and thumbn
 // ---------------------------------------------------------------------------------------------
 
 test('coverage: every section of the catalog was exercised on the live site; the rest is listed', async (t) => {
+  if (skippedGroups.length) return t.skip(`incomplete run (captcha skipped: ${skippedGroups.join('; ')})`);
   const registry = await readCatalog();
   const sections = [...new Set(registry.map((d) => d.section))];
   const untestedSections = sections.filter((s) => !registry.some((d) => d.section === s && covered.has(d.id)));
