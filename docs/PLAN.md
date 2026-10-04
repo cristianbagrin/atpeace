@@ -271,8 +271,12 @@ Every rule is gated by a token on `<html>`:
 ```css
 html[data-at-peace~="yt.home.hideChips"] ytd-browse[page-subtype="home"] #chips-wrapper { display: none !important; }
 html[data-at-peace~="yt.general.thumbnails=blur"] … { filter: blur(14px) !important; }
-html[data-at-peace-page="watch"][data-at-peace~="yt.watch.hideRelated"] #related { display:none !important; }
+html[data-at-peace~="yt.watch.hideRelated"]:is([data-at-peace-page="watch"],[data-at-peace-next="watch"]) #related { display:none !important; }
 ```
+
+> Amended in Phase 2a: during an SPA navigation the engine keeps `data-at-peace-page` on the
+> page still on screen and puts the target page in `data-at-peace-next`; page-scoped rules match
+> either, so nothing flickers in either direction (measured: 0 painted frames).
 
 - `data-at-peace` = space-separated list of active tokens. Toggles produce their `id`;
   selects produce `id=value`. Turning a setting on/off is a single attribute write — instant,
@@ -341,11 +345,11 @@ applied on first run. ★ = popup quick toggle candidate. Tags in brackets.
 
 ### 6.1 Page types (`AP.yt.page.detect(url)` → `data-at-peace-page`)
 
-`home` (`/`), `watch` (`/watch`), `search` (`/results`), `shorts` (`/shorts/…`),
-`subscriptions` (`/feed/subscriptions`), `channel` (`/@x`, `/channel/…`, `/c/…`, `/user/…`
-incl. sub-tabs), `playlist` (`/playlist`), `history`, `library`/`you` (`/feed/you`,
-`/feed/library`), `explore` (`/feed/trending`, `/feed/explore`, `/gaming`, `/feed/…` hubs),
-`other`.
+`home` (`/`), `watch` (`/watch`, `/live/…`, `/clip/…`), `search` (`/results`), `shorts`
+(`/shorts/…`), `subscriptions` (`/feed/subscriptions`), `channel` (`/@x`, `/channel/…`, `/c/…`,
+`/user/…` incl. sub-tabs), `playlist` (`/playlist`), `history`, `you` (`/feed/you`,
+`/feed/library`), `hashtag` (`/hashtag/…`), `other` (incl. `/feed/trending`, `/feed/explore`
+and `/gaming`, which now redirect to `/`).
 
 ### 6.2 Selector robustness rules
 
