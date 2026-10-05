@@ -61,3 +61,33 @@ Follow-ups:
    `context.route` serving pages rebuilt from the research DOM snapshots
    (`tests/e2e/artifacts/research/*.dom.json`, `tools/yt-probe.mjs` helpers) so content scripts
    still inject (URL matches) without Google traffic.
+
+## 3b — YouTube behaviours, bridge, redirects — approved
+
+Verified by Opus: `npm test` 821/821, `npm run lint` clean (eslint + web-ext 0/0/0). Agent
+reported `features.spec` 39/39 (Chromium) and `tests/firefox/features.mjs` 12/12 (real Firefox).
+The player layout bug found in the 2b review is reproduced and fixed (control bar 972 px in a
+1394 px player without the nudge; full width 100 ms after it).
+
+Worth keeping:
+- Redirects never `location.replace` at `yt-navigate-start` (would clobber the history entry);
+  they run after the Navigation API `navigate` event with `yt-navigate-finish` as fallback, so
+  Back works. A loop guard stops repeated redirects (3 in 15 s).
+- Firefox cross-world messaging: `event.source === window` is false in Firefox's isolated world
+  for page messages; the client checks origin + nonce instead (every bridge call failed before).
+- Chrome DNR rejects counted repetitions (`{11}`) with memoryLimitExceeded; a unit test forbids
+  them.
+- Filters re-sweep after bursts because YouTube rewrites card titles in place.
+
+Bridge tags verified live: entries home/shorts/subscriptions/you/history; tabs home/videos/
+shorts/playlists/posts; actions like/share/download/save/more/join. Mapped but unverified
+(login or rare UI): personal guide entries, streams/podcasts/store/courses/releases tabs,
+clip/thanks/ask buttons → user checklist.
+
+Opus fix: the engine scenario toggling `yt.masthead.hideVoiceSearch` failed because a fresh
+install applies Gentle (which hides it); the scenario now starts from the untouched baseline
+(verified live).
+
+For the user checklist (no playback/login here): autoplay-next actually stopping, end-screen
+countdown cancel, noAutoStart on a real autostart, speed on a playing video, still-watching,
+hover previews, signed-in guide entries, Clip/Thanks/Ask, Watch Later redirect when signed in.
