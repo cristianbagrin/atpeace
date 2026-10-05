@@ -19,7 +19,7 @@
 //   yt.channel.openVideosTab /@handle, /channel/UC…, /c/x, /user/x  the same + /videos (never a sub-tab)
 //
 // DNR regexes are RE2: no lookaround, no backreferences. Capture groups (`\1`) in the substitution
-// are fine. They match only main_frame loads of youtube.com, www.youtube.com and m.youtube.com;
+// are fine; so are no counted repetitions (`{6,20}` busts Chrome's regex memory limit). They match only main_frame loads of youtube.com, www.youtube.com and m.youtube.com;
 // music./studio./tv. are different sites. Redirect targets always point at www.youtube.com.
 (() => {
   'use strict';
@@ -34,8 +34,12 @@
     watchLater: '/playlist?list=WL',
     playlists: '/feed/playlists',
   });
-  /** Real Short ids are 11 characters; be lenient about the length, strict about the alphabet. */
-  const VIDEO_ID = /^[A-Za-z0-9_-]{6,20}$/;
+  /**
+   * A Short's id: strict about the alphabet, silent about the length (real ids are 11 characters).
+   * No length bound because the DNR regex cannot have one: Chrome rejects counted repetitions such as
+   * `{11}` there (isRegexSupported → memoryLimitExceeded, measured), and both must agree.
+   */
+  const VIDEO_ID = /^[A-Za-z0-9_-]+$/;
   const CHANNEL_PREFIXES = new Set(['channel', 'c', 'user']);
   /** The background gives redirects priority 100 unless a rule says otherwise; 101 still sits far below pause (200) and blocks (300). */
   const PRIORITY_ABOVE = 101;
@@ -46,7 +50,7 @@
     /** "/" with an optional query and fragment. */
     home: `^https?://${HOST}/?(?:\\?[^#]*)?(?:#.*)?$`,
     /** "/shorts/<id>" followed by nothing, a path, a query or a fragment. */
-    shorts: `^https?://${HOST}/shorts/([A-Za-z0-9_-]{6,20})(?:[/?#].*)?$`,
+    shorts: `^https?://${HOST}/shorts/([A-Za-z0-9_-]+)(?:[/?#].*)?$`,
     /** Every Shorts URL, for the "block" page (`\0` = the original URL, hence the trailing `.*`). */
     shortsAny: `^https?://${HOST}/shorts(?:[/?#].*)?$`,
     /** The bare channel root: /@handle, /channel/UC…, /c/name, /user/name (+ optional "/", query, fragment). */
@@ -79,7 +83,7 @@
     if (typeof text !== 'string') return null;
     const value = text.trim();
     // Backslashes are escapes in a DNR substitution, and browsers read "\" as "/" in a URL.
-    if (value === '' || value.length > 500 || value.startsWith('//') || /[\\\u0000-\u001f\u007f\s]/.test(value)) return null;
+    if (value === '' || value.length > 500 || value.startsWith('//') || value.includes('\\') || [...value].some((c) => c <= ' ' || c === '\u007f')) return null;
     let url;
     try {
       url = value.startsWith('/') ? new URL(value, ORIGIN) : new URL(value);

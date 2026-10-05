@@ -26,6 +26,8 @@ importScripts(
   '../shared/presets.js',
   '../shared/settings.js',
   '../shared/state.js',
+  '../shared/lock.js',
+  '../sites/youtube/redirects.js',
   './store.js',
   './stats.js',
   './sessions.js',

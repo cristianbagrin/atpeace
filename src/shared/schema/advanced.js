@@ -38,9 +38,11 @@
   };
 
   /**
-   * The settings lock: `{ mode: 'none' | 'password' | 'friction', ...a few flat fields }`. The
-   * lock UI (Phase 4) decides which extra fields exist (salt, hash…); this keeps a small flat set
-   * of primitives so they survive, and forces `mode` to a known value.
+   * The settings lock: `{ mode: 'none' | 'password' | 'friction', ...a few flat fields }` (see
+   * src/shared/lock.js). A password lock keeps `salt`, `hash` (PBKDF2-SHA256, base64) and
+   * `iterations`; a friction lock keeps `waitSeconds` (10–600). Other flat primitives survive
+   * (at most 8) so a newer version's fields are not lost. Fail-safe: a password lock without a
+   * usable salt and hash could never be opened, so it counts as no lock at all.
    * @param {Record<string, unknown>} value
    * @returns {Record<string, unknown>}
    */
@@ -53,6 +55,12 @@
         out[key] = v;
         extras++;
       }
+    }
+    if (out.mode === 'password' && !(typeof out.salt === 'string' && out.salt !== '' && typeof out.hash === 'string' && out.hash !== '')) return { mode: 'none' };
+    if (out.waitSeconds !== undefined) {
+      const n = Math.round(Number(out.waitSeconds));
+      if (Number.isFinite(n)) out.waitSeconds = Math.min(600, Math.max(10, n));
+      else delete out.waitSeconds;
     }
     return out;
   }
@@ -102,11 +110,10 @@
     {
       id: 'advanced.lock',
       label: 'Lock these settings',
-      description: 'Asks for a password or a moment of friction before settings can change.',
+      description: 'Asks for a password, or a moment of waiting, before anything can be shown again. Making YouTube quieter always works.',
       type: 'object',
       default: { mode: 'none' },
       normalize: lock,
-      advanced: true,
       preset: false,
       portable: false,
       feature: 'lock',

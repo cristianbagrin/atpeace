@@ -38,6 +38,8 @@
    * @returns {'ours'|'user'|'player'}
    */
   function classifyRateChange({ now, ownSetAt, userInputAt }) {
+    // The user's shortcut or menu click AFTER our own change is theirs, even right after it.
+    if (userInputAt > ownSetAt && now - userInputAt < USER_MS) return 'user';
     if (now - ownSetAt < OWN_MS) return 'ours';
     if (userInputAt > 0 && now - userInputAt < USER_MS) return 'user';
     return 'player';

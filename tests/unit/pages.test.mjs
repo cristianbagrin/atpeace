@@ -21,7 +21,7 @@ function stylesheetsOf(page) {
 }
 
 const SHARED = [...CORE_SCRIPTS, ...SCHEMA_SCRIPTS];
-const HELPERS = ['src/pages/common/logic.js', 'src/pages/common/components.js'];
+const HELPERS = ['src/shared/lock.js', 'src/pages/common/logic.js', 'src/pages/common/components.js', 'src/pages/common/lock-ui.js'];
 
 for (const [name, page] of [
   ['options', 'src/pages/options/options.html'],

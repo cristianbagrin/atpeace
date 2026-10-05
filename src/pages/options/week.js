@@ -62,6 +62,26 @@ function renderTable(week) {
   );
 }
 
+/** Asks, then has the background forget every stored day. While the settings lock holds it asks for the unlock too (clearing resets a daily limit). */
+async function clearHistory() {
+  const ok = await AP.ui.confirm('This removes the usage numbers kept in this browser. Your settings stay. A daily limit starts counting from zero again.', {
+    title: 'Clear usage history?',
+    confirmLabel: 'Clear history',
+    danger: true,
+  });
+  if (!ok) return;
+  const send = () => AP.msg.send(AP.msg.TYPES.STATS_CLEAR).catch(() => ({ ok: false }));
+  let res = await send();
+  if (res?.error === 'locked') {
+    if (!(await AP.ui.requestUnlock())) {
+      AP.ui.toast('Locked: nothing was cleared.');
+      return;
+    }
+    res = await send();
+  }
+  AP.ui.toast(res?.ok ? 'Usage history cleared' : 'That could not be cleared.');
+}
+
 /** @returns {{ el: HTMLElement, refresh: () => Promise<void> }} */
 export function buildWeek() {
   const body = h('div', { class: 'week' });
@@ -78,6 +98,12 @@ export function buildWeek() {
       week.hasData
         ? renderTable(week)
         : h('p', { class: 'empty' }, 'Nothing to show yet. Once you have used YouTube with At Peace on, the last seven days appear here.'),
+      Object.keys(stats).length > 0 &&
+        h(
+          'p',
+          { class: 'week-foot' },
+          h('button', { type: 'button', class: 'btn btn-quiet', onClick: () => clearHistory() }, 'Clear usage history…'),
+        ),
     );
   }
 

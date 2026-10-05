@@ -84,8 +84,10 @@ describe('script load-order lists stay in sync', () => {
     const head = CORE_SCRIPTS.length + SCHEMA_SCRIPTS.length;
     assert.deepEqual(scripts.slice(0, head), [...CORE_SCRIPTS, ...SCHEMA_SCRIPTS]);
     assert.equal(scripts.at(-1), 'src/background/background.js');
-    // Between: the background modules (Phase 3c) and the shared YouTube redirect catalog (Contract C2).
-    for (const f of scripts.slice(head, -1)) assert.match(f, /^src\/background\/[\w-]+\.js$|^src\/sites\/youtube\/redirects\.js$/, f);
+    // Between: the settings lock (Phase 4b: pages + background only), the background modules (Phase 3c) and the shared YouTube redirect catalog (Contract C2).
+    for (const f of scripts.slice(head, -1)) assert.match(f, /^src\/background\/[\w-]+\.js$|^src\/sites\/youtube\/redirects\.js$|^src\/shared\/lock\.js$/, f);
+    assert.equal(scripts[head], 'src/shared/lock.js', 'the lock loads right after the schema stack');
+    assert.ok(!manifest.content_scripts.some((cs) => cs.js.includes('src/shared/lock.js')), 'content scripts do not load the lock');
   });
 
   test('YouTube content script = core + schema stack, then engine, page, (features), main last', () => {
@@ -95,8 +97,8 @@ describe('script load-order lists stay in sync', () => {
     assert.deepEqual([rest[0], rest[1]], ['src/content/engine.js', 'src/sites/youtube/page.js']);
     assert.equal(rest.at(-1), 'src/sites/youtube/main.js');
     // Everything between page.js and main.js is a feature file, or a helper the features share:
-    // the redirect catalog (Contract C2), the overlay and the pause/focus guard core (Phase 3c).
-    const SHARED = ['src/sites/youtube/redirects.js', 'src/content/overlay.js', 'src/content/guard-core.js'];
+    // the bridge client and the redirect catalog (Contract C2, Phase 3b), the overlay and the pause/focus guard core (Phase 3c).
+    const SHARED = ['src/sites/youtube/bridge-client.js', 'src/sites/youtube/redirects.js', 'src/content/overlay.js', 'src/content/guard-core.js', 'src/content/picker.js'];
     for (const f of rest.slice(2, -1)) {
       if (!SHARED.includes(f)) assert.match(f, /^src\/sites\/youtube\/features\/[\w-]+\.js$/, f);
     }

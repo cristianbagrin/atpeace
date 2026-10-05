@@ -566,3 +566,90 @@ describe('validateRegistry', () => {
     assert.doesNotThrow(() => S.validateRegistry());
   });
 });
+
+describe('requires: "id", "id=value", "id!=value" (Phase 4b)', () => {
+  test('parseRequires reads the three forms and refuses anything else', () => {
+    assert.deepEqual(S.parseRequires('pause.enabled'), { id: 'pause.enabled', op: 'truthy', value: null });
+    assert.deepEqual(S.parseRequires('yt.home.feedMode=custom'), { id: 'yt.home.feedMode', op: '=', value: 'custom' });
+    assert.deepEqual(S.parseRequires('yt.home.feedMode!=show'), { id: 'yt.home.feedMode', op: '!=', value: 'show' });
+    assert.deepEqual(S.parseRequires('a.b=0.75'), { id: 'a.b', op: '=', value: '0.75' });
+    for (const bad of ['', 'nodots', 'a.b=', 'a.b==c', 'a.b=c d', 'a.b!c', '=c', 'a.b=c=d', 'a b.c', 42, null, undefined]) {
+      assert.equal(S.parseRequires(bad), null, JSON.stringify(bad));
+    }
+  });
+
+  test('requiresMet: truthy follows isHidingValue; = and != compare the value as text', () => {
+    const mode = selectDef('yt.home.mode');
+    const flag = toggle('yt.home.flag', { hide: ['a'] });
+    assert.equal(S.requiresMet({ op: 'truthy', value: null }, mode, 'show'), false);
+    assert.equal(S.requiresMet({ op: 'truthy', value: null }, mode, 'blur'), true);
+    assert.equal(S.requiresMet({ op: '=', value: 'blur' }, mode, 'blur'), true);
+    assert.equal(S.requiresMet({ op: '=', value: 'blur' }, mode, 'hide'), false);
+    assert.equal(S.requiresMet({ op: '!=', value: 'show' }, mode, 'hide'), true);
+    assert.equal(S.requiresMet({ op: '!=', value: 'show' }, mode, 'show'), false);
+    assert.equal(S.requiresMet({ op: '=', value: 'true' }, flag, true), true);
+    assert.equal(S.requiresMet({ op: '=', value: 'true' }, flag, false), false);
+  });
+
+  /** One dependent setting (ids are unique per call, so one test can try several) on a small clean registry. */
+  let n = 0;
+  const problemsFor = (requires) => {
+    if (n++ === 0 || !S.get('yt.home.mode')) {
+      S.define('general', [toggle('general.enabled', { default: true, feature: 'engine' })]);
+      S.define('yt.home', [
+        selectDef('yt.home.mode', { variants: { blur: { hide: ['a'] } } }),
+        toggle('yt.home.flag', { hide: ['b'] }),
+        { id: 'yt.home.n', label: 'n', type: 'number', default: 1, feature: 'f' },
+      ]);
+      S.define('pause', [toggle('pause.enabled', { feature: 'pause' })]);
+    }
+    const id = `yt.watch.x${n}`;
+    S.define('yt.watch', [toggle(id, { hide: ['c'], requires: requires.replace('SELF', id) })]);
+    return S.validateRegistry().filter((p) => p.startsWith(`${id}:`));
+  };
+
+  test('valid forms pass validateRegistry', () => {
+    for (const requires of ['yt.home.mode', 'yt.home.mode=blur', 'yt.home.mode!=show', 'yt.home.flag=true', 'yt.home.flag!=false', 'yt.home.n']) {
+      assert.deepEqual(problemsFor(requires), [], requires);
+    }
+  });
+
+  test('reports malformed, unknown, self-referencing and impossible conditions', () => {
+    assert.match(problemsFor('yt.home.mode==blur')[0], /requires must look like/);
+    assert.match(problemsFor('yt.home.ghost=blur')[0], /requires unknown setting "yt.home.ghost"/);
+    assert.match(problemsFor('SELF')[0], /requires itself/);
+    assert.match(problemsFor('yt.home.mode=nope')[0], /"nope" is not a value of yt.home.mode \(show, blur, hide\)/);
+    assert.match(problemsFor('yt.home.flag=maybe')[0], /"maybe" is not a value of yt.home.flag \(true, false\)/);
+    assert.match(problemsFor('yt.home.n=3')[0], /only works for a select or a toggle/);
+  });
+});
+
+describe('short option labels (Phase 4b)', () => {
+  let count = 0;
+  const withOptions = (options) => {
+    if (count++ === 0) {
+      S.define('general', [toggle('general.enabled', { default: true, feature: 'engine' })]);
+      S.define('pause', [toggle('pause.enabled', { feature: 'pause' })]);
+    }
+    const id = `yt.home.mode${count}`;
+    S.define('yt.home', [selectDef(id, { options, feature: 'f' })]);
+    return S.validateRegistry().filter((p) => p.startsWith(`${id}:`));
+  };
+
+  test('a short label is fine, and the label stays what validateValue/coerce see', () => {
+    assert.deepEqual(withOptions([{ value: 'show', label: 'Show the whole feed', short: 'Show' }, { value: 'hide', label: 'Hide it', short: 'Hide' }]), []);
+    assert.equal(S.validateValue(S.get('yt.home.mode1'), 'hide'), 'hide');
+  });
+
+  test('a short label must be a non-empty string of at most 16 characters', () => {
+    for (const short of ['', '   ', 7, null, 'x'.repeat(17)]) {
+      const found = withOptions([{ value: 'show', label: 'Show', short }, { value: 'hide', label: 'Hide' }]);
+      assert.ok(found.some((p) => /short label must be a non-empty string of at most 16 characters/.test(p)), JSON.stringify(short));
+    }
+    assert.deepEqual(withOptions([{ value: 'show', label: 'Show', short: 'x'.repeat(16) }, { value: 'hide', label: 'Hide' }]), []);
+  });
+
+  test('other keys on an option are reported (a typo like "shrt" would silently do nothing)', () => {
+    assert.ok(withOptions([{ value: 'show', label: 'Show', shrt: 'S' }, { value: 'hide', label: 'Hide' }]).some((p) => /unknown property "shrt"/.test(p)));
+  });
+});

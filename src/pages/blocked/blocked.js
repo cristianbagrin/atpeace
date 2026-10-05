@@ -36,6 +36,7 @@ const asked = new URLSearchParams(location.search).get('reason');
 const askedReason = REASONS.includes(asked) ? asked : null;
 
 let settings = AP.schema.defaults();
+let lock = { mode: 'none', locked: false, unlockedUntil: 0, waitSeconds: 60 }; // the settings lock (AP.lock.read())
 let target = null; // URL | null
 let siteKey = null;
 let siteLabel = 'This site';
@@ -140,6 +141,7 @@ async function refresh() {
     /* keep the last settings */
   }
   status = await fetchStatus();
+  lock = await AP.lock.read().catch(() => lock);
   // The background's clock decides what is still running: judging by this page's own clock a few ms
   // later could call a block over while the background has not yet removed its rule.
   block = pickBlock(status.blocks ?? [], status.now ?? Date.now());
@@ -245,6 +247,20 @@ function renderUnlock() {
       els.unlock.append(h('p', null, 'This block cannot be ended early. You chose it that way.'));
       return;
     }
+    if (lock.locked) {
+      // Ending a block early shows the site again, which the settings lock holds back until it is opened.
+      els.unlock.append(
+        h(
+          'p',
+          null,
+          'Your settings are locked, so this cannot be ended early yet. ',
+          quietButton('Unlock…', async () => {
+            if (await AP.ui.requestUnlock(lock)) await refresh();
+          }),
+        ),
+      );
+      return;
+    }
     const friction = settings['focus.unlockFriction'];
     if (friction === 'phrase') els.unlock.append(quietButton('End focus early…', showPhrase));
     else if (friction === 'wait') els.unlock.append(quietButton('End focus early…', showWait));
@@ -321,6 +337,7 @@ async function endFocus(frictionDone) {
       return;
     }
     if (res?.error === 'strict') setNote('This block cannot be ended early.');
+    else if (res?.error === 'locked') setNote('Your settings are locked again. Unlock them to end this early.');
     else if (res?.error === 'friction-required') setNote('Your settings changed: please follow the steps again.');
     else setNote('That did not work. Please try again.');
     await refresh();

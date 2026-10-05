@@ -93,8 +93,9 @@ describe('Shorts', () => {
     for (const url of SHORTS) assert.equal(rewrite(url, settings), `${WWW}/watch?v=${ID}`, url);
     assert.equal(rewrite('/shorts', settings), `${BLOCKED}?reason=shorts#${WWW}/shorts`);
     assert.equal(rewrite('/shorts/', settings), `${BLOCKED}?reason=shorts#${WWW}/shorts/`);
-    assert.equal(rewrite('/shorts/ab', settings), `${BLOCKED}?reason=shorts#${WWW}/shorts/ab`);
-    // Ids are `[A-Za-z0-9_-]{6,20}`: a dash and an underscore are legal.
+    assert.equal(rewrite('/shorts/ab', settings), `${WWW}/watch?v=ab`, 'no length bound (the DNR regex has none)');
+    assert.equal(rewrite('/shorts/a%20b', settings), `${BLOCKED}?reason=shorts#${WWW}/shorts/a%20b`);
+    // Ids are `[A-Za-z0-9_-]+`: a dash and an underscore are legal.
     assert.equal(rewrite('/shorts/a_b-c_d-e_f', settings), `${WWW}/watch?v=a_b-c_d-e_f`);
   });
 
@@ -217,6 +218,7 @@ describe('DNR rules (full page loads)', () => {
       assert.doesNotMatch(source, /\(\?[=!<]/, `${name}: lookaround`);
       assert.doesNotMatch(source.replace(/\\\\/g, ''), /\\[1-9]/, `${name}: backreference`);
       assert.doesNotMatch(source, /\(\?>|\*\+|\+\+|\?\+|\(\?P?=/, `${name}: unsupported construct`);
+      assert.doesNotMatch(source, /\{\d+(,\d*)?\}/, `${name}: counted repetition (Chrome: memoryLimitExceeded)`);
       assert.doesNotThrow(() => new RegExp(source), name);
       assert.ok(source.startsWith('^') && source.endsWith('$'), `${name}: anchored (so \\0 is the whole URL)`);
     }
@@ -239,7 +241,8 @@ describe('DNR rules (full page loads)', () => {
     assert.equal(applyDnr(watch, 'https://m.youtube.com/shorts/dQw4w9WgXcQ/'), `${WWW}/watch?v=dQw4w9WgXcQ`);
     assert.equal(applyDnr(watch, 'https://www.youtube.com/shorts'), `${BLOCKED}?reason=shorts#https://www.youtube.com/shorts`);
     assert.equal(applyDnr(watch, 'https://www.youtube.com/shorts/'), `${BLOCKED}?reason=shorts#https://www.youtube.com/shorts/`);
-    assert.equal(applyDnr(watch, 'https://www.youtube.com/shorts/ab'), `${BLOCKED}?reason=shorts#https://www.youtube.com/shorts/ab`);
+    assert.equal(applyDnr(watch, 'https://www.youtube.com/shorts/ab'), `${WWW}/watch?v=ab`);
+    assert.equal(applyDnr(watch, 'https://www.youtube.com/shorts/a%20b'), `${BLOCKED}?reason=shorts#https://www.youtube.com/shorts/a%20b`);
     assert.equal(applyDnr(watch, 'https://www.youtube.com/@mkbhd/shorts'), null);
     assert.equal(applyDnr(watch, 'https://www.youtube.com/shortsfoo'), null);
 

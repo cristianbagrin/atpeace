@@ -66,7 +66,7 @@
         if (done) {
           pending.delete(msg.id);
           const { ok, value, error } = msg;
-          done(ok === true ? { ok: true, value } : { ok: false, error: typeof error === 'string' ? error : 'failed' });
+          done(ok === true ? (value === undefined ? { ok: true } : { ok: true, value }) : { ok: false, error: typeof error === 'string' ? error : 'failed' });
         }
       }
     } catch {

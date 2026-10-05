@@ -26,9 +26,9 @@
       type: 'select',
       default: 'allow',
       options: [
-        { value: 'allow', label: 'Play Shorts as usual' },
-        { value: 'watch', label: 'Open in the normal player' },
-        { value: 'block', label: 'Block Shorts' },
+        { value: 'allow', label: 'Play Shorts as usual', short: 'As usual' },
+        { value: 'watch', label: 'Open in the normal player', short: 'Normal player' },
+        { value: 'block', label: 'Block Shorts', short: 'Block' },
       ],
       tags: ['shorts'],
       page: 'shorts',

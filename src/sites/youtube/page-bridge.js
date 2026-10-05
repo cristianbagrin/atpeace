@@ -19,7 +19,9 @@
 //      data-at-peace-entry   guide + mini-guide entries (iconType / endpoint of `entry.data`)
 //      data-at-peace-tab     channel tabs (URL suffix of the page data's tab list, matched to the DOM tab)
 //      data-at-peace-action  buttons under the video (view-model / renderer data of the action menu)
-//    Re-tagged on yt-navigate-finish, yt-page-data-updated and (debounced) when the DOM changes.
+//    Tagging is OFF until the isolated side sends `setTags(true)` (it does while a setting that needs
+//    tags is on) and is switched off, tags removed, when none is. Re-tagged on yt-navigate-finish,
+//    yt-page-data-updated and (debounced) when the DOM changes.
 (() => {
   'use strict';
   const root = document.documentElement;
@@ -264,7 +266,7 @@
    */
   function actionName(item) {
     if (!item || typeof item !== 'object') return null;
-    if (item.segmentedLikeDislikeButtonViewModel || item.segmentedLikeDislikeButtonRenderer || item.likeButtonViewModel || item.toggleButtonRenderer) return 'like';
+    if (item.segmentedLikeDislikeButtonViewModel || item.segmentedLikeDislikeButtonRenderer || item.likeButtonViewModel || item.dislikeButtonViewModel || item.toggleButtonRenderer) return 'like';
     if (item.downloadButtonRenderer) return 'download';
     const inner = item.buttonViewModel ?? item.buttonRenderer ?? item.toggleButtonViewModel ?? item.flexibleActionButtonViewModel ?? item;
     const icon = inner?.iconName ?? inner?.icon?.iconType ?? inner?.iconType;
@@ -275,6 +277,7 @@
     if (id.includes('clip')) return 'clip';
     if (id.includes('thanks') || id.includes('donat')) return 'thanks';
     if (id.includes('save') || id.includes('playlist')) return 'save';
+    if (/(^|[._-])ask([._-]|$)/.test(id)) return 'ask';
     return null;
   }
 
@@ -283,7 +286,7 @@
   // ============================================================================================
 
   let nonce = null;
-  let tagging = true; // tags are cheap and flicker-free when always on; the isolated side can switch them off
+  let tagging = false; // off until the isolated side asks (a setting needs tags): no work, no attributes, nothing to undo
   let debug = false;
   const log = (...args) => {
     if (debug) {
@@ -434,36 +437,59 @@
     });
   }
 
+  /**
+   * The data object behind a button host. Verified live (2026-10-04): a `yt-button-view-model` or
+   * `segmented-like-dislike-button-view-model` keeps its view model in `componentProps.data`; a
+   * `ytd-download-button-renderer` is a Polymer element with `.data`.
+   */
+  function hostData(host) {
+    try {
+      const data = host.componentProps?.data ?? host.data;
+      return data && typeof data === 'object' ? data : null;
+    } catch {
+      return null;
+    }
+  }
+
   function tagActions() {
     const metadata = document.querySelector('ytd-watch-metadata');
     if (!metadata) return;
     const menu = metadata.querySelector('#actions ytd-menu-renderer');
-    const data = menu?.data;
-    if (!data) return;
-    // Hosts in DOM order. The data lists the same buttons in the same order: `topLevelButtons`
-    // (rendered into #top-level-buttons-computed) and `flexibleItems` (into #flexible-item-buttons).
-    const mapped = [];
-    const top = menu.querySelector('#top-level-buttons-computed');
-    const flexible = menu.querySelector('#flexible-item-buttons');
-    const topData = Array.isArray(data.topLevelButtons) ? data.topLevelButtons : [];
-    const flexData = Array.isArray(data.flexibleItems) ? data.flexibleItems.map((f) => f?.topLevelButton ?? f) : [];
-    if (top) mapped.push([Array.from(top.children), topData]);
-    if (flexible) mapped.push([Array.from(flexible.children), flexData]);
-    for (const [hosts, items] of mapped) {
-      if (hosts.length !== items.length) continue; // out of step (still rendering): decide on the next pass
+    if (!menu) return;
+    const menuData = menu.data ?? null;
+    // The hosts of the buttons, in DOM order, with the menu data's entries for the same slots as a
+    // fallback: `topLevelButtons` fills #top-level-buttons-computed, `flexibleItems` (each
+    // `menuFlexibleItemRenderer.topLevelButton`) fills #flexible-item-buttons.
+    const groups = [
+      [menu.querySelector('#top-level-buttons-computed'), Array.isArray(menuData?.topLevelButtons) ? menuData.topLevelButtons : []],
+      [
+        menu.querySelector('#flexible-item-buttons'),
+        Array.isArray(menuData?.flexibleItems) ? menuData.flexibleItems.map((f) => f?.menuFlexibleItemRenderer?.topLevelButton ?? f?.topLevelButton ?? f) : [],
+      ],
+    ];
+    for (const [container, items] of groups) {
+      if (!container) continue;
+      const hosts = Array.from(container.children); // the button hosts themselves, never the container
       hosts.forEach((host, i) => {
-        const name = actionName(items[i]);
-        if (name && host.getAttribute(ATTR_ACTION) !== name) host.setAttribute(ATTR_ACTION, name);
-        else if (!name && host.hasAttribute(ATTR_ACTION)) host.removeAttribute(ATTR_ACTION);
+        const item = hostData(host) ?? (hosts.length === items.length ? items[i] : null);
+        const name = actionName(item);
+        if (name) {
+          if (host.getAttribute(ATTR_ACTION) !== name) host.setAttribute(ATTR_ACTION, name);
+        } else if (host.hasAttribute(ATTR_ACTION)) {
+          host.removeAttribute(ATTR_ACTION);
+        }
       });
     }
-    // Hosts that have an id of their own.
-    for (const [selector, name] of [['#sponsor-button', 'join'], ['#purchase-button', 'join']]) {
+    // Hosts with an id of their own.
+    for (const selector of ['#sponsor-button', '#purchase-button']) {
       const el = metadata.querySelector(selector);
-      if (el && el.getAttribute(ATTR_ACTION) !== name) el.setAttribute(ATTR_ACTION, name);
+      if (el && el.getAttribute(ATTR_ACTION) !== 'join') el.setAttribute(ATTR_ACTION, 'join');
     }
-    const more = menu.querySelector(':scope > yt-button-shape#button-shape, :scope > yt-icon-button#button');
-    if (more && more.getAttribute(ATTR_ACTION) !== 'more') more.setAttribute(ATTR_ACTION, 'more');
+    // The "..." menu: the visible shape button and the (hidden, legacy) icon button next to it.
+    for (const selector of [':scope > yt-button-shape#button-shape', ':scope > yt-icon-button#button']) {
+      const more = menu.querySelector(selector);
+      if (more && more.getAttribute(ATTR_ACTION) !== 'more') more.setAttribute(ATTR_ACTION, 'more');
+    }
   }
 
   function scanNow() {
@@ -520,6 +546,7 @@
   // Page data arrives after the navigation events: re-tag now and a little later (bounded, not polling).
   const afterNavigation = (event) => {
     try {
+      if (!tagging) return;
       if (event.type === 'yt-navigate-finish') {
         const tabs = tabsFromPageData(event.detail?.response?.response);
         navTabs = tabs.length > 0 ? tabs : null;
@@ -530,7 +557,6 @@
     }
   };
   for (const type of ['yt-navigate-finish', 'yt-page-data-updated']) window.addEventListener(type, afterNavigation, true);
-  observe();
 
   // ---- test hook -------------------------------------------------------------------------------------
   // Only when a test (or the page, which gains nothing: these are pure functions) sets the flag first.

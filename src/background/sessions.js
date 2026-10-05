@@ -432,13 +432,18 @@
     return { ok: true, block: state.block };
   }
 
-  /** FOCUS_END { frictionDone? } — strict forbids it; friction other than 'none' must have been done by the page. */
+  /**
+   * FOCUS_END { frictionDone? } — strict forbids it; friction other than 'none' must have been done
+   * by the page; while the settings lock holds (src/shared/lock.js) it needs an unlock first,
+   * because ending a block early shows YouTube again.
+   */
   async function onFocusEnd(payload) {
     const at = now();
     const settings = await AP.settings.effective();
-    const { blocks } = await store().readState();
+    const { blocks, lockUnlockedUntil } = await store().readState();
     if (!blocks.some((b) => b.reason === 'focus' && b.until > at)) return { ok: true };
     if (settings['focus.strict'] === true) return { ok: false, error: 'strict' };
+    if (AP.lock.status(settings['advanced.lock'], lockUnlockedUntil, at).locked) return { ok: false, error: 'locked' };
     if (settings['focus.unlockFriction'] !== 'none' && payload?.frictionDone !== true) return { ok: false, error: 'friction-required' };
     await store().updateState((draft) => {
       draft.blocks = draft.blocks.filter((b) => b.reason !== 'focus');
@@ -467,10 +472,17 @@
   // GET_STATUS (Contract C3)
   // ---------------------------------------------------------------------------------------
 
+  /** The settings lock as pages need it: `{ mode, unlockedUntil }` (unlockedUntil 0 = locked). */
+  function lockOf(settings, state, at) {
+    const { mode, unlockedUntil } = AP.lock.status(settings['advanced.lock'], state.lockUnlockedUntil, at);
+    return { mode, unlockedUntil };
+  }
+
   /**
    * @returns {Promise<{ ok: true, version: string, block: object|null, sessions: Record<string, number>,
    *   scheduleOverride: string|null, activeSchedules: object[], today: Record<string, object>,
-   *   limit: { dailyMinutes: number, usedSec: number, graceLeft: number }, blocks: object[], now: number }>}
+   *   limit: { dailyMinutes: number, usedSec: number, graceLeft: number }, blocks: object[],
+   *   lock: { mode: string, unlockedUntil: number }, now: number }>}
    */
   async function onGetStatus() {
     const at = now();
@@ -491,6 +503,7 @@
       limit: { dailyMinutes: limit.dailyMinutes, usedSec: limit.usedSec, graceLeft: limit.graceLeft },
       // Beyond Contract C3 (additive): every block in force, for pages that need the one of their own site.
       blocks: state.blocks.filter((b) => b.until > at),
+      lock: lockOf(settings, state, at),
       now: at,
     };
   }
@@ -512,6 +525,7 @@
     breathSeconds,
     pruneSessions,
     effectiveFor,
+    lockOf,
     reconcile,
     syncAlarms,
     handlers: {

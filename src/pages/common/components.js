@@ -216,6 +216,7 @@
    * @property {(items: string[]) => {line:number, message:string}[]} [validateLines]  list editors only
    * @property {boolean} [regexLines]  list editors: check /regex/flags lines
    * @property {string} [placeholder]  list editors: hint shown while the field is empty
+   * @property {boolean} [shortLabels]   selects: show each option's `short` label (tight spaces such as the popup)
    */
 
   const DEBOUNCE_MS = { number: 400, text: 600, textarea: 700, list: 600, json: 900 };
@@ -289,11 +290,13 @@
     };
   }
 
-  function selectControl(def, value, { id, describedBy, commit }) {
+  function selectControl(def, value, { id, describedBy, commit, options }) {
+    // `shortLabels` (the popup): options may carry a brief `short` text; the full label stays as the tooltip.
+    const short = options.shortLabels === true;
     const select = h(
       'select',
       { id, 'aria-describedby': describedBy, value },
-      def.options.map((o) => h('option', { value: o.value }, o.label)),
+      def.options.map((o) => h('option', { value: o.value, title: short && o.short ? o.label : null }, short ? (o.short ?? o.label) : o.label)),
     );
     select.addEventListener('change', () => commit(select.value));
     return {

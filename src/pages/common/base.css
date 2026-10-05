@@ -439,6 +439,70 @@ dialog.dialog > form {
   max-width: 60ch;
 }
 
+/* ------------------------------------------------------------------ settings lock (lock-ui.js)
+   One quiet line about the lock, and the steps that open it. Hairlines in clay, no boxes. */
+
+.lock-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--u2);
+  padding: var(--u1) var(--u2);
+  border-top: 1px solid var(--clay);
+  border-bottom: 1px solid var(--clay);
+  font-size: 13px;
+}
+
+.lock-bar .lock-text {
+  max-width: 62ch;
+  color: var(--ink-2);
+}
+
+.lock-bar[data-state="open"] .lock-text {
+  color: var(--olive);
+}
+
+.lock-bar .lock-button {
+  flex: none;
+}
+
+.lock-bar.is-compact {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: var(--u1) 0;
+  font-size: 12.5px;
+}
+
+.unlock-lead {
+  max-width: 52ch;
+  color: var(--ink-2);
+}
+
+.unlock-sentence {
+  margin: var(--u2) 0 var(--u1);
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.unlock-wait {
+  min-height: 1.5em;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.unlock-field {
+  margin-top: var(--u1);
+}
+
+.unlock-error {
+  margin-top: var(--u1);
+  font-size: 13px;
+  color: var(--danger);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

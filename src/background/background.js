@@ -40,6 +40,78 @@
     }
   }
 
+  /**
+   * Messages that open the settings lock, wipe history or write `meta` come from our own pages
+   * only. A content script's sender has the web page's URL; an extension page's has ours (and the
+   * unit tests' fake sender has none).
+   */
+  function fromExtensionPage(sender) {
+    const url = sender?.url;
+    return typeof url !== 'string' || url.startsWith(api.runtime.getURL(''));
+  }
+
+  /** Is the settings lock holding right now? (src/shared/lock.js) */
+  async function isLocked() {
+    const settings = await AP.settings.effective();
+    const { lockUnlockedUntil } = await bg.store.readState();
+    return AP.lock.status(settings['advanced.lock'], lockUnlockedUntil, bg.clock.now()).locked;
+  }
+
+  /**
+   * LOCK_UNLOCK { password? | frictionDone? }: checks the password against the stored PBKDF2 hash
+   * (password mode) or trusts the page that it made the person wait and type the sentence
+   * (friction mode), then opens the lock for ten minutes.
+   */
+  async function onLockUnlock(payload, sender) {
+    if (!fromExtensionPage(sender)) return { ok: false, error: 'not-allowed' };
+    const lock = (await AP.settings.effective())['advanced.lock'];
+    if (lock.mode === 'none') return { ok: true, unlockedUntil: 0 };
+    if (lock.mode === 'password') {
+      if (!(await AP.lock.verifyPassword(payload?.password, lock))) return { ok: false, error: 'wrong-password' };
+    } else if (payload?.frictionDone !== true) {
+      return { ok: false, error: 'friction-required' };
+    }
+    const until = bg.clock.now() + AP.lock.UNLOCK_MS;
+    await bg.store.updateState((draft) => {
+      draft.lockUnlockedUntil = until;
+    });
+    return { ok: true, unlockedUntil: until };
+  }
+
+  /** LOCK_RELOCK: close the lock again right away. */
+  async function onLockRelock(_payload, sender) {
+    if (!fromExtensionPage(sender)) return { ok: false, error: 'not-allowed' };
+    await bg.store.updateState((draft) => {
+      draft.lockUnlockedUntil = 0;
+    });
+    return { ok: true };
+  }
+
+  /**
+   * STATS_CLEAR: forget all usage history. It resets today's count towards the daily limit, so
+   * while the settings lock holds it needs an unlock like any other loosening.
+   */
+  async function onStatsClear(_payload, sender) {
+    if (!fromExtensionPage(sender)) return { ok: false, error: 'not-allowed' };
+    if (await isLocked()) return { ok: false, error: 'locked' };
+    const days = await bg.stats.clear();
+    await sessions().reconcile(); // a limit block that rested on the cleared numbers goes away
+    return { ok: true, days };
+  }
+
+  /** ONBOARDING_DONE: the welcome page was finished. Only the background writes `meta`. */
+  async function onOnboardingDone(_payload, sender) {
+    if (!fromExtensionPage(sender)) return { ok: false, error: 'not-allowed' };
+    await bg.store.queue('meta', async () => {
+      const { meta } = await AP.settings.readStorage('meta');
+      const stored = AP.util.isPlainObject(meta) ? meta : {};
+      await api.storage.local.set({
+        meta: { schemaVersion: AP.settings.SCHEMA_VERSION, installedAt: bg.clock.now(), lastVersion: api.runtime.getManifest().version, ...stored, onboarded: true },
+      });
+    });
+    return { ok: true };
+  }
+
   // ---------------------------------------------------------------------------------------
   // Message handlers
   // ---------------------------------------------------------------------------------------
@@ -56,6 +128,10 @@
     [T.FOCUS_START]: (payload) => sessions().handlers.onFocusStart(payload),
     [T.FOCUS_END]: (payload) => sessions().handlers.onFocusEnd(payload),
     [T.LIMIT_GRACE]: () => sessions().handlers.onLimitGrace(),
+    [T.LOCK_UNLOCK]: onLockUnlock,
+    [T.LOCK_RELOCK]: onLockRelock,
+    [T.STATS_CLEAR]: onStatsClear,
+    [T.ONBOARDING_DONE]: onOnboardingDone,
 
     [T.HEARTBEAT]: async (payload) => {
       const siteKey = payload?.siteKey;
@@ -183,7 +259,8 @@
     try {
       if (name === 'toggle-enabled') {
         const settings = await AP.settings.effective();
-        await AP.settings.save({ 'general.enabled': settings['general.enabled'] === false });
+        // Behind the settings lock: turning At Peace off is a loosening, turning it on is not.
+        await AP.lock.save({ 'general.enabled': settings['general.enabled'] === false });
       } else if (name === 'focus-25') {
         await sessions().handlers.onFocusStart({ minutes: 25 });
       } else if (name === 'open-picker') {

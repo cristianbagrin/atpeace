@@ -28,7 +28,7 @@
     (
       'AI AR VR XR TV PC UK US USA EU UN UAE NATO NASA ESA FBI CIA NSA NYC LA DC SF ' +
       'NBA NFL NHL MLB MLS UFC WWE FIFA UEFA NCAA IPL WNBA NASCAR WWF ' +
-      'DIY FAQ ASMR AMA ELI5 TIL CEO CFO CTO PR HR IT QA ' +
+      'DIY FAQ ASMR AMA ELI5 TIL CEO CFO CTO ' +
       'CPU GPU RAM ROM SSD HDD USB LED LCD OLED QLED HD UHD FHD HDR FPS RPG MMO MMORPG DLC GTA NPC AMD ' +
       'BBC CNN NBC ABC CBS HBO MTV ESPN BMW IBM MIT UCLA NYU MIT ' +
       'OK DJ MC MP3 MP4 GIF PDF PNG JPEG HTML CSS SQL API SDK URL ' +
@@ -47,7 +47,7 @@
   const UPPER = /\p{Lu}/u;
   const LOWER = /\p{Ll}/u;
   /** A "word": letters, digits and apostrophes/hyphens inside it ("DON'T", "ANTI-WAR"). */
-  const WORD = /[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu;
+  const WORD = /[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu;
 
   function isMostlyCapitals(text) {
     let upper = 0;

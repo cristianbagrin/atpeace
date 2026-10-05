@@ -100,27 +100,37 @@
 
   /**
    * Is a row usable? A setting with `requires` is only meaningful while the setting it names is
-   * on, and that one may require another in turn, so the chain is followed.
+   * on ('id'), holds a value ('id=value') or holds anything else ('id!=value'); that one may require
+   * another in turn, so the chain is followed. When a value is wanted, `wants` carries the parsed
+   * condition so the hint can name it.
    * @param {import('../../shared/schema-core.js').SettingDef} def
    * @param {Record<string, any>} values
-   * @returns {{ enabled: boolean, needs: import('../../shared/schema-core.js').SettingDef|null }}
+   * @returns {{ enabled: boolean, needs: import('../../shared/schema-core.js').SettingDef|null, wants?: { op: string, value: string|null } }}
    */
   function requiresState(def, values, seen = new Set()) {
     if (!def.requires || seen.has(def.id)) return { enabled: true, needs: null };
     seen.add(def.id);
-    const dep = AP.schema.get(def.requires);
+    const cond = AP.schema.parseRequires(def.requires);
+    const dep = cond ? AP.schema.get(cond.id) : undefined;
     if (!dep) return { enabled: true, needs: null };
     const upstream = requiresState(dep, values, seen);
-    if (!upstream.enabled) return { enabled: false, needs: upstream.needs ?? dep };
-    return AP.schema.isHidingValue(dep, values?.[dep.id]) ? { enabled: true, needs: null } : { enabled: false, needs: dep };
+    if (!upstream.enabled) return { enabled: false, needs: upstream.needs ?? dep, ...(upstream.wants ? { wants: upstream.wants } : {}) };
+    if (AP.schema.requiresMet(cond, dep, values?.[dep.id])) return { enabled: true, needs: null };
+    return cond.op === 'truthy' ? { enabled: false, needs: dep } : { enabled: false, needs: dep, wants: cond };
   }
 
   /**
    * Why a row is switched off, in one calm sentence.
    * @param {import('../../shared/schema-core.js').SettingDef|null} needs the setting it waits for
+   * @param {{ op: string, value: string|null }} [wants] the value it waits for (from requiresState)
    */
-  function requiresHint(needs) {
+  function requiresHint(needs, wants) {
     if (!needs) return '';
+    if (wants && wants.op !== 'truthy') {
+      const shown = needs.type === 'select' ? (needs.options?.find((o) => o.value === wants.value)?.label ?? wants.value) : wants.value;
+      if (needs.type === 'toggle') return (wants.op === '=') === (wants.value === 'true') ? `Turn on “${needs.label}” to use this.` : `Turn off “${needs.label}” to use this.`;
+      return wants.op === '=' ? `Applies when “${needs.label}” is set to “${shown}”.` : `Applies once you change “${needs.label}” from “${shown}”.`;
+    }
     if (needs.type === 'toggle') return `Turn on “${needs.label}” to use this.`;
     if (needs.type === 'select') return `Applies once you change “${needs.label}”.`;
     return `Applies once “${needs.label}” is set.`;

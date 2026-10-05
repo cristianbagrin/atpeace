@@ -97,8 +97,8 @@
       default: 'show',
       options: [
         { value: 'show', label: 'Show' },
-        { value: 'blur', label: 'Blur until hovered' },
-        { value: 'grayscale', label: 'Grayscale until hovered' },
+        { value: 'blur', label: 'Blur until hovered', short: 'Blur' },
+        { value: 'grayscale', label: 'Grayscale until hovered', short: 'Grayscale' },
         { value: 'hide', label: 'Hide' },
       ],
       // The bulk "Recommendations" action blurs; it does not blank every picture.

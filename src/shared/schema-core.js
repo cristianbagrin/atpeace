@@ -66,6 +66,12 @@
 //   Bulk "hide all <tag>" sets toggles to true and selects to `bulkValue` (default: the LAST
 //   option, so order select options from least hidden to most hidden).
 //
+// REQUIRES      requires: 'pause.enabled'          the row is switched off until that setting is on
+//               requires: 'yt.home.feedMode=custom'  …until that select holds exactly this value
+//               requires: 'yt.home.feedMode!=show'   …until that select holds anything else
+//               (AP.schema.parseRequires(); the options page and popup grey the row out and say why.)
+// SHORT LABELS  options: [{ value, label, short? }]   `short` is used where space is tight (the popup).
+//
 // OPTIONAL HOOKS (functions live only in the registry, never in storage):
 //   item(raw) → normalized | null      per element of a 'list' (null drops it). No hook = a list
 //                                      of trimmed, de-duplicated strings. A list WITH `options`
@@ -92,7 +98,7 @@
    * @property {string} [description] One sentence: what exactly disappears / happens.
    * @property {'toggle'|'select'|'number'|'text'|'textarea'|'list'|'object'} type
    * @property {*} default
-   * @property {{value:string,label:string}[]} [options]  'select' choices (or the allowed items of a multi-select 'list').
+   * @property {{value:string,label:string,short?:string}[]} [options]  'select' choices (or the allowed items of a multi-select 'list'). `short` is a brief label for tight spaces (the popup).
    * @property {number} [min] @property {number} [max] @property {number} [step]  'number' bounds. With `step`, values snap to min + k*step.
    * @property {number} [maxLength]   'text'/'textarea': longer input is rejected (defaults 1000 / 50000).
    * @property {number} [maxItems]    'list': extra items are dropped.
@@ -104,7 +110,8 @@
    * @property {string[]} [rules]     (toggle) full CSS rules using the `:scope-on` placeholder.
    * @property {string} [bulkValue]   (select) value the bulk "hide all" action sets (default: last option).
    * @property {string} [feature]     JS feature that reads this setting (docs + validation).
-   * @property {string} [requires]    Another setting id that must be truthy for this to matter.
+   * @property {string} [requires]    Another setting that must be on for this to matter: 'id' (truthy / not the default),
+   *                                  'id=value' (a select that must hold that value) or 'id!=value'. See parseRequires().
    * @property {boolean} [advanced]   Hidden behind "Show advanced".
    * @property {boolean} [quick]      Offered as a popup quick toggle.
    * @property {boolean} [preset]     false = not part of presets (default true).
@@ -155,6 +162,8 @@
   const DEFAULT_MAX_LENGTH = { text: 1000, textarea: 50_000 };
   const DEFAULT_ITEM_LENGTH = 500;
   const MAX_OBJECT_JSON = 20_000;
+  /** Longest `short` option label: what still fits the popup's select without an ellipsis. */
+  const MAX_SHORT_LABEL = 16;
 
   /** @type {Map<string, SectionDef>} */
   const sectionById = new Map();
@@ -465,6 +474,40 @@
   }
 
   // ---------------------------------------------------------------------------------------
+  // `requires`
+  // ---------------------------------------------------------------------------------------
+
+  const REQUIRES_RE = /^([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+)(?:(!?=)([A-Za-z0-9._-]+))?$/;
+
+  /**
+   * Parses a `requires` string: 'id' (truthy), 'id=value' or 'id!=value'. Returns null when it is
+   * not well formed.
+   * @param {unknown} text
+   * @returns {{ id: string, op: 'truthy'|'='|'!=', value: string|null }|null}
+   */
+  function parseRequires(text) {
+    if (typeof text !== 'string') return null;
+    const m = REQUIRES_RE.exec(text);
+    if (!m) return null;
+    return { id: m[1], op: m[2] ?? 'truthy', value: m[3] ?? null };
+  }
+
+  /**
+   * Does the current value of the setting `requires` points at satisfy it? 'id' means "on" in the
+   * sense of isHidingValue; 'id=value' compares the value as text (so it also works for toggles
+   * with 'true'/'false').
+   * @param {{ op: string, value: string|null }} cond result of parseRequires()
+   * @param {SettingDef} dep the setting it points at
+   * @param {unknown} value that setting's current value
+   * @returns {boolean}
+   */
+  function requiresMet(cond, dep, value) {
+    if (cond.op === '=') return String(value) === cond.value;
+    if (cond.op === '!=') return String(value) !== cond.value;
+    return isHidingValue(dep, value);
+  }
+
+  // ---------------------------------------------------------------------------------------
   // Selector hygiene (shared by the compiler, validateRegistry and the engine's custom rules)
   // ---------------------------------------------------------------------------------------
 
@@ -757,6 +800,10 @@
           if (!isPlainObject(o) || typeof o.value !== 'string' || typeof o.label !== 'string' || o.label === '') {
             problems.push(`${id}: every option needs a string value and a label`);
           } else {
+            for (const key of Object.keys(o)) if (!['value', 'label', 'short'].includes(key)) problems.push(`${id}: option "${o.value}" has an unknown property "${key}"`);
+            if (o.short !== undefined && !(typeof o.short === 'string' && o.short.trim() !== '' && o.short.length <= MAX_SHORT_LABEL)) {
+              problems.push(`${id}: option "${o.value}" short label must be a non-empty string of at most ${MAX_SHORT_LABEL} characters`);
+            }
             if (!VALUE_RE.test(o.value)) problems.push(`${id}: option value "${o.value}" may only contain A-Z a-z 0-9 . _ -`);
             if (seen.has(o.value)) problems.push(`${id}: duplicate option value "${o.value}"`);
             seen.add(o.value);
@@ -783,8 +830,16 @@
       else for (const tag of def.tags) if (!KNOWN_TAGS.includes(tag)) problems.push(`${id}: unknown tag "${tag}" (known: ${KNOWN_TAGS.join(', ')})`);
     }
     if (def.requires !== undefined) {
-      if (def.requires === id) problems.push(`${id}: requires itself`);
-      else if (!settingById.has(def.requires)) problems.push(`${id}: requires unknown setting "${def.requires}"`);
+      const cond = parseRequires(def.requires);
+      const dep = cond ? settingById.get(cond.id) : undefined;
+      if (!cond) problems.push(`${id}: requires must look like "other.id", "other.id=value" or "other.id!=value" (got ${JSON.stringify(def.requires)})`);
+      else if (cond.id === id) problems.push(`${id}: requires itself`);
+      else if (!dep) problems.push(`${id}: requires unknown setting "${cond.id}"`);
+      else if (cond.op !== 'truthy') {
+        const allowed = dep.type === 'select' ? dep.options?.map((o) => o.value) : dep.type === 'toggle' ? ['true', 'false'] : null;
+        if (!allowed) problems.push(`${id}: "${def.requires}" compares a value, which only works for a select or a toggle`);
+        else if (!allowed.includes(cond.value)) problems.push(`${id}: "${cond.value}" is not a value of ${cond.id} (${allowed.join(', ')})`);
+      }
     }
     if (def.bulkValue !== undefined && !(def.type === 'select' && def.options?.some((o) => o.value === def.bulkValue))) {
       problems.push(`${id}: bulkValue must be one of the options of a select`);
@@ -867,6 +922,8 @@
     bulkTargets,
     bulkValue,
     isHidingValue,
+    parseRequires,
+    requiresMet,
     isSafeSelector,
     splitSelectorList,
     gate,

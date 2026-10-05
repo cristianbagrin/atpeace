@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Welcome to At Peace</title>
+  <link rel="stylesheet" href="../common/tokens.css">
+  <link rel="stylesheet" href="../common/base.css">
+  <link rel="stylesheet" href="welcome.css">
+  <script src="../common/theme-boot.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="top">
+      <h1 class="wordmark"><span class="seal" aria-hidden="true"></span>At Peace</h1>
+    </header>
+
+    <main class="column" id="main">
+      <section class="intro" aria-labelledby="welcome-title">
+        <h2 class="title" id="welcome-title">A quieter YouTube.</h2>
+        <p class="lede">Three small choices and you are done. You can change any of it later, and nothing ever leaves this browser.</p>
+      </section>
+
+      <ol class="steps" id="steps">
+        <li class="step" aria-labelledby="step-1-title">
+          <span class="num mono" aria-hidden="true">01</span>
+          <div class="step-main">
+            <h3 class="step-title" id="step-1-title">How much do you want to see?</h3>
+            <p class="step-intro" id="step-1-intro">Pick a starting point. Every single thing can be tuned afterwards.</p>
+            <div id="presets" class="choices" role="radiogroup" aria-labelledby="step-1-title"></div>
+          </div>
+        </li>
+
+        <li class="step" aria-labelledby="step-2-title">
+          <span class="num mono" aria-hidden="true">02</span>
+          <div class="step-main">
+            <h3 class="step-title" id="step-2-title">A breath before YouTube?</h3>
+            <p class="step-intro">A short breathing screen appears before YouTube opens, so opening it is a choice and not a reflex.</p>
+            <div id="pause" class="ledger"></div>
+          </div>
+        </li>
+
+        <li class="step" aria-labelledby="step-3-title">
+          <span class="num mono" aria-hidden="true">03</span>
+          <div class="step-main">
+            <h3 class="step-title" id="step-3-title">Keep it in reach</h3>
+            <div id="access"></div>
+            <p class="step-intro">Pin At Peace so it is one click away: open the extensions menu in the toolbar (the puzzle-piece button), find At Peace, and choose “Pin to Toolbar” from the menu beside it.</p>
+            <dl class="keys" id="keys"></dl>
+            <p class="step-note">You can change these shortcuts in the browser: open <span class="mono">about:addons</span>, press the gear, and choose “Manage Extension Shortcuts”.</p>
+          </div>
+        </li>
+      </ol>
+
+      <section class="finish" id="finish" aria-live="polite"></section>
+    </main>
+  </div>
+
+  <!-- Shared classic scripts, in the same order as the YouTube content script (manifest.json). -->
+  <script src="../../shared/namespace.js"></script>
+  <script src="../../shared/browser-api.js"></script>
+  <script src="../../shared/util.js"></script>
+  <script src="../../shared/messages.js"></script>
+  <script src="../../shared/schema-core.js"></script>
+  <script src="../../shared/schema/general.js"></script>
+  <script src="../../shared/schema/pause.js"></script>
+  <script src="../../shared/schema/focus.js"></script>
+  <script src="../../shared/schema/advanced.js"></script>
+  <script src="../../sites/youtube/schema/general.js"></script>
+  <script src="../../sites/youtube/schema/masthead.js"></script>
+  <script src="../../sites/youtube/schema/guide.js"></script>
+  <script src="../../sites/youtube/schema/home.js"></script>
+  <script src="../../sites/youtube/schema/watch.js"></script>
+  <script src="../../sites/youtube/schema/player.js"></script>
+  <script src="../../sites/youtube/schema/comments.js"></script>
+  <script src="../../sites/youtube/schema/search.js"></script>
+  <script src="../../sites/youtube/schema/shorts.js"></script>
+  <script src="../../sites/youtube/schema/subscriptions.js"></script>
+  <script src="../../sites/youtube/schema/channel.js"></script>
+  <script src="../../sites/youtube/schema/filters.js"></script>
+  <script src="../../shared/presets.js"></script>
+  <script src="../../shared/settings.js"></script>
+  <script src="../../shared/state.js"></script>
+  <script src="../../shared/lock.js"></script>
+  <script src="../common/logic.js"></script>
+  <script src="../common/components.js"></script>
+  <script src="../common/lock-ui.js"></script>
+  <script type="module" src="welcome.js"></script>
+</body>
+</html>

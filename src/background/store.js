@@ -13,6 +13,8 @@
 //   blocks          [{ reason, until, siteKeys, scheduleId?, name? }]
 //                                            every block in force (focus / schedule / limit); the
 //                                            single `block` of PLAN §5 is the primary one of these
+//   lockUnlockedUntil  ms                    the settings lock is open until then (src/shared/lock.js);
+//                                            0 / past = locked. Pages read it straight from storage.
 //
 // Short-lived bookkeeping (last heartbeat per site, recent pause opens) lives in storage.session,
 // which survives event-page unloads but not a browser restart; where storage.session is missing
@@ -105,7 +107,8 @@
       const { block } = base;
       blocks = normalizeBlocks([{ ...block, reason: REASONS.includes(block.reason) ? block.reason : 'focus', siteKeys: block.siteKeys.length > 0 ? block.siteKeys : ['youtube'] }]);
     }
-    return { ...base, sessionMinutes, blocks };
+    const unlocked = Number(src.lockUnlockedUntil);
+    return { ...base, sessionMinutes, blocks, lockUnlockedUntil: Number.isFinite(unlocked) && unlocked > 0 ? unlocked : 0 };
   }
 
   /** The view → what goes into storage (only known fields; extraTime trimmed to recent days). */
@@ -118,6 +121,7 @@
       blocks: state.blocks,
       extraTime: Object.fromEntries(days.map((d) => [d, state.extraTime[d]])),
       scheduleOverride: state.scheduleOverride,
+      lockUnlockedUntil: state.lockUnlockedUntil,
     };
   }
 

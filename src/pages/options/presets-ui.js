@@ -98,7 +98,15 @@ export async function managePresets(getValues) {
         { title: `Apply ${preset.name}?`, confirmLabel: 'Apply preset' },
       );
       if (!ok) continue;
-      const result = await AP.settings.applyPreset(preset.id);
+      let result = await AP.lock.applyPreset(preset.id);
+      // A preset that would show something again needs the unlock (one that only hides more never asks).
+      if (result.error === 'locked') {
+        if (!(await AP.ui.requestUnlock())) {
+          AP.ui.toast('Locked: the preset was not applied.');
+          return;
+        }
+        result = await AP.lock.applyPreset(preset.id);
+      }
       AP.ui.toast(result.ok ? `${preset.name} applied` : 'That preset is no longer available.');
       return;
     }

@@ -30,6 +30,8 @@ const state = {
   focusNote: null,
   rows: new Map(),
   chips: new Map(),
+  /** The settings lock (AP.lock.read()). */
+  lock: { mode: 'none', locked: false, unlockedUntil: 0, waitSeconds: 60 },
 };
 
 const els = {};
@@ -41,8 +43,23 @@ let tickTimer = null;
 
 const readValues = async () => AP.settings.merge(await AP.settings.load());
 
+/**
+ * The settings lock refused a change that would show something again: put the control back and say
+ * so, quietly, in the lock bar (which has the Unlock button).
+ */
+function refuseChange(message = 'Locked. That would show something again.') {
+  for (const id of state.rows.keys()) state.rows.get(id).control.set(state.values[id]);
+  els.masterControl?.set(state.values[AP.schema.MASTER_ID]);
+  els.lockBar.say(message);
+}
+
 async function saveSetting(def, value) {
-  const report = await AP.settings.save({ [def.id]: value });
+  const result = await AP.lock.save({ [def.id]: value });
+  if (!result.ok) {
+    refuseChange();
+    return;
+  }
+  const { report } = result;
   if (report.invalid.includes(def.id)) throw new Error('That value is not allowed here.');
   state.values[def.id] = AP.schema.validateValue(def, value);
   afterValuesChanged();
@@ -109,7 +126,12 @@ function refreshChips() {
 async function toggleBulk(tag) {
   try {
     const patch = AP.ui.bulkPatch(tag, state.values);
-    const report = await AP.settings.save(patch);
+    const result = await AP.lock.save(patch);
+    if (!result.ok) {
+      refuseChange('Locked. Turning these off needs an unlock first.');
+      return;
+    }
+    const { report } = result;
     for (const id of report.changed) {
       state.values[id] = patch[id];
       state.rows.get(id)?.control.set(patch[id]);
@@ -123,7 +145,7 @@ async function toggleBulk(tag) {
 
 function buildQuickRow(def) {
   const id = `q-${def.id.replace(/[^A-Za-z0-9_-]/g, '-')}`;
-  const control = AP.ui.settingControl(def, state.values[def.id], (v) => saveSetting(def, v), { id });
+  const control = AP.ui.settingControl(def, state.values[def.id], (v) => saveSetting(def, v), { id, shortLabels: true });
   const row = h('div', { class: ['row', def.type === 'toggle' && 'is-toggle'], dataset: { id: def.id } }, h('label', { class: 'row-label', for: id, title: def.description }, def.label), control.el);
   state.rows.set(def.id, { def, control });
   return row;
@@ -169,10 +191,11 @@ function onPresetChosen() {
       type: 'button',
       class: 'btn btn-primary',
       onClick: async () => {
-        const result = await AP.settings.applyPreset(preset.id);
+        const result = await AP.lock.applyPreset(preset.id);
         els.presetConfirm.hidden = true;
         els.presetConfirm.replaceChildren();
-        if (!result.ok) AP.ui.toast('That preset is no longer available.');
+        if (result.error === 'locked') els.lockBar.say('Locked. That preset would show something again.');
+        else if (!result.ok) AP.ui.toast('That preset is no longer available.');
         await resync();
       },
     },
@@ -184,6 +207,47 @@ function onPresetChosen() {
   );
   els.presetConfirm.hidden = false;
   apply.focus();
+}
+
+// ---------------------------------------------------------------------------------------------
+// The settings lock: a quiet bar, and the unlock steps inline (a popup closes when it loses focus,
+// so no dialog here)
+// ---------------------------------------------------------------------------------------------
+
+let inlineUnlock = null;
+
+function closeInlineUnlock() {
+  inlineUnlock?.destroy();
+  inlineUnlock = null;
+  els.unlockHost.replaceChildren();
+  els.unlockHost.hidden = true;
+}
+
+function showInlineUnlock() {
+  if (inlineUnlock || !state.lock.locked) return;
+  inlineUnlock = AP.ui.unlockForm(state.lock, {
+    onDone: () => {
+      closeInlineUnlock();
+      AP.ui.toast('Unlocked for 10 minutes');
+    },
+    onCancel: closeInlineUnlock,
+  });
+  els.unlockHost.replaceChildren(inlineUnlock.body, h('div', { class: 'friction-actions' }, inlineUnlock.actions));
+  els.unlockHost.hidden = false;
+  inlineUnlock.focus();
+}
+
+/** Says why something is refused and opens the unlock steps. */
+function askToUnlock(message) {
+  els.lockBar.say(message);
+  showInlineUnlock();
+}
+
+function buildLock() {
+  els.lockBar = AP.ui.lockBar({ compact: true, onUnlock: showInlineUnlock });
+  els.unlockHost = h('div', { class: 'unlock-inline', hidden: true });
+  els.lockBar.update(state.lock);
+  return [els.lockBar.el, els.unlockHost];
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -227,6 +291,9 @@ async function sendEnd(payload) {
   if (res?.error === 'strict') {
     state.friction = null;
     state.focusNote = 'This block cannot be ended early.';
+  } else if (res?.error === 'locked') {
+    state.friction = null;
+    askToUnlock('Locked. Ending a block early needs an unlock first.');
   } else if (res?.error === 'friction-required') {
     const mode = state.values['focus.unlockFriction'];
     state.friction = { mode: mode === 'phrase' ? 'phrase' : 'wait', startedAt: Date.now() };
@@ -241,6 +308,10 @@ function endEarly() {
   if (state.values['focus.strict'] === true) {
     state.focusNote = 'This block cannot be ended early.';
     renderFocus();
+    return;
+  }
+  if (state.lock.locked) {
+    askToUnlock('Locked. Ending a block early needs an unlock first.');
     return;
   }
   const mode = state.values['focus.unlockFriction'];
@@ -473,13 +544,20 @@ async function init() {
   els.content = document.getElementById('content');
   els.foot = document.getElementById('foot');
 
-  const [values, customPresets, status] = await Promise.all([readValues(), AP.settings.listCustomPresets(), statusFromStorage().catch(() => state.status)]);
+  const [values, customPresets, status, lock] = await Promise.all([
+    readValues(),
+    AP.settings.listCustomPresets(),
+    statusFromStorage().catch(() => state.status),
+    AP.lock.read().catch(() => state.lock),
+  ]);
   state.values = values;
   state.customPresets = customPresets;
   state.status = status;
+  state.lock = lock;
   AP.ui.applyTheme(values['general.theme']);
 
   buildMaster();
+  document.getElementById('banner').append(...buildLock());
   els.focus = h('section', { class: 'block', 'aria-label': 'Focus' });
   els.today = h('section', { class: 'block', 'aria-label': 'Today', hidden: true });
   els.content.replaceChildren(
@@ -495,6 +573,12 @@ async function init() {
 
   // Later, off the critical path.
   document.getElementById('banner').append(AP.ui.hostAccessBanner());
+  AP.lock.watch((next) => {
+    state.lock = next;
+    els.lockBar.update(next);
+    if (!next.locked) closeInlineUnlock();
+    renderFocus();
+  });
   AP.settings.subscribe(() => resync().catch((err) => AP.warn('popup sync failed', err)));
   const refresh = AP.util.debounce(() => refreshStatus(), 250);
   AP.api.storage.onChanged.addListener((changes, area) => {

@@ -130,7 +130,7 @@ describe('GET_STATUS (Contract C3)', () => {
   test('has exactly the documented shape on a fresh install', async () => {
     const status = await send('GET_STATUS');
     assert.deepEqual(Object.keys(status).sort(), [
-      'activeSchedules', 'block', 'blocks', 'limit', 'now', 'ok', 'scheduleOverride', 'sessions', 'today', 'version',
+      'activeSchedules', 'block', 'blocks', 'limit', 'lock', 'now', 'ok', 'scheduleOverride', 'sessions', 'today', 'version',
     ]);
     assert.equal(status.ok, true);
     assert.equal(status.version, '1.2.3');
@@ -138,6 +138,7 @@ describe('GET_STATUS (Contract C3)', () => {
     assert.deepEqual(status.sessions, {});
     assert.equal(status.scheduleOverride, null);
     assert.deepEqual(status.activeSchedules, []);
+    assert.deepEqual(status.lock, { mode: 'none', unlockedUntil: 0 });
     assert.deepEqual(status.today, { youtube: { activeSec: 0, opens: 0, turnedBack: 0, continued: 0, blockedHits: 0 } });
     assert.deepEqual(status.limit, { dailyMinutes: 0, usedSec: 0, graceLeft: 1 });
   });

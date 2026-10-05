@@ -12,11 +12,12 @@
 //     the page we are about to replace) and the browser loads the target: location.assign, so Back
 //     returns to the page the user clicked from.
 //   - Navigation that starts without a click (a script, a keyboard shortcut) is caught when YouTube
-//     calls history.pushState (Navigation API, fires with the destination URL) and, where that API
-//     is missing, after YouTube finished rendering (yt-navigate-finish). There the browser already
-//     has a history entry for the page that must not be shown, so location.replace swaps it for
-//     the target and Back does not land on it again. (Replacing at `yt-navigate-start` instead would
-//     overwrite the entry of the page the user is LEAVING: Back would skip it.)
+//     calls history.pushState (Navigation API, fires with the destination URL; the replace runs one
+//     task later, once the pushed entry is current) and, where that API is missing, after YouTube
+//     finished rendering (yt-navigate-finish). There the browser already has a history entry for the
+//     page that must not be shown, so location.replace swaps it for the target and Back does not land
+//     on it again. (Replacing at `yt-navigate-start`, or inside the navigate event, would overwrite the
+//     entry of the page the user is LEAVING: Back would skip it. Measured in Chromium.)
 //   - Every redirect passes a loop guard (sessionStorage): the same target three times within 15 s
 //     means something bounces us back (a target YouTube redirects away from, a logged-out
 //     /playlist?list=WL…) and the guard refuses, so the page just stays where it is.
@@ -226,7 +227,14 @@
         const url = event.destination?.url;
         if (typeof url !== 'string' || url === globalThis.location.href) return;
         const to = target(url, null);
-        if (to && to !== url) navigate(to, { replace: true });
+        // Not inside the event: the pushState has not committed yet, and a replace started now would
+        // replace the entry of the page the user is LEAVING (measured: Back then skips it). One task
+        // later the pushed entry is the current one, which is the one to swap for the target.
+        if (to && to !== url) {
+          setTimeout(() => {
+            if (globalThis.location.href === url) navigate(to, { replace: true });
+          }, 0);
+        }
       } catch (err) {
         AP.warn('redirect navigate handler failed', err);
       }

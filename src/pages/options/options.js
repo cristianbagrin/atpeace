@@ -31,6 +31,8 @@ const state = {
   chips: new Map(),
   /** @type {{ refresh: () => Promise<void> }|null} */
   week: null,
+  /** The settings lock as AP.lock.watch() last reported it. */
+  lock: { mode: 'none', locked: false, unlockedUntil: 0, waitSeconds: 60 },
 };
 
 const els = {};
@@ -53,9 +55,15 @@ function flashSaved() {
   savedTimer = setTimeout(() => els.saved.classList.remove('is-visible'), 1800);
 }
 
-/** Stores one value for a row. Rejects with a readable message when the schema refuses it. */
+/**
+ * Stores one value for a row. Rejects with a readable message when the schema refuses it, and with
+ * `code: 'locked'` when the settings lock holds and the change would show something again (the
+ * row then puts the old value back and offers the unlock).
+ */
 async function saveSetting(def, value) {
-  const report = await AP.settings.save({ [def.id]: value });
+  const result = await AP.lock.save({ [def.id]: value });
+  if (!result.ok) throw Object.assign(new Error(AP.ui.lockedMessage), { code: 'locked' });
+  const { report } = result;
   if (report.invalid.includes(def.id)) throw new Error('That value is not allowed here.');
   state.values[def.id] = AP.schema.validateValue(def, value);
   afterValuesChanged([def.id]);
@@ -78,8 +86,8 @@ function refreshRequires() {
       lastNeeds = null;
       continue;
     }
-    const { enabled, needs } = AP.ui.requiresState(row.def, state.values);
-    row.setEnabled(enabled, needs, { showHint: !enabled && needs?.id !== lastNeeds });
+    const { enabled, needs, wants } = AP.ui.requiresState(row.def, state.values);
+    row.setEnabled(enabled, needs, { showHint: !enabled && needs?.id !== lastNeeds, wants });
     lastNeeds = enabled ? null : (needs?.id ?? null);
   }
 }
@@ -114,7 +122,7 @@ function buildSettingsSection(section) {
   const defs = AP.schema.bySection(section.id);
   const groups = clusterGroups(defs).map(({ name, defs: list }) => {
     const rows = list.map((def) => {
-      const row = buildRow(def, state.values[def.id], saveSetting);
+      const row = buildRow(def, state.values[def.id], saveSetting, { onUnlock: () => AP.ui.requestUnlock() });
       state.rows.set(def.id, row);
       return row;
     });
@@ -295,7 +303,14 @@ async function toggleBulk(tag, label) {
 
 async function applyBulk(tag, label) {
   const patch = AP.ui.bulkPatch(tag, state.values);
-  const report = await AP.settings.save(patch);
+  let result = await AP.lock.save(patch);
+  // Switching a whole kind off shows things again: ask for the unlock, then do it.
+  if (!result.ok && (await AP.ui.requestUnlock())) result = await AP.lock.save(patch);
+  if (!result.ok) {
+    AP.ui.toast('Locked: nothing was changed.');
+    return;
+  }
+  const { report } = result;
   for (const id of report.changed) {
     state.values[id] = patch[id];
     state.rows.get(id)?.set(patch[id]);
@@ -430,7 +445,8 @@ async function init() {
 
   buildTopbar();
   els.scheduleNote = h('p', { class: 'banner', hidden: true });
-  document.getElementById('notices').append(AP.ui.hostAccessBanner(), els.scheduleNote);
+  els.lockBar = AP.ui.lockBar();
+  document.getElementById('notices').append(els.lockBar.el, AP.ui.hostAccessBanner(), els.scheduleNote);
   buildSections();
   buildAbout();
 
@@ -451,6 +467,12 @@ async function init() {
   new ResizeObserver(() => document.documentElement.style.setProperty('--topbar-h', `${Math.ceil(els.topbar.getBoundingClientRect().height)}px`)).observe(els.topbar);
 
   AP.settings.subscribe((_effective, _changed, info) => resync(info).catch((err) => AP.warn('options sync failed', err)));
+  // The lock: the quiet bar at the top, and the "Locked" notes on rows go away when it opens.
+  AP.lock.watch((status) => {
+    state.lock = status;
+    els.lockBar.update(status);
+    if (!status.locked) for (const row of state.rows.values()) row.clearLocked();
+  });
   AP.api.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && 'stats' in changes) state.week.refresh();
   });

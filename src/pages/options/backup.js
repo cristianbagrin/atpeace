@@ -44,7 +44,16 @@ export function buildBackup() {
       showReport({ tone: 'error', headline: 'Nothing was imported.', lines: ['The file could not be read.'] });
       return;
     }
-    const result = AP.ui.formatImportReport(await AP.settings.importAll(text));
+    // An import replaces settings wholesale, so while the lock holds it asks for the unlock first.
+    let imported = await AP.lock.importAll(text);
+    if (imported.error === 'locked') {
+      if (!(await AP.ui.requestUnlock())) {
+        AP.ui.toast('Locked: nothing was imported.');
+        return;
+      }
+      imported = await AP.lock.importAll(text);
+    }
+    const result = AP.ui.formatImportReport(imported);
     showReport(result);
     if (result.tone !== 'error') AP.ui.toast('Backup imported');
   });
@@ -76,7 +85,18 @@ export function buildBackup() {
           danger: true,
         });
         if (!ok) return;
-        await AP.settings.reset();
+        let done = await AP.lock.reset();
+        if (done.error === 'locked') {
+          if (!(await AP.ui.requestUnlock())) {
+            AP.ui.toast('Locked: nothing was reset.');
+            return;
+          }
+          done = await AP.lock.reset();
+        }
+        if (!done.ok) {
+          AP.ui.toast('That could not be reset.');
+          return;
+        }
         report.hidden = true;
         AP.ui.toast('Settings reset');
       },

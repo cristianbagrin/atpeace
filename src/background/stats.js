@@ -139,6 +139,19 @@
     return true;
   }
 
+  /**
+   * Forgets every day of usage ("Clear usage history"). The last-heartbeat bookkeeping stays: it
+   * only prevents double counting and holds no history.
+   * @returns {Promise<number>} how many days were removed
+   */
+  function clear() {
+    return store().updateStats((draft) => {
+      const days = Object.keys(draft);
+      for (const day of days) delete draft[day];
+      return days.length;
+    });
+  }
+
   /** Today's counters for every site that has any, normalized to the five public numbers. */
   async function today(now = bg.clock.now()) {
     return AP.state.getStats(AP.util.dayKey(now));
@@ -157,6 +170,7 @@
     recentOpens,
     recordCount,
     addIntention,
+    clear,
     today,
   };
 })();

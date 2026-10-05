@@ -5,6 +5,7 @@
 import { loadAtPeace, createFakeBrowser, createEvent, CORE_SCRIPTS, SCHEMA_SCRIPTS } from './_load.mjs';
 
 export const BACKGROUND_MODULES = [
+  'src/shared/lock.js',
   'src/background/store.js',
   'src/background/stats.js',
   'src/background/sessions.js',

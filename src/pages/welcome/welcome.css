@@ -1,0 +1,278 @@
+/* The welcome page (PLAN §9): a calm sheet, one column set a little to the right of the wordmark,
+   three numbered steps separated by hairlines. The only loud thing is the seal in the wordmark. */
+
+:root {
+  --column: min(640px, 100%);
+  --edge-pad: 7vw;
+}
+
+.page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: var(--u4) var(--edge-pad) var(--u6);
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font: 600 15px/1 var(--font-serif);
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+}
+
+.column {
+  width: var(--column);
+  margin-left: clamp(0px, 14vw, 210px);
+}
+
+/* ------------------------------------------------------------------ intro */
+
+.intro {
+  margin: var(--u6) 0 var(--u5);
+}
+
+.title {
+  font: 400 clamp(30px, 4vw, 40px) / 1.2 var(--font-serif);
+}
+
+.lede {
+  margin-top: var(--u1);
+  max-width: 46ch;
+  font-size: 15px;
+  color: var(--ink-2);
+}
+
+/* ------------------------------------------------------------------ steps */
+
+.steps {
+  border-bottom: 1px solid var(--rule);
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  padding: var(--u4) 0;
+  border-top: 1px solid var(--rule);
+}
+
+.num {
+  padding-top: 5px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.step-title {
+  font-size: 22px;
+}
+
+.step-intro {
+  margin-top: 4px;
+  max-width: 54ch;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.step-note {
+  margin-top: var(--u2);
+  max-width: 54ch;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+/* 01: presets as ledger rows with a radio each. */
+.choices {
+  margin-top: var(--u2);
+  border-top: 1px solid var(--rule);
+}
+
+.choice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--u2);
+  align-items: start;
+  padding: var(--u1) 0;
+  border-bottom: 1px solid var(--rule);
+  cursor: pointer;
+}
+
+.choice input {
+  margin: 5px 0 0;
+  accent-color: var(--ink);
+}
+
+.choice-text {
+  display: grid;
+  gap: 1px;
+}
+
+.choice-name {
+  font-weight: 500;
+}
+
+.choice-desc {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+/* 02: ledger rows, the same as the settings page. */
+.ledger {
+  margin-top: var(--u2);
+  border-top: 1px solid var(--rule);
+}
+
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--u3);
+  align-items: center;
+  padding: var(--u1) 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.row-label {
+  display: block;
+  font-weight: 500;
+}
+
+.row.is-toggle .row-label::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+
+.row-desc {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.row-error {
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--danger);
+}
+
+.row-control {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.row.is-disabled .row-label,
+.row.is-disabled .row-desc,
+.row.is-disabled .row-control {
+  opacity: 0.55;
+}
+
+.row.is-disabled .row-label::after {
+  cursor: default;
+  pointer-events: none;
+}
+
+.number-field {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--u1);
+}
+
+.unit {
+  min-width: 52px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+/* 03: the notice (only when access is missing), then the pin hint and the shortcuts. */
+#access:not(:empty) {
+  margin: var(--u2) 0;
+}
+
+.keys {
+  margin-top: var(--u2);
+  border-top: 1px solid var(--rule);
+}
+
+.key-row {
+  display: grid;
+  grid-template-columns: 188px minmax(0, 1fr);
+  gap: var(--u2);
+  align-items: center;
+  padding: var(--u1) 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.key-row dt {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.key-row dd {
+  margin: 0;
+}
+
+kbd {
+  min-width: 26px;
+  padding: 1px 7px;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  background: var(--paper-2);
+  font: 12px/1.6 var(--font-mono);
+  text-align: center;
+}
+
+.plus,
+.unset {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+/* ------------------------------------------------------------------ finish */
+
+.finish {
+  padding-top: var(--u4);
+}
+
+.done-title {
+  font: 400 28px/1.25 var(--font-serif);
+}
+
+.done-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--u2) var(--u3);
+  margin-top: var(--u3);
+}
+
+a.btn {
+  text-decoration: none;
+}
+
+.btn.big {
+  min-height: 44px;
+  padding: 8px var(--u3);
+  font-size: 16px;
+}
+
+@media (max-width: 640px) {
+  .step {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 4px;
+  }
+
+  .key-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--u1);
+  }
+
+  .row-control {
+    justify-content: flex-start;
+  }
+}

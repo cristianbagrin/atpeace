@@ -15,9 +15,10 @@ const WIDE_TYPES = new Set(['list', 'object', 'textarea', 'text']);
  * @property {import('../../shared/schema-core.js').SettingDef} def
  * @property {HTMLElement} el
  * @property {(value: any) => void} set        show a value that changed elsewhere
- * @property {(enabled: boolean, needs: object|null, options?: { showHint?: boolean }) => void} setEnabled
+ * @property {(enabled: boolean, needs: object|null, options?: { showHint?: boolean, wants?: object }) => void} setEnabled
  * @property {(hidden: boolean) => void} setHidden
  * @property {(show: boolean) => void} showAdvancedTag
+ * @property {() => void} clearLocked     take the "Locked" note away (the lock opened)
  * @property {() => void} focus
  * @property {() => void} highlight
  */
@@ -25,10 +26,13 @@ const WIDE_TYPES = new Set(['list', 'object', 'textarea', 'text']);
 /**
  * @param {import('../../shared/schema-core.js').SettingDef} def
  * @param {any} initialValue
- * @param {(def: object, value: any) => Promise<void>} save  stores the value; rejects with a readable Error
+ * @param {(def: object, value: any) => Promise<void>} save  stores the value; rejects with a readable Error. An Error
+ *   with `code: 'locked'` (the settings lock refused a loosening) is not shown as an error: the row puts the old value
+ *   back and says, calmly, that it is locked.
+ * @param {{ onUnlock?: () => void }} [hooks] onUnlock: the "Unlock…" button of that note
  * @returns {Row}
  */
-export function buildRow(def, initialValue, save) {
+export function buildRow(def, initialValue, save, { onUnlock } = {}) {
   const key = slug(def.id);
   const inputId = `in-${key}`;
   const descId = `d-${key}`;
@@ -40,7 +44,28 @@ export function buildRow(def, initialValue, save) {
   const errorEl = h('p', { class: 'row-error', role: 'alert', hidden: true });
   const hintEl = h('p', { class: 'row-hint', id: hintId, hidden: true });
   const advancedTag = h('span', { class: 'row-tag caps', hidden: true }, 'Advanced');
-  const persist = (value) => save(def, value);
+  // The settings lock refused a loosening: say so quietly, with the way out right there.
+  const lockEl = h(
+    'p',
+    { class: 'row-lock', role: 'status', hidden: true },
+    h('span', null, 'Locked. Showing something again needs an unlock first.'),
+    ' ',
+    h('button', { type: 'button', class: 'btn btn-quiet', onClick: () => onUnlock?.() }, 'Unlock…'),
+  );
+
+  /** The value the field should show: what is stored. */
+  let stored = initialValue;
+  let enabledNow = true;
+  const persist = async (value) => {
+    try {
+      await save(def, value);
+      stored = value;
+      lockEl.hidden = true;
+    } catch (err) {
+      if (err?.code !== 'locked') throw err;
+      refuse();
+    }
+  };
 
   /** @type {HTMLElement|null} */
   let custom = null;
@@ -59,9 +84,8 @@ export function buildRow(def, initialValue, save) {
     return null;
   };
 
-  custom = renderCustom(initialValue);
-  if (!custom) {
-    control = AP.ui.settingControl(def, initialValue, persist, {
+  const makeControl = (value) =>
+    AP.ui.settingControl(def, value, persist, {
       id: inputId,
       labelledBy: labelId,
       describedBy,
@@ -70,11 +94,33 @@ export function buildRow(def, initialValue, save) {
         errorEl.hidden = !message;
       },
     });
-  }
+
+  custom = renderCustom(initialValue);
+  if (!custom) control = makeControl(initialValue);
 
   const kind = AP.ui.controlKind(def);
   const wide = custom !== null || WIDE_TYPES.has(def.type) || kind === 'checks' || kind === 'json';
   const host = h('div', { class: 'row-control' }, custom ?? control.el);
+
+  /** Puts the stored value back into a fresh editor (the typed one is simply replaced) and keeps the keyboard where it was. */
+  function refuse() {
+    const hadFocus = host.contains(document.activeElement);
+    errorEl.hidden = true;
+    lockEl.hidden = false;
+    if (custom) {
+      const fresh = renderCustom(stored);
+      if (fresh) {
+        custom.replaceWith(fresh);
+        custom = fresh;
+        custom.inert = !enabledNow;
+      }
+    } else {
+      control = makeControl(stored);
+      control.setDisabled(!enabledNow);
+      host.replaceChildren(control.el);
+    }
+    if (hadFocus) row.focus();
+  }
 
   const el = h(
     'div',
@@ -86,17 +132,19 @@ export function buildRow(def, initialValue, save) {
       def.description && h('p', { class: 'row-desc', id: descId }, def.description),
       hintEl,
       errorEl,
+      lockEl,
     ),
     host,
   );
 
   let highlightTimer = null;
 
-  return {
+  const row = {
     def,
     el,
 
     set(value) {
+      stored = value;
       if (control) {
         control.set(value);
         return;
@@ -108,10 +156,11 @@ export function buildRow(def, initialValue, save) {
       custom = fresh;
     },
 
-    setEnabled(enabled, needs, { showHint = true } = {}) {
+    setEnabled(enabled, needs, { showHint = true, wants } = {}) {
+      enabledNow = enabled;
       el.classList.toggle('is-disabled', !enabled);
       // The text stays in the DOM (it is part of the field's description); it is only not repeated on screen.
-      hintEl.textContent = enabled ? '' : AP.ui.requiresHint(needs);
+      hintEl.textContent = enabled ? '' : AP.ui.requiresHint(needs, wants);
       hintEl.hidden = enabled || !showHint;
       control?.setDisabled(!enabled);
       if (custom) custom.inert = !enabled;
@@ -123,6 +172,10 @@ export function buildRow(def, initialValue, save) {
 
     showAdvancedTag(show) {
       advancedTag.hidden = !show;
+    },
+
+    clearLocked() {
+      lockEl.hidden = true;
     },
 
     focus() {
@@ -138,4 +191,5 @@ export function buildRow(def, initialValue, save) {
       highlightTimer = setTimeout(() => el.classList.remove('is-target'), 2600);
     },
   };
+  return row;
 }

@@ -20,6 +20,10 @@
     START_PICKER: 'START_PICKER',
     LIMIT_GRACE: 'LIMIT_GRACE', // {} → "5 more minutes" after the daily limit (Phase 3c)
     BLOCKED_OPENED: 'BLOCKED_OPENED', // { siteKey, reason } the blocked page loaded → stats.blockedHits (Phase 3c)
+    LOCK_UNLOCK: 'LOCK_UNLOCK', // { password? | frictionDone? } → verifies, then state.lockUnlockedUntil = now + 10 min (Phase 4b)
+    LOCK_RELOCK: 'LOCK_RELOCK', // {} → state.lockUnlockedUntil = 0
+    STATS_CLEAR: 'STATS_CLEAR', // {} → the background clears the usage history (needs an unlock while the settings lock is on)
+    ONBOARDING_DONE: 'ONBOARDING_DONE', // {} → meta.onboarded = true (only the background writes meta)
   });
 
   // Chrome and Firefox both say "Could not establish connection. Receiving end does not exist."
