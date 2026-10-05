@@ -57,13 +57,13 @@ const registry = (page) =>
     };
   });
 
-test('the page opens without errors and builds one numbered section per registry section', async () => {
+test('the page opens without errors and builds one section per registry section, each with a navigation link', async () => {
   const page = await openOptions();
   const { sections } = await registry(page);
   assert.ok(sections.length >= 5);
   const toc = await page.locator('#toc a').allTextContents();
   assert.equal(toc.length, sections.length + 2); // + Your week, Backup & reset
-  assert.match(toc[0], /^01\s*General/);
+  assert.match(toc[0], /^General/);
   assert.match(toc.at(-1), /Backup & reset$/);
   assert.equal(await page.locator('h1').textContent(), 'At Peace');
   assert.deepEqual(page.errors, []);
@@ -450,19 +450,19 @@ test('appearance: dark and "match my system" restyle the page at once and are re
   const theme = row(page, 'general.theme').locator('select');
   const paper = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'light');
-  assert.equal(await paper(), 'rgb(243, 238, 227)');
+  assert.equal(await paper(), 'rgb(238, 241, 246)');
 
   await theme.selectOption('dark');
   await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
-  assert.equal(await paper(), 'rgb(20, 22, 43)');
+  assert.equal(await paper(), 'rgb(14, 16, 51)');
   assert.equal((await settings())['general.theme'], 'dark');
 
   await page.emulateMedia({ colorScheme: 'light' });
   await theme.selectOption('system');
   await page.waitForFunction(() => document.documentElement.dataset.theme === 'system');
-  assert.equal(await paper(), 'rgb(243, 238, 227)');
+  assert.equal(await paper(), 'rgb(238, 241, 246)');
   await page.emulateMedia({ colorScheme: 'dark' });
-  assert.equal(await paper(), 'rgb(20, 22, 43)');
+  assert.equal(await paper(), 'rgb(14, 16, 51)');
 
   // The next page load starts in the remembered theme (no light flash): theme-boot reads the cache.
   await page.reload();

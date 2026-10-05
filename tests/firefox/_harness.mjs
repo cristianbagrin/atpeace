@@ -19,6 +19,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Browser, Builder } from 'selenium-webdriver';
 import firefox from 'selenium-webdriver/firefox.js';
+import { until } from '../helpers/wait.mjs';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const CACHE = process.env.AT_PEACE_CACHE ?? join(homedir(), '.cache', 'at-peace');
@@ -192,6 +193,17 @@ export async function launchFirefox({ prefs = {} } = {}) {
       }, keys ?? null),
     );
   }
+
+  // A fresh install is not finished when installAddon() resolves: onInstalled writes `meta` and applies the Gentle
+  // preset (only if no settings exist yet) a moment later. A spec that sets its own settings first thing would race
+  // it, so wait for that work to be done before handing the browser over.
+  await until(
+    async () => {
+      const { meta, settings } = await getStorage(['meta', 'settings']);
+      return Boolean(meta?.installedAt) && Object.keys(settings ?? {}).length > 0;
+    },
+    { what: 'the install work (meta + Gentle preset) to finish', timeout: 20_000, retryErrors: true },
+  );
 
   return {
     driver,

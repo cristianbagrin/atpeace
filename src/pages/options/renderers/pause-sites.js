@@ -41,32 +41,10 @@
     return { ok: true, domain: host };
   }
 
-  const CSS = `
-.${ROOT_CLASS} { max-width: 560px; }
-.${ROOT_CLASS} .site-list { border-top: 1px solid var(--rule); }
-.${ROOT_CLASS} .site { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px var(--u2); padding: 9px 0; border-bottom: 1px solid var(--rule); }
-.${ROOT_CLASS} .site-name { font-weight: 500; overflow-wrap: anywhere; }
-.${ROOT_CLASS} .site-meta { grid-column: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--u2); font-size: 12.5px; color: var(--ink-2); }
-.${ROOT_CLASS} .site-switch { grid-column: 2; grid-row: 1 / span 2; }
-.${ROOT_CLASS} .site-meta .btn-quiet { font-size: 12.5px; }
-.${ROOT_CLASS} .adder { display: flex; flex-wrap: wrap; gap: var(--u1); margin-top: var(--u2); }
-.${ROOT_CLASS} .adder input[type="text"] { flex: 1 1 200px; min-width: 0; width: auto; }
-.${ROOT_CLASS} .field-error { margin-top: var(--u1); }
-`;
-
-  function ensureStyle() {
-    if (document.getElementById('ap-style-pause-sites')) return;
-    const style = document.createElement('style');
-    style.id = 'ap-style-pause-sites';
-    style.textContent = CSS;
-    document.head.append(style);
-  }
-
   const renderer = {
     parseSiteInput,
 
     render(def, value, ctx) {
-      ensureStyle();
       const { h, api } = ctx;
       let sites = Array.isArray(value) ? value.map((s) => ({ ...s })) : [];
       /** domain → boolean | undefined (unknown yet) */

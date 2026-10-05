@@ -109,41 +109,6 @@
     return { ok: true, selector };
   }
 
-  // ---------------------------------------------------------------------------------------
-  // Look
-  // ---------------------------------------------------------------------------------------
-
-  const CSS = `
-.${ROOT_CLASS} { max-width: 640px; }
-.${ROOT_CLASS} .empty { padding: var(--u2) 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
-.${ROOT_CLASS} .empty p { margin: 0 0 var(--u1); max-width: 54ch; }
-.${ROOT_CLASS} .empty p:last-child { margin-bottom: 0; color: var(--ink-2); font-size: 13.5px; }
-.${ROOT_CLASS} .rule-list { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--rule); }
-.${ROOT_CLASS} .rule { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: var(--u1) var(--u1); padding: 9px 0; border-bottom: 1px solid var(--rule); }
-.${ROOT_CLASS} .rule .rule-note { grid-column: 1; min-width: 0; }
-.${ROOT_CLASS} .rule .select { grid-column: 2; }
-.${ROOT_CLASS} .rule .rule-delete { grid-column: 3; }
-.${ROOT_CLASS} .rule .rule-selector { grid-column: 1 / -1; display: block; overflow-wrap: anywhere; font: 12.5px/1.45 var(--font-mono); color: var(--ink-2); }
-.${ROOT_CLASS} .rule .rule-meta { grid-column: 1 / -1; font-size: 12px; color: var(--ink-2); }
-.${ROOT_CLASS} .undo { display: flex; align-items: center; gap: var(--u1); margin-top: var(--u1); padding: var(--u1) 0; color: var(--ink-2); font-size: 13.5px; }
-.${ROOT_CLASS} .adder { margin-top: var(--u2); }
-.${ROOT_CLASS} .adder summary { cursor: pointer; color: var(--ink-2); font-size: 13.5px; width: fit-content; }
-.${ROOT_CLASS} .adder summary:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
-.${ROOT_CLASS} .adder-body { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--u1); margin-top: var(--u1); }
-.${ROOT_CLASS} .adder-body .adder-selector { grid-column: 1 / -1; font-family: var(--font-mono); font-size: 12.5px; }
-.${ROOT_CLASS} .adder-body .adder-note { min-width: 0; }
-.${ROOT_CLASS} .adder-body .adder-add { grid-column: 1 / -1; justify-self: start; }
-.${ROOT_CLASS} .field-error { margin-top: var(--u1); }
-`;
-
-  function ensureStyle() {
-    if (document.getElementById('ap-style-custom-rules')) return;
-    const style = document.createElement('style');
-    style.id = 'ap-style-custom-rules';
-    style.textContent = CSS;
-    document.head.append(style);
-  }
-
   const dateText = (ms) => {
     if (!Number.isFinite(ms) || ms <= 0) return '';
     try {
@@ -163,7 +128,6 @@
     refuseSelectorText,
 
     render(def, value, ctx) {
-      ensureStyle();
       const { h } = ctx;
       /** @type {object[]} */
       let rules = Array.isArray(value) ? value.map((r) => ({ ...r })) : [];

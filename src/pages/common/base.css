@@ -1,6 +1,7 @@
-/* Shared base for every At Peace page: reset, type, and lightly styled native controls.
-   Rules of the house (PLAN §9): hairlines not boxes, one persimmon accent, no shadows, no
-   gradients, 3 px radius, visible focus everywhere. */
+/* Shared base for every At Peace page: reset, type and the Dial components (buttons, switch,
+   segmented control, fields, dialog, toast). System UI type only: weight and size carry the
+   hierarchy, numbers are tabular. Flat: 1px borders, no gradients, no glows; the only shadows are
+   the switch knob and the surfaces that float (dialog, toast). Visible focus everywhere. */
 
 *,
 *::before,
@@ -9,16 +10,16 @@
 }
 
 html {
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--ground);
+  color: var(--text);
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--ground);
+  color: var(--text);
   font: 14px/1.5 var(--font-ui);
   -webkit-font-smoothing: antialiased;
 }
@@ -41,9 +42,9 @@ h1,
 h2,
 h3,
 h4 {
-  font-family: var(--font-serif);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.2;
+  letter-spacing: -0.015em;
 }
 
 ul,
@@ -66,13 +67,13 @@ textarea {
 }
 
 a {
-  color: inherit;
-  text-decoration-color: var(--clay);
-  text-underline-offset: 3px;
+  color: var(--act);
+  text-decoration: none;
 }
 
 a:hover {
-  text-decoration-color: currentColor;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 [hidden] {
@@ -80,13 +81,13 @@ a:hover {
 }
 
 :focus-visible {
-  outline: 2px solid var(--clay);
+  outline: 2px solid var(--act);
   outline-offset: 2px;
 }
 
 ::selection {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--act);
+  color: var(--on-act);
 }
 
 /* ------------------------------------------------------------------ small helpers */
@@ -103,28 +104,80 @@ a:hover {
   border: 0;
 }
 
+/* Numbers line up: tabular figures, in the same system font. */
 .mono {
-  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
-/* Small-caps label used for group headings and column heads. */
+/* Group label: small, uppercase, sits above its panel. */
 .caps {
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--ink-2);
+  color: var(--text-2);
 }
 
-/* The brand seal: one persimmon dot. Never used for anything else. */
-.seal {
+/* The brand mark: a thin ring and a mint dot. Drawn here so it follows the page's colours. */
+.glyph {
+  position: relative;
   display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--seal);
   flex: none;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--glyph-ring, var(--text));
+  border-radius: 50%;
+}
+
+.glyph::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: var(--glyph-dot, var(--mint));
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* The dial (AP.ui.dial): sixty ticks, optionally an amber arc. Sized by the page; coloured by
+   --dial-ticks, and always from the indigo palette because it only appears on indigo. */
+.dial {
+  position: relative;
+  aspect-ratio: 1;
+}
+
+.dial-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dial-ticks {
+  stroke: var(--dial-ticks, var(--ix-quiet));
+  transition: stroke 600ms var(--ease);
+}
+
+.dial-arc {
+  stroke: var(--ix-amber);
+}
+
+/* A grouped panel: white, one hairline, rounded; rows inside it are separated by --row-line. */
+.panel {
+  overflow: hidden;
+  border: 1px solid var(--panel-line);
+  border-radius: var(--r-panel);
+  background: var(--panel);
 }
 
 /* ------------------------------------------------------------------ buttons */
@@ -133,22 +186,23 @@ a:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--u1);
-  min-height: 30px;
-  padding: 4px var(--u2);
-  border: 1px solid var(--edge);
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--ink);
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 14px;
+  border: 1px solid var(--panel-line);
+  border-radius: var(--r-button);
+  background: var(--panel);
+  color: var(--text);
   font-size: 13px;
+  font-weight: 600;
   line-height: 1.3;
   cursor: pointer;
   transition: background-color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
 }
 
 .btn:hover:not(:disabled) {
-  background: var(--paper-2);
-  border-color: var(--ink);
+  background: var(--ground);
+  border-color: var(--field-line);
 }
 
 .btn:disabled {
@@ -157,64 +211,114 @@ a:hover {
 }
 
 .btn-primary {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
+  background: var(--act);
+  border-color: var(--act);
+  color: var(--on-act);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--ink);
-  border-color: var(--ink);
-  opacity: 0.88;
+  background: var(--act);
+  border-color: var(--act);
+  opacity: 0.9;
 }
 
 .btn-danger {
   color: var(--danger);
-  border-color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
 }
 
 .btn-danger:hover:not(:disabled) {
   background: transparent;
   border-color: var(--danger);
   color: var(--danger);
-  text-decoration: underline;
 }
 
-/* Text-only button: reads as a quiet link. */
+/* Text-only button: reads as a link. */
 .btn-quiet {
   min-height: 0;
   padding: 2px 0;
   border-color: transparent;
-  text-decoration: underline;
-  text-decoration-color: var(--clay);
-  text-underline-offset: 3px;
+  background: transparent;
+  color: var(--act);
+  font-weight: 500;
 }
 
 .btn-quiet:hover:not(:disabled) {
   background: transparent;
   border-color: transparent;
-  text-decoration-color: currentColor;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .btn-quiet.btn-danger {
+  color: var(--danger);
   border-color: transparent;
 }
 
+a.btn {
+  text-decoration: none;
+}
+
+/* ------------------------------------------------------------------ segmented control
+   A group of aria-pressed buttons on a grey track; the chosen one is a white tile in the accent. */
+
+.seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--r-button);
+  background: var(--ground);
+}
+
+.seg > button {
+  min-width: 44px;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color var(--t-quick) var(--ease), color var(--t-quick) var(--ease);
+}
+
+.seg > button:hover:not(:disabled):not([aria-pressed="true"]) {
+  color: var(--text);
+}
+
+.seg > button[aria-pressed="true"] {
+  background: var(--panel);
+  color: var(--act);
+}
+
+.seg > button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.seg > button:focus-visible {
+  outline-offset: 0;
+}
+
 /* ------------------------------------------------------------------ switch
-   A native checkbox, drawn as a small rectangular switch (paper, not bubbles). */
+   A native checkbox drawn as a pill: 34 x 20, a 16 px knob. */
 
 input[type="checkbox"].switch {
   appearance: none;
   -webkit-appearance: none;
   position: relative;
   flex: none;
-  width: 32px;
-  height: 18px;
-  border: 1px solid var(--edge);
-  border-radius: var(--radius);
-  background: transparent;
+  width: 34px;
+  height: 20px;
+  margin: 0;
+  border: 0;
+  border-radius: 10px;
+  background: var(--switch-off);
   cursor: pointer;
-  transition: background-color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+  transition: background-color var(--t-quick) var(--ease);
 }
 
 input[type="checkbox"].switch::before {
@@ -222,20 +326,19 @@ input[type="checkbox"].switch::before {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-  background: var(--edge);
-  transition: transform var(--t-quick) var(--ease), background-color var(--t-quick) var(--ease);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 1px 2px rgb(16 18 63 / 0.25);
+  transition: transform var(--t-quick) var(--ease);
 }
 
 input[type="checkbox"].switch:checked {
-  background: var(--ink);
-  border-color: var(--ink);
+  background: var(--act);
 }
 
 input[type="checkbox"].switch:checked::before {
-  background: var(--paper);
   transform: translateX(14px);
 }
 
@@ -244,45 +347,109 @@ input[type="checkbox"].switch:disabled {
   cursor: default;
 }
 
-/* The master switch is the one place the seal means "on". */
-input[type="checkbox"].switch.is-master:checked {
-  background: var(--seal);
-  border-color: var(--seal);
+/* ------------------------------------------------------------------ radio and checkbox
+   Native inputs, redrawn so they follow the theme: a thin outline, the accent when chosen. */
+
+input[type="radio"],
+input[type="checkbox"]:not(.switch) {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-grid;
+  place-content: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1.5px solid var(--field-line);
+  background: var(--panel);
+  cursor: pointer;
 }
 
-input[type="checkbox"].switch.is-master:checked::before {
-  background: var(--paper);
+input[type="radio"] {
+  border-radius: 50%;
+}
+
+input[type="checkbox"]:not(.switch) {
+  border-radius: 4px;
+}
+
+input[type="radio"]::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--act);
+  transform: scale(0);
+  transition: transform var(--t-quick) var(--ease);
+}
+
+input[type="checkbox"]:not(.switch)::before {
+  content: "";
+  width: 9px;
+  height: 5px;
+  margin-top: -2px;
+  border-left: 2px solid var(--on-act);
+  border-bottom: 2px solid var(--on-act);
+  transform: rotate(-45deg) scale(0);
+  transition: transform var(--t-quick) var(--ease);
+}
+
+input[type="radio"]:checked {
+  border-color: var(--act);
+}
+
+input[type="checkbox"]:not(.switch):checked {
+  border-color: var(--act);
+  background: var(--act);
+}
+
+input[type="radio"]:checked::before {
+  transform: scale(1);
+}
+
+input[type="checkbox"]:not(.switch):checked::before {
+  transform: rotate(-45deg) scale(1);
+}
+
+input[type="radio"]:disabled,
+input[type="checkbox"]:not(.switch):disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* ------------------------------------------------------------------ text-like fields */
 
-.field,
 input[type="text"],
 input[type="search"],
 input[type="number"],
 input[type="password"],
+input[type="time"],
 textarea,
 select {
-  border: 1px solid var(--edge);
-  border-radius: var(--radius);
-  background: var(--paper-2);
-  color: var(--ink);
+  border: 1px solid var(--field-line);
+  border-radius: var(--r-field);
+  background: var(--panel);
+  color: var(--text);
 }
 
 input[type="text"],
 input[type="search"],
 input[type="number"],
 input[type="password"],
+input[type="time"],
 textarea {
-  padding: 5px 9px;
-  min-height: 30px;
+  padding: 5px 10px;
+  min-height: 32px;
   width: 100%;
+}
+
+input[type="time"] {
+  width: auto;
 }
 
 input[type="number"] {
   width: 76px;
   text-align: right;
-  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   appearance: textfield;
   -moz-appearance: textfield;
@@ -306,7 +473,7 @@ textarea.is-mono {
 }
 
 ::placeholder {
-  color: var(--ink-2);
+  color: var(--text-2);
   opacity: 1;
 }
 
@@ -321,7 +488,7 @@ select:disabled {
   opacity: 0.5;
 }
 
-/* Native select with a drawn chevron (no image, no icon font). */
+/* Native select, flat, with a drawn chevron (no image, no icon font). */
 .select {
   position: relative;
   display: inline-block;
@@ -332,9 +499,9 @@ select:disabled {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  min-height: 30px;
+  min-height: 32px;
   max-width: 100%;
-  padding: 4px 28px 4px 9px;
+  padding: 4px 30px 4px 10px;
   cursor: pointer;
   text-overflow: ellipsis;
 }
@@ -342,32 +509,33 @@ select:disabled {
 .select::after {
   content: "";
   position: absolute;
-  right: 11px;
+  right: 12px;
   top: 50%;
   width: 6px;
   height: 6px;
   margin-top: -5px;
-  border-right: 1.5px solid var(--ink-2);
-  border-bottom: 1.5px solid var(--ink-2);
+  border-right: 1.5px solid var(--text-2);
+  border-bottom: 1.5px solid var(--text-2);
   transform: rotate(45deg);
   pointer-events: none;
 }
 
 /* Option text must stay readable in the browser's own dropdown. */
 option {
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--panel);
+  color: var(--text);
 }
 
 /* ------------------------------------------------------------------ dialog (confirm / prompt / presets) */
 
 dialog.dialog {
   width: min(460px, calc(100vw - 28px));
-  padding: var(--u4);
-  border: 1px solid var(--edge);
-  border-radius: var(--radius);
-  background: var(--paper);
-  color: var(--ink);
+  padding: 24px;
+  border: 1px solid var(--panel-line);
+  border-radius: 16px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 16px 48px rgb(16 18 63 / 0.28);
 }
 
 dialog.dialog::backdrop {
@@ -380,24 +548,24 @@ dialog.dialog > form {
 
 .dialog-title {
   font-size: 19px;
-  margin-bottom: var(--u1);
+  margin-bottom: 6px;
 }
 
 .dialog-text {
-  color: var(--ink-2);
+  color: var(--text-2);
   max-width: 52ch;
 }
 
 .dialog-field {
-  margin-top: var(--u2);
+  margin-top: 14px;
 }
 
 .dialog-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: var(--u1) var(--u2);
-  margin-top: var(--u3);
+  gap: 8px;
+  margin-top: 20px;
 }
 
 /* ------------------------------------------------------------------ toast */
@@ -405,16 +573,16 @@ dialog.dialog > form {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: var(--u3);
+  bottom: 20px;
   z-index: 50;
-  max-width: calc(100vw - var(--u4));
-  padding: var(--u1) var(--u2);
-  border-radius: var(--radius);
-  background: var(--ink);
-  color: var(--paper);
+  max-width: calc(100vw - 28px);
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: var(--text);
+  color: var(--ground);
   font-size: 13px;
   opacity: 0;
-  transform: translate(-50%, 7px);
+  transform: translate(-50%, 6px);
   pointer-events: none;
   transition: opacity var(--t-quick) var(--ease), transform var(--t-quick) var(--ease);
 }
@@ -424,16 +592,18 @@ dialog.dialog > form {
   transform: translate(-50%, 0);
 }
 
-/* ------------------------------------------------------------------ banner (host access) */
+/* ------------------------------------------------------------------ banner (host access)
+   A quiet strip: white, a hairline, a sentence and a button. */
 
 .banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--u2);
-  padding: var(--u1) var(--u2);
-  border-top: 1px solid var(--clay);
-  border-bottom: 1px solid var(--clay);
+  gap: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--panel-line);
+  border-radius: 10px;
+  background: var(--panel);
   font-size: 13px;
 }
 
@@ -442,26 +612,32 @@ dialog.dialog > form {
 }
 
 /* ------------------------------------------------------------------ settings lock (lock-ui.js)
-   One quiet line about the lock, and the steps that open it. Hairlines in clay, no boxes. */
+   One quiet line about the lock, and the steps that open it. */
 
 .lock-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--u2);
-  padding: var(--u1) var(--u2);
-  border-top: 1px solid var(--clay);
-  border-bottom: 1px solid var(--clay);
+  gap: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--panel-line);
+  border-radius: 10px;
+  background: var(--panel);
   font-size: 13px;
 }
 
 .lock-bar .lock-text {
   max-width: 62ch;
-  color: var(--ink-2);
+  color: var(--text-2);
+}
+
+.lock-bar .lock-label {
+  color: var(--amber-text);
+  font-weight: 600;
 }
 
 .lock-bar[data-state="open"] .lock-text {
-  color: var(--olive);
+  color: var(--mint-text);
 }
 
 .lock-bar .lock-button {
@@ -472,35 +648,34 @@ dialog.dialog > form {
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
-  padding: var(--u1) 0;
   font-size: 12.5px;
 }
 
 .unlock-lead {
   max-width: 52ch;
-  color: var(--ink-2);
+  color: var(--text-2);
 }
 
 .unlock-sentence {
-  margin: var(--u2) 0 var(--u1);
-  font-family: var(--font-serif);
-  font-size: 18px;
+  margin: 14px 0 6px;
+  font-size: 16px;
   font-weight: 600;
-  line-height: 1.35;
+  line-height: 1.4;
 }
 
 .unlock-wait {
   min-height: 1.5em;
   font-size: 13px;
-  color: var(--ink-2);
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
 }
 
 .unlock-field {
-  margin-top: var(--u1);
+  margin-top: 8px;
 }
 
 .unlock-error {
-  margin-top: var(--u1);
+  margin-top: 8px;
   font-size: 13px;
   color: var(--danger);
 }

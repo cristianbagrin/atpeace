@@ -11,23 +11,26 @@
 </head>
 <body>
   <div class="page">
-    <header class="top">
-      <h1 class="wordmark"><span class="seal" aria-hidden="true"></span>At Peace</h1>
-    </header>
+    <aside class="side">
+      <div class="side-inner">
+        <h1 class="wordmark"><span class="glyph" aria-hidden="true"></span>At Peace</h1>
+        <!-- The dial (ticks drawn by welcome.js) with a mint disc that breathes slowly. -->
+        <div class="dial" id="dial" aria-hidden="true"><div class="sun"></div></div>
+        <section class="intro" aria-labelledby="welcome-title">
+          <h2 class="title" id="welcome-title">YouTube, on your terms.</h2>
+          <p class="lede">Three choices and you are set. Everything stays in this browser and can be changed later.</p>
+        </section>
+      </div>
+    </aside>
 
     <main class="column" id="main">
-      <section class="intro" aria-labelledby="welcome-title">
-        <h2 class="title" id="welcome-title">A quieter YouTube.</h2>
-        <p class="lede">Three small choices and you are done. You can change any of it later, and nothing ever leaves this browser.</p>
-      </section>
-
       <ol class="steps" id="steps">
         <li class="step" aria-labelledby="step-1-title">
           <span class="num mono" aria-hidden="true">01</span>
           <div class="step-main">
             <h3 class="step-title" id="step-1-title">How much do you want to see?</h3>
             <p class="step-intro" id="step-1-intro">Pick a starting point. Every single thing can be tuned afterwards.</p>
-            <div id="presets" class="choices" role="radiogroup" aria-labelledby="step-1-title"></div>
+            <div id="presets" class="choices panel" role="radiogroup" aria-labelledby="step-1-title"></div>
           </div>
         </li>
 
@@ -36,7 +39,7 @@
           <div class="step-main">
             <h3 class="step-title" id="step-2-title">A breath before YouTube?</h3>
             <p class="step-intro">A short breathing screen appears before YouTube opens, so opening it is a choice and not a reflex.</p>
-            <div id="pause" class="ledger"></div>
+            <div id="pause" class="ledger panel"></div>
           </div>
         </li>
 
@@ -45,8 +48,10 @@
           <div class="step-main">
             <h3 class="step-title" id="step-3-title">Keep it in reach</h3>
             <div id="access"></div>
-            <p class="step-intro">Pin At Peace so it is one click away: open the extensions menu in the toolbar (the puzzle-piece button), find At Peace, and choose “Pin to Toolbar” from the menu beside it.</p>
-            <dl class="keys" id="keys"></dl>
+            <div class="keys-panel panel">
+              <p class="pin">Pin At Peace so it is one click away: open the extensions menu in the toolbar (the puzzle-piece button), find At Peace, and choose “Pin to Toolbar” from the menu beside it.</p>
+              <dl class="keys" id="keys"></dl>
+            </div>
             <p class="step-note">You can change these shortcuts in the browser: open <span class="mono">about:addons</span>, press the gear, and choose “Manage Extension Shortcuts”.</p>
           </div>
         </li>

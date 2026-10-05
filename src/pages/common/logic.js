@@ -425,6 +425,82 @@
     return norm(typed) !== '' && norm(typed) === norm(phrase);
   }
 
+  // ---------------------------------------------------------------------------------------
+  // The dial (pause page, blocked page, welcome): sixty ticks on a 320-unit square
+  // ---------------------------------------------------------------------------------------
+
+  const DIAL_CENTER = 160;
+
+  /** One path of 60 ticks, one per minute; every fifth is longer. */
+  function dialTicksPath() {
+    let d = '';
+    for (let i = 0; i < 60; i++) {
+      const angle = ((i * 6 - 90) * Math.PI) / 180;
+      const inner = i % 5 === 0 ? 140 : 147;
+      const [x1, y1] = [DIAL_CENTER + inner * Math.cos(angle), DIAL_CENTER + inner * Math.sin(angle)];
+      const [x2, y2] = [DIAL_CENTER + 154 * Math.cos(angle), DIAL_CENTER + 154 * Math.sin(angle)];
+      d += `M${x1.toFixed(1)} ${y1.toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}`;
+    }
+    return d;
+  }
+
+  /**
+   * The amber arc of a block: the fraction of it that is left, drawn clockwise from twelve o'clock.
+   * Returns '' when nothing is left. A (nearly) full arc is clamped so the path never degenerates.
+   * @param {number} fraction 0..1
+   * @returns {string}
+   */
+  function dialArcPath(fraction) {
+    const left = Math.min(0.999, Number.isFinite(fraction) ? fraction : 0);
+    if (left <= 0.004) return '';
+    const r = 124;
+    const end = (left * 360 - 90) * (Math.PI / 180);
+    const [x, y] = [DIAL_CENTER + r * Math.cos(end), DIAL_CENTER + r * Math.sin(end)];
+    return `M${DIAL_CENTER} ${DIAL_CENTER - r} A${r} ${r} 0 ${left > 0.5 ? 1 : 0} 1 ${x.toFixed(1)} ${y.toFixed(1)}`;
+  }
+
+  /**
+   * How much of a block is left. `total` is the block's length as first seen; a block that was
+   * extended after that (remaining > total) counts as full.
+   * @param {number} total ms
+   * @param {number} remaining ms
+   * @returns {number} 0..1
+   */
+  function blockFraction(total, remaining) {
+    if (!(total > 0) || !(remaining > 0)) return 0;
+    return Math.min(1, remaining / total);
+  }
+
+  // ---------------------------------------------------------------------------------------
+  // Options navigation: how much is "on" in each section
+  // ---------------------------------------------------------------------------------------
+
+  /** Settings that hide or change something on a page: switches, choices and word lists. Numbers, free text and "where does it apply" checkboxes only tune. */
+  const isCounted = (def) => def.type === 'toggle' || def.type === 'select' || isStringList(def);
+
+  /**
+   * Per section of YouTube settings: how many of its settings are doing something (isHidingValue
+   * over the stored values) out of how many there are. Mindful Pause reports its own on/off switch.
+   * Other sections have no count.
+   * @param {Record<string, any>} values stored settings merged over the defaults
+   * @param {{ id: string, site?: string }[]} [sections]
+   * @returns {Record<string, { on: number, total: number, text: string }>}
+   */
+  function navCounts(values, sections = AP.schema.sections()) {
+    const out = {};
+    for (const section of sections) {
+      if (section.site === 'youtube') {
+        const defs = AP.schema.bySection(section.id).filter(isCounted);
+        const on = defs.filter((d) => AP.schema.isHidingValue(d, values?.[d.id])).length;
+        out[section.id] = { on, total: defs.length, text: String(on) };
+      } else if (section.id === 'pause') {
+        const on = values?.['pause.enabled'] === true;
+        out[section.id] = { on: on ? 1 : 0, total: 1, text: on ? 'On' : '' };
+      }
+    }
+    return out;
+  }
+
   Object.assign(ui, {
     BULK_TAGS,
     FOCUS_PHRASE,
@@ -448,5 +524,9 @@
     statusFromStorage,
     formatImportReport,
     phraseMatches,
+    dialTicksPath,
+    dialArcPath,
+    blockFraction,
+    navCounts,
   });
 })();

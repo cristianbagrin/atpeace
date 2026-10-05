@@ -14,6 +14,7 @@ import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { until } from '../helpers/wait.mjs';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const ARTIFACTS = join(ROOT, 'tests', 'e2e', 'artifacts');
@@ -77,7 +78,22 @@ export async function launch({ instrument = false } = {}) {
   let worker = context.serviceWorkers()[0];
   worker ??= await context.waitForEvent('serviceworker', { timeout: 20_000 });
   extensionId = new URL(worker.url()).host;
+  await installSettled(worker);
   return { context, extensionId };
+}
+
+/**
+ * A fresh install is not finished when the service worker starts: onInstalled writes `meta`, applies the Gentle
+ * preset and only then opens the welcome page. A spec that clears storage in its first step would race that
+ * (Gentle landing after the clear, with its redirect rules). So launch() returns once the install work is done:
+ * settings stored and the welcome tab open (best effort: a build without a welcome page just does not get one).
+ */
+async function installSettled(worker) {
+  await until(() => worker.evaluate(async () => {
+    const { meta, settings } = await chrome.storage.local.get(['meta', 'settings']);
+    return Boolean(meta?.installedAt) && Object.keys(settings ?? {}).length > 0;
+  }), { what: 'the install work (meta + Gentle preset) to finish', timeout: 15_000 });
+  await until(() => context.pages().some((p) => p.url().includes('/pages/welcome/welcome.html')), { what: 'the welcome tab', timeout: 5000 }).catch(() => {});
 }
 
 export function getContext() {

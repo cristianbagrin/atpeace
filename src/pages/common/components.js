@@ -2,6 +2,7 @@
 // Classic script; adds to AP.ui next to the pure helpers of logic.js (load logic.js first).
 //
 //   AP.ui.h(tag, attrs, ...children)      build DOM without innerHTML
+//   AP.ui.dial({ arc })                   the sixty-tick dial as inline SVG (pause, blocked, welcome)
 //   AP.ui.applyTheme(theme)               'light' | 'dark' | 'system' → <html data-theme>
 //   AP.ui.watchTheme([effective])         apply now and whenever general.theme changes
 //   AP.ui.toast(message)                  a quiet line at the bottom of the page
@@ -75,6 +76,42 @@
     appendChildren(el, children);
     if (value !== undefined) el.value = String(value);
     return el;
+  }
+
+  // ---------------------------------------------------------------------------------------
+  // The dial
+  // ---------------------------------------------------------------------------------------
+
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  function svgEl(tag, attrs) {
+    const node = document.createElementNS(SVG_NS, tag);
+    for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value));
+    return node;
+  }
+
+  /**
+   * An SVG dial: sixty ticks (every fifth longer) and, optionally, the amber arc of a block.
+   * Colours come from CSS (`.dial-ticks`, `.dial-arc`), so the page decides them.
+   * @param {{ arc?: boolean }} [options]
+   * @returns {{ svg: SVGSVGElement, ticks: SVGPathElement, setArc: (fraction: number) => void }}
+   */
+  function dial({ arc = false } = {}) {
+    const svg = svgEl('svg', { viewBox: '0 0 320 320', class: 'dial-svg', 'aria-hidden': 'true', focusable: 'false' });
+    const ticks = svgEl('path', { class: 'dial-ticks', d: ui.dialTicksPath(), fill: 'none', 'stroke-width': 2, 'stroke-linecap': 'round' });
+    svg.append(ticks);
+    const arcEl = arc ? svgEl('path', { class: 'dial-arc', fill: 'none', 'stroke-width': 8, 'stroke-linecap': 'round' }) : null;
+    if (arcEl) svg.append(arcEl);
+    return {
+      svg,
+      ticks,
+      setArc(fraction) {
+        if (!arcEl) return;
+        const d = ui.dialArcPath(fraction);
+        arcEl.setAttribute('d', d);
+        arcEl.style.display = d === '' ? 'none' : '';
+      },
+    };
   }
 
   // ---------------------------------------------------------------------------------------
@@ -544,5 +581,5 @@
     return banner;
   }
 
-  Object.assign(ui, { h, applyTheme, watchTheme, toast, openDialog, confirm, prompt, settingControl, controlKind, hostAccessBanner });
+  Object.assign(ui, { h, dial, applyTheme, watchTheme, toast, openDialog, confirm, prompt, settingControl, controlKind, hostAccessBanner });
 })();

@@ -6,64 +6,73 @@
   <title>At Peace</title>
   <link rel="stylesheet" href="../common/tokens.css">
   <link rel="stylesheet" href="../common/base.css">
+  <link rel="stylesheet" href="../common/indigo.css">
   <link rel="stylesheet" href="pause.css">
   <script src="../common/theme-boot.js"></script>
 </head>
-<body data-state="loading">
+<body class="indigo" data-state="loading">
   <div class="page">
     <header class="top">
-      <h1 class="wordmark"><span class="seal" aria-hidden="true"></span>At Peace</h1>
+      <h1 class="wordmark"><span class="glyph" aria-hidden="true"></span>At Peace</h1>
     </header>
 
-    <main class="column" id="column">
-      <div class="horizon" aria-hidden="true"><div class="sun" id="sun"></div></div>
+    <main class="stage" id="column">
+      <!-- The dial: sixty ticks (drawn by pause.js) with a mint breath in the middle. -->
+      <div class="dial" id="dial" aria-hidden="true"><div class="sun" id="sun"></div></div>
 
-      <!-- Every layer sits in the same grid cell, so switching between them never moves the page. -->
-      <div class="panel">
-        <section class="layer breath" id="breath" aria-live="polite">
-          <p class="guidance" id="guidance">Breathe in…</p>
-          <p class="countdown mono" id="countdown" aria-hidden="true" hidden></p>
-        </section>
+      <div class="copy">
+        <p class="kicker" id="kicker">Before YouTube</p>
 
-        <section class="layer choice" id="choice" aria-labelledby="question" inert>
-          <h2 class="question" id="question">Do you want to open this site?</h2>
-          <p class="count-line" id="count-line" hidden></p>
-          <div class="intention" id="intention-wrap" hidden>
-            <label class="caps" for="intention" id="intention-label">What did you come for?</label>
-            <input type="text" id="intention" maxlength="140" autocomplete="off" spellcheck="false" placeholder="A few words, just for you">
-          </div>
-          <div class="actions">
-            <button type="button" class="btn btn-primary big" id="close" disabled>Close</button>
-            <div class="split" id="split">
-              <button type="button" class="go" id="continue" disabled>Continue for</button>
-              <span class="select"><select id="minutes" aria-label="How long" disabled></select></span>
+        <!-- Every layer sits in the same grid cell, so switching between them never moves the page. -->
+        <div class="layers">
+          <section class="layer breath" id="breath" aria-live="polite">
+            <p class="guidance headline" id="guidance">Breathe in…</p>
+            <p class="countdown mono" id="countdown" aria-hidden="true" hidden></p>
+          </section>
+
+          <section class="layer choice" id="choice" aria-labelledby="question" inert>
+            <h2 class="question headline" id="question">Open YouTube?</h2>
+            <p class="count-line visually-hidden" id="count-line" hidden></p>
+            <div class="intention" id="intention-wrap" hidden>
+              <label for="intention" id="intention-label">What did you come for? (optional)</label>
+              <input type="text" id="intention" maxlength="140" autocomplete="off" spellcheck="false" placeholder="A few words, just for you">
             </div>
-          </div>
-        </section>
+            <div class="actions">
+              <button type="button" class="btn btn-primary big" id="close" disabled>Close</button>
+              <button type="button" class="btn big" id="continue" disabled>Continue for</button>
+            </div>
+            <div class="split" id="split">
+              <div class="seg" id="minutes-seg" role="group" aria-label="How long to keep it open"></div>
+              <!-- The select stays the source of truth (and what tests drive); the buttons above mirror it. -->
+              <select id="minutes" class="visually-hidden" aria-hidden="true" tabindex="-1" disabled></select>
+            </div>
+          </section>
 
-        <section class="layer session" id="session" aria-labelledby="session-line" inert>
-          <h2 class="question" id="session-line"></h2>
-          <p class="count-line" id="session-sub">A session is already running.</p>
-          <div class="actions">
-            <button type="button" class="btn btn-primary big" id="session-go">Continue</button>
-            <button type="button" class="btn big" id="session-close">Close</button>
-          </div>
-        </section>
+          <section class="layer session" id="session" aria-labelledby="session-line" inert>
+            <h2 class="question headline" id="session-line"></h2>
+            <p class="lede" id="session-sub">A session is already running.</p>
+            <div class="actions">
+              <button type="button" class="btn btn-primary big" id="session-go">Continue</button>
+              <button type="button" class="btn big" id="session-close">Close</button>
+            </div>
+          </section>
 
-        <section class="layer invalid" id="invalid" aria-labelledby="invalid-line" inert>
-          <h2 class="question" id="invalid-line">There is nothing to open here.</h2>
-          <p class="count-line">This page appears when a site you chose to pause is about to open.</p>
-          <div class="actions">
-            <button type="button" class="btn btn-primary big" id="invalid-close">Close this tab</button>
-          </div>
-        </section>
+          <section class="layer invalid" id="invalid" aria-labelledby="invalid-line" inert>
+            <h2 class="question headline" id="invalid-line">There is nothing to open here.</h2>
+            <p class="lede">This page appears when a site you chose to pause is about to open.</p>
+            <div class="actions">
+              <button type="button" class="btn btn-primary big" id="invalid-close">Close this tab</button>
+            </div>
+          </section>
+        </div>
+
+        <p class="note" id="note" role="status"></p>
       </div>
-
-      <p class="note" id="note" role="status"></p>
     </main>
 
     <footer class="foot">
-      <p class="target mono" id="target"></p>
+      <p class="target" id="target"></p>
+      <p class="foot-hint" id="foot-hint">Esc closes it</p>
     </footer>
   </div>
 

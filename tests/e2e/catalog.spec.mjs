@@ -20,7 +20,7 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { launch, close, getContext, setStorage, trackErrors, ARTIFACTS } from './harness.mjs';
-import { watchGate, liveSkipReason } from './_live.mjs';
+import { watchGate, liveSkipReason, gate } from './_live.mjs';
 
 const SHOTS = join(ARTIFACTS, 'catalog');
 const PAUSE_MS = Number(process.env.CATALOG_PAUSE_MS ?? 12_000);
@@ -222,6 +222,11 @@ function inject(parentSelector, tag, attrs, children = []) {
 
 group('home: top bar and sidebar settings hide exactly their targets', async () => {
   await open('https://www.youtube.com/');
+  // Live YouTube sometimes serves the home page with no sidebar entries in the DOM at all (a page variant): the
+  // sidebar settings cannot be judged on it, and that says nothing about the settings.
+  await page.waitForFunction(() => document.querySelectorAll('ytd-guide-entry-renderer').length >= 5, null, { timeout: 15_000 }).catch(() => {
+    throw gate('Live YouTube served the home page without its sidebar entries');
+  });
   await shot('home-before');
 
   // Only the suggestions list goes; the search box itself must stay (and stay usable).

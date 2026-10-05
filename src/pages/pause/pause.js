@@ -1,7 +1,7 @@
 // Mindful Pause page (PLAN §8.3). A DNR rule sends a page load of a paused site here with the
 // original URL in the hash (`pause.html#https://…`). The flow:
 //
-//   breathing  one slow breath (the sun grows and shrinks, a serif line says in / out)
+//   breathing  one slow breath (the mint disc in the dial grows and shrinks, a big line says in / out)
 //   choosing   how many times today, an optional "what did you come for?", then
 //              Close <site>  or  Continue for [N minutes]
 //   session    a session for this site is running (maybe started in another tab): just continue
@@ -20,6 +20,8 @@ const { h } = AP.ui;
 
 const $ = (id) => document.getElementById(id);
 const els = {
+  kicker: $('kicker'),
+  dial: $('dial'),
   guidance: $('guidance'),
   countdown: $('countdown'),
   sun: $('sun'),
@@ -34,6 +36,7 @@ const els = {
   split: $('split'),
   go: $('continue'),
   minutes: $('minutes'),
+  minutesSeg: $('minutes-seg'),
   note: $('note'),
   target: $('target'),
   sessionLine: $('session-line'),
@@ -54,6 +57,8 @@ let target = '';
 let state = 'loading';
 let leaving = false;
 let breathSeconds = 6;
+/** "4th time today", shown instead of the plain kicker once the choice is on screen. */
+let countKicker = '';
 
 // ---------------------------------------------------------------------------------------
 // Helpers
@@ -87,6 +92,30 @@ function setNote(text) {
   els.note.textContent = text ?? '';
 }
 
+/** The small uppercase line above the title. */
+function setKicker() {
+  els.kicker.hidden = state === 'invalid';
+  if (state === 'session') els.kicker.textContent = 'Session running';
+  else if (state === 'choosing' && countKicker) els.kicker.textContent = countKicker;
+  else els.kicker.textContent = `Before ${siteLabel || 'YouTube'}`;
+}
+
+/** The minutes buttons follow the select (the select is what the page reads and what tests drive). */
+function syncMinutes() {
+  for (const button of els.minutesSeg.children) button.setAttribute('aria-pressed', String(button.dataset.value === els.minutes.value));
+  if (els.go.textContent === 'Continue for') {
+    const chosen = els.minutes.selectedOptions[0]?.textContent;
+    if (chosen) els.go.setAttribute('aria-label', `Continue for ${chosen}`);
+  } else {
+    els.go.removeAttribute('aria-label');
+  }
+}
+
+function setMinutesDisabled(disabled) {
+  els.minutes.disabled = disabled;
+  for (const button of els.minutesSeg.children) button.disabled = disabled;
+}
+
 /** One layer visible at a time; the others are inert so keyboard and screen readers skip them. */
 function setState(next) {
   state = next;
@@ -97,8 +126,10 @@ function setState(next) {
   const choosing = next === 'choosing';
   els.close.disabled = !choosing;
   els.go.disabled = !choosing;
-  els.minutes.disabled = !choosing;
+  setMinutesDisabled(!choosing);
   els.split.classList.toggle('is-disabled', !choosing);
+  setKicker();
+  $('foot-hint').hidden = next === 'invalid'; // Esc does nothing there
 }
 
 // ---------------------------------------------------------------------------------------
@@ -131,8 +162,8 @@ function startBreath() {
   els.guidance.textContent = 'Breathe in…';
   els.guidance.classList.remove('is-fading');
 
-  // A sun that grows on the in-breath and shrinks on the out-breath, 0.6 ↔ 1.0, easing like a lung.
-  // Reduced motion: no scaling; the sun stays put and softly fades in and out, with a countdown.
+  // The mint disc grows on the in-breath and shrinks on the out-breath, 0.6 ↔ 1.0, easing like a lung.
+  // Reduced motion: no scaling; the disc stays put and softly fades in and out, with a countdown.
   const frames = [];
   for (let i = 0; i <= cycles * 2; i++) {
     const high = i % 2 === 1;
@@ -160,7 +191,7 @@ function startBreath() {
   }
 }
 
-/** Stops the timers of the breath, leaving the sun's animation as it is. */
+/** Stops the timers of the breath, leaving the disc's animation as it is. */
 function stopTimers() {
   if (!breath) return;
   for (const t of breath.timers) clearTimeout(t);
@@ -168,7 +199,7 @@ function stopTimers() {
   els.countdown.hidden = true;
 }
 
-/** Stops everything the breath started and puts the sun back to rest. */
+/** Stops everything the breath started and puts the disc back to rest. */
 function cancelBreath() {
   if (!breath) return;
   stopTimers();
@@ -178,7 +209,7 @@ function cancelBreath() {
 
 function finishBreath() {
   if (state !== 'breathing') return;
-  // The animation holds its last frame (fill: forwards): the sun rests small on the horizon.
+  // The animation holds its last frame (fill: forwards): the disc rests small in the dial.
   stopTimers();
   if (reducedMotion.matches) els.sun.animate([{ opacity: 0.55 }, { opacity: 1 }], { duration: 400, fill: 'forwards' });
   breath = null;
@@ -219,7 +250,8 @@ async function closeTab() {
 async function turnBack() {
   if (leaving) return;
   leaving = true;
-  for (const b of [els.close, els.go, els.minutes, els.sessionClose, els.sessionGo]) b.disabled = true;
+  for (const b of [els.close, els.go, els.sessionClose, els.sessionGo]) b.disabled = true;
+  setMinutesDisabled(true);
   try {
     sessionStorage.removeItem(COUNTED_KEY);
   } catch {
@@ -261,9 +293,10 @@ async function continueToSite() {
   if (leaving || state !== 'choosing') return;
   leaving = true;
   els.go.disabled = true;
-  els.minutes.disabled = true;
+  setMinutesDisabled(true);
   els.close.disabled = true;
   els.go.textContent = 'Opening…';
+  syncMinutes();
   setNote('');
   let res;
   try {
@@ -283,6 +316,7 @@ async function continueToSite() {
   }
   leaving = false;
   els.go.textContent = 'Continue for';
+  syncMinutes();
   setState('choosing');
   setNote('That did not work. Please try again.');
 }
@@ -329,13 +363,37 @@ function watchSessions() {
 // Start
 // ---------------------------------------------------------------------------------------
 
+/** "15 minutes" → "15 min", "1 hour" → "1 h": short enough for a row of five. */
+const shortMinutes = (label) => label.replace(/ minutes?$/, ' min').replace(/ hours?$/, ' h');
+
 function buildMinutes(settings) {
   const def = AP.schema.get('pause.sessionMinutes');
   els.minutes.replaceChildren(...def.options.map((o) => h('option', { value: o.value }, o.label)));
   els.minutes.value = String(settings['pause.sessionMinutes']);
+  els.minutesSeg.replaceChildren(
+    ...def.options.map((o) =>
+      h(
+        'button',
+        {
+          type: 'button',
+          dataset: { value: o.value },
+          'aria-pressed': 'false',
+          'aria-label': o.label,
+          onClick: () => {
+            els.minutes.value = o.value;
+            syncMinutes();
+          },
+        },
+        shortMinutes(o.label),
+      ),
+    ),
+  );
+  els.minutes.addEventListener('change', syncMinutes);
+  syncMinutes();
 }
 
 async function main() {
+  els.dial.prepend(AP.ui.dial().svg);
   els.target.textContent = RAW_TARGET;
   let settings;
   try {
@@ -355,7 +413,8 @@ async function main() {
   target = url.href;
   siteLabel = labelFor(siteKey, settings['pause.sites']);
   els.close.textContent = `Close ${siteLabel}`;
-  document.getElementById('question').textContent = `Do you want to open ${siteLabel}?`;
+  document.getElementById('question').textContent = `Open ${siteLabel}?`;
+  setKicker();
   buildMinutes(settings);
   els.intentionWrap.hidden = settings['pause.askIntention'] !== true;
 
@@ -403,6 +462,7 @@ async function main() {
   if (settings['pause.showCount'] && info?.ok && info.opens > 0) {
     els.countLine.textContent = `This is your ${ordinal(info.opens)} time opening ${siteLabel} today.`;
     els.countLine.hidden = false;
+    countKicker = `${ordinal(info.opens)} time today`;
   }
 
   document.body.dataset.breath = String(breathSeconds); // how long this breath lasts (also a handle for tests)

@@ -18,6 +18,8 @@ const { h } = AP.ui;
 
 const $ = (id) => document.getElementById(id);
 const els = {
+  dial: $('dial'),
+  kicker: $('kicker'),
   title: $('title'),
   sub: $('sub'),
   time: $('time'),
@@ -31,6 +33,7 @@ const els = {
 
 const REASONS = ['focus', 'schedule', 'limit', 'shorts'];
 const WAIT_SECONDS = 30;
+const TOTAL_KEY = 'at-peace-block-total';
 const RAW_TARGET = location.hash.slice(1);
 const asked = new URLSearchParams(location.search).get('reason');
 const askedReason = REASONS.includes(asked) ? asked : null;
@@ -45,6 +48,10 @@ let block = null; // the block shown (or null)
 let ticker = null;
 let unlockCleanup = null;
 let ending = false;
+/** The dial: ticks, and the amber arc of the time the block has left. */
+let dial = null;
+/** How long the block was when this browser first saw it (ms): the whole arc. */
+let blockTotal = 0;
 
 // ---------------------------------------------------------------------------------------
 // Small helpers
@@ -88,6 +95,28 @@ function describeEnd(until, now = Date.now()) {
 
 function setNote(text) {
   els.note.textContent = text ?? '';
+}
+
+/** The small amber line above the title: whose block this is. */
+function setKicker(text) {
+  els.kicker.textContent = text ?? '';
+  els.kicker.hidden = !text;
+}
+
+/**
+ * The block's length for the arc. The background does not keep when a block began, so the first
+ * time this browser sees a block (usually the moment it is opened) is remembered for the whole arc.
+ */
+function totalFor(b) {
+  const remaining = Math.max(0, b.until - Date.now());
+  try {
+    const saved = JSON.parse(localStorage.getItem(TOTAL_KEY) ?? 'null');
+    if (saved && saved.until === b.until && saved.total > 0) return Math.max(saved.total, remaining);
+    localStorage.setItem(TOTAL_KEY, JSON.stringify({ until: b.until, total: remaining }));
+  } catch {
+    /* storage unavailable: the arc simply starts full on this page */
+  }
+  return remaining;
 }
 
 /** A link that looks like the primary button. Real <a>: middle-click and "copy link" work. */
@@ -167,6 +196,7 @@ function render() {
   clearUnlock();
   setNote('');
   els.cta.replaceChildren();
+  dial.setArc(0);
 
   if (block) return renderBlocked();
   if (askedReason === 'shorts') return renderShorts();
@@ -177,6 +207,8 @@ function renderBlocked() {
   const reason = block.reason;
   setState('blocked');
   els.time.hidden = false;
+  blockTotal = totalFor(block);
+  setKicker(reason === 'focus' ? 'Focus · you set this' : reason === 'schedule' ? (block.name ? `Schedule · ${block.name}` : 'Schedule') : 'Daily limit reached');
   if (reason === 'focus') {
     els.title.textContent = `${siteLabel} is closed for now.`;
     els.sub.textContent = 'You asked for a quiet stretch.';
@@ -203,6 +235,7 @@ function tick() {
   }
   const text = AP.ui.formatClock(left / 1000);
   if (els.clock.textContent !== text) els.clock.textContent = text;
+  dial.setArc(AP.ui.blockFraction(blockTotal, left));
 }
 
 /** The block ran out: ask the background (which clears the rule), then show the free state. */
@@ -213,6 +246,7 @@ async function ended() {
 
 function renderFree() {
   setState('free');
+  setKicker('');
   els.time.hidden = true;
   els.title.textContent = 'You’re free to go.';
   els.sub.textContent = `Nothing is holding ${siteLabel} closed now.`;
@@ -221,6 +255,7 @@ function renderFree() {
 
 function renderShorts() {
   setState('shorts');
+  setKicker('Shorts · you chose this');
   els.time.hidden = true;
   els.title.textContent = 'Shorts are off.';
   els.sub.textContent = 'You chose not to see them, and that is fine.';
@@ -365,6 +400,8 @@ async function askGrace() {
 // ---------------------------------------------------------------------------------------
 
 async function main() {
+  dial = AP.ui.dial({ arc: true });
+  els.dial.append(dial.svg);
   els.target.textContent = RAW_TARGET;
   try {
     settings = await AP.settings.effective();

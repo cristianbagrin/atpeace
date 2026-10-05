@@ -1,6 +1,6 @@
 // Options page. Everything on it is generated from the settings registry (AP.schema): sections
-// from AP.schema.sections(), one ledger row per setting, bulk chips from the tags. Values are
-// saved the moment they change; nothing here knows a setting id apart from general.theme.
+// from AP.schema.sections(), one row per setting inside grouped panels, bulk pills from the tags.
+// Values are saved the moment they change; nothing here knows a setting id apart from general.theme.
 import { buildRow, slug } from './rows.js';
 import { buildWeek } from './week.js';
 import { buildBackup } from './backup.js';
@@ -10,6 +10,14 @@ const AP = globalThis.AtPeace;
 const { h } = AP.ui;
 
 const ADVANCED_KEY = 'at-peace-show-advanced';
+
+/** The navigation's groups, in order; a section lands in the first group that claims it. */
+const NAV_GROUPS = [
+  { id: 'top', label: null, claims: (s) => s.id === 'general' },
+  { id: 'youtube', label: 'YouTube', claims: (s) => s.site === 'youtube' },
+  { id: 'calm', label: 'Calm', claims: (s) => ['pause', 'focus', 'week'].includes(s.id) },
+  { id: 'more', label: 'More', claims: () => true },
+];
 
 /** Sections that are not settings, placed by `order` between the registry's own. */
 const EXTRA_SECTIONS = [
@@ -22,12 +30,14 @@ const state = {
   values: {},
   /** @type {Map<string, import('./rows.js').Row>} */
   rows: new Map(),
-  /** @type {{ id: string, title: string, el: HTMLElement, toc: HTMLElement, link: HTMLElement, section?: object, groups?: {el: HTMLElement, rows: object[]}[] }[]} */
+  /** @type {{ id: string, title: string, el: HTMLElement, toc: HTMLElement, link: HTMLElement, count: HTMLElement, headCount: HTMLElement, section?: object, groups?: {el: HTMLElement, rows: object[]}[] }[]} */
   entries: [],
+  /** @type {{ el: HTMLElement, entries: object[] }[]} */
+  tocGroups: [],
   query: '',
   showAdvanced: false,
   customPresets: [],
-  /** @type {Map<string, {button: HTMLElement, dot: HTMLElement, tag: string, label: string}>} */
+  /** @type {Map<string, {button: HTMLElement, tag: string, label: string}>} */
   chips: new Map(),
   /** @type {{ refresh: () => Promise<void> }|null} */
   week: null,
@@ -38,7 +48,6 @@ const state = {
 const els = {};
 
 const reducedMotion = () => globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
-const pad = (n) => String(n).padStart(2, '0');
 
 // ---------------------------------------------------------------------------------------------
 // Storage plumbing
@@ -70,10 +79,11 @@ async function saveSetting(def, value) {
   if (report.changed.length > 0) flashSaved();
 }
 
-/** Everything derived from the values: switched-off rows, chip states, theme, preset name. */
+/** Everything derived from the values: switched-off rows, pill states, counts, theme, preset name. */
 function afterValuesChanged(changedIds) {
   refreshRequires();
   refreshChips();
+  refreshCounts();
   refreshPresetLabel();
   if (changedIds.includes('general.theme')) AP.ui.applyTheme(state.values['general.theme']);
 }
@@ -128,7 +138,7 @@ function buildSettingsSection(section) {
     });
     // A group named like its section ("Comments" in Comments) would only repeat the heading.
     const titled = name !== '' && name.toLowerCase() !== section.title.toLowerCase();
-    const el = h('div', { class: 'group' }, titled && h('h3', { class: 'group-title caps' }, name), rows.map((r) => r.el));
+    const el = h('div', { class: 'group' }, titled && h('h3', { class: 'group-title caps' }, name), h('div', { class: 'panel' }, rows.map((r) => r.el)));
     return { el, rows };
   });
   return { groups, body: groups.map((g) => g.el) };
@@ -141,8 +151,7 @@ function buildSections() {
   const backup = buildBackup();
   state.week = week;
 
-  entries.forEach((section, index) => {
-    const number = pad(index + 1);
+  for (const section of entries) {
     const domId = `sec-${slug(section.id)}`;
     let built = null;
     let body;
@@ -153,21 +162,50 @@ function buildSections() {
       body = built.body;
     }
 
+    const headCount = h('span', { class: 'section-count mono' });
     const el = h(
       'section',
       { class: 'section', id: domId, 'aria-labelledby': `${domId}-title`, dataset: { section: section.id } },
-      h('header', { class: 'section-head' }, h('span', { class: 'num mono', 'aria-hidden': 'true' }, number), h('h2', { id: `${domId}-title` }, section.title)),
+      h('header', { class: 'section-head' }, h('h2', { id: `${domId}-title` }, section.title), headCount),
       section.description && h('p', { class: 'section-intro' }, section.description),
       body,
     );
 
-    const link = h('a', { href: `#section=${section.id}`, onClick: (event) => { event.preventDefault(); goToSection(section.id); } }, h('span', { class: 'num mono' }, number), h('span', { class: 'toc-title' }, section.title));
+    const count = h('span', { class: 'toc-count mono' });
+    const link = h('a', { href: `#section=${section.id}`, onClick: (event) => { event.preventDefault(); goToSection(section.id); } }, h('span', { class: 'toc-title' }, section.title), count);
     const toc = h('li', null, link);
-    state.entries.push({ id: section.id, title: section.title, el, toc, link, section, groups: built?.groups });
-  });
+    state.entries.push({ id: section.id, title: section.title, el, toc, link, count, headCount, section, groups: built?.groups });
+  }
+
+  // The navigation: General on its own, then labelled groups (YouTube / Calm / More).
+  const claimed = new Set();
+  state.tocGroups = NAV_GROUPS.map((group, index) => {
+    const mine = state.entries.filter((e) => !claimed.has(e.id) && group.claims(e.section));
+    for (const e of mine) claimed.add(e.id);
+    const labelId = `toc-group-${group.id}`;
+    const el = h(
+      'div',
+      { class: 'toc-group' },
+      group.label && h('p', { class: 'toc-label caps', id: labelId }, group.label),
+      h('ol', { 'aria-labelledby': group.label ? labelId : null }, mine.map((e) => e.toc)),
+    );
+    return { el, entries: mine, index };
+  }).filter((g) => g.entries.length > 0);
 
   els.sections.replaceChildren(...state.entries.map((e) => e.el));
-  els.toc.replaceChildren(h('ol', null, state.entries.map((e) => e.toc)));
+  els.toc.replaceChildren(...state.tocGroups.map((g) => g.el));
+}
+
+/** "3" beside each YouTube section in the navigation and "3 of 35 hidden" in its heading. */
+function refreshCounts() {
+  const counts = AP.ui.navCounts(state.values);
+  for (const entry of state.entries) {
+    const c = counts[entry.id];
+    entry.count.textContent = c?.text ?? '';
+    entry.headCount.hidden = !c;
+    if (!c) continue;
+    entry.headCount.textContent = entry.section.site === 'youtube' ? `${c.on} of ${c.total} hidden` : c.on > 0 ? 'On' : 'Off';
+  }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -200,6 +238,8 @@ function applyFilters() {
     entry.el.hidden = !any;
     entry.toc.hidden = !any;
   }
+
+  for (const group of state.tocGroups) group.el.hidden = group.entries.every((e) => e.toc.hidden);
 
   els.results.hidden = !searching;
   if (searching) {
@@ -263,9 +303,8 @@ function buildTopbar() {
   els.saved = h('span', { class: 'saved', role: 'status', 'aria-live': 'polite' }, 'Saved');
 
   const chips = AP.ui.BULK_TAGS.filter(([tag]) => Object.keys(AP.schema.bulkTargets(tag)).length > 0).map(([tag, label]) => {
-    const dot = h('span', { class: 'dot', 'aria-hidden': 'true' });
-    const button = h('button', { type: 'button', class: 'chip', 'aria-pressed': 'false', onClick: () => toggleBulk(tag, label) }, dot, label);
-    state.chips.set(tag, { button, dot, tag, label });
+    const button = h('button', { type: 'button', class: 'chip', 'aria-pressed': 'false', onClick: () => toggleBulk(tag, label) }, label);
+    state.chips.set(tag, { button, tag, label });
     return button;
   });
 
@@ -452,6 +491,7 @@ async function init() {
 
   refreshRequires();
   refreshChips();
+  refreshCounts();
   refreshPresetLabel();
   refreshNotices();
 

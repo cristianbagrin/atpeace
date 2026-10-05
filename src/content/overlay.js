@@ -11,49 +11,60 @@
 // It is a modal: the page behind it (<body>) is made `inert`, Tab cycles inside, keys never reach
 // the page's own shortcuts (Space must not start the video), and Escape deliberately does nothing
 // — the only ways out are the actions the caller offers. If the page removes the host, it comes
-// back. The design is the pause page's: linen paper, one persimmon dot on a horizon line.
+// back. The look is the indigo world of the pause page: the page dimmed, one indigo card with a
+// small dial (an amber ring, a mint dot), a title, a line and two buttons. It looks the same in
+// both themes, so `theme` is accepted (callers pass it) and not needed.
 (() => {
   'use strict';
   const AP = globalThis.AtPeace;
 
   const HOST_ATTR = 'data-at-peace-overlay';
 
-  const PALETTE_LIGHT = '--paper:#F3EEE3;--paper-2:#EAE2D1;--ink:#1B2050;--ink-2:#5E5A55;--rule:#B9C4D3;--edge:#757A8A;--clay:#8E7266;--seal:#E5600F;';
-  const PALETTE_DARK = '--paper:#14162B;--paper-2:#1C1F3A;--ink:#E9E3D6;--ink-2:#A8A3B8;--rule:#33385C;--edge:#6F74A0;--clay:#B79E91;--seal:#F47A2E;';
-
   const CSS = `
 :host { all: initial; }
 .scrim {
-  ${PALETTE_LIGHT}
-  position: fixed; inset: 0; box-sizing: border-box; display: flex; align-items: center;
-  padding: 28px 7vw 28px 38vw; background: var(--paper); color: var(--ink);
-  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  position: fixed; inset: 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+  padding: 16px; background: rgb(11 12 58 / 0.72); color: #F2F3FF;
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", "Noto Sans", sans-serif;
   -webkit-font-smoothing: antialiased; opacity: 0; transition: opacity 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 .scrim.is-in { opacity: 1; }
-.scrim[data-theme="dark"] { ${PALETTE_DARK} }
-@media (prefers-color-scheme: dark) { .scrim[data-theme="system"] { ${PALETTE_DARK} } }
-.sheet { width: min(460px, 100%); }
-.brand { position: absolute; top: 28px; left: 7vw; display: flex; align-items: center; gap: 9px; color: var(--ink-2); font: 600 15px/1 "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Charter, Georgia, serif; letter-spacing: 0.02em; }
-.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--seal); flex: none; }
-.horizon { position: relative; box-sizing: border-box; width: 100vw; height: 101px; margin: 0 0 28px -38vw; padding-left: 38vw; border-bottom: 1px solid var(--rule); }
-.horizon .sun { position: absolute; left: 38vw; bottom: -1px; width: 100px; height: 100px; border-radius: 50%; background: var(--seal); }
-h2 { margin: 0 0 8px; font: 400 clamp(26px, 3.3vw, 32px)/1.25 "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Charter, Georgia, serif; }
-p { margin: 0; color: var(--ink-2); max-width: 36ch; }
-.actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 28px; }
+.card { box-sizing: border-box; width: min(520px, 100%); display: flex; gap: 24px; align-items: flex-start; padding: 32px; border-radius: 16px; background: #16186F; }
+.glyph { flex: none; width: 72px; height: 72px; }
+.text { min-width: 0; }
+h2 { margin: 0; font-size: 26px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; }
+p { margin: 8px 0 0; color: #C9CBF2; font-size: 15px; line-height: 1.5; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 button {
-  font: inherit; font-size: 15px; min-height: 40px; padding: 6px 20px; border-radius: 3px; cursor: pointer;
-  border: 1px solid var(--edge); background: transparent; color: var(--ink);
-  transition: background-color 200ms cubic-bezier(0.2, 0.7, 0.2, 1), border-color 200ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  font: inherit; font-size: 15px; font-weight: 600; min-height: 44px; padding: 0 18px; border-radius: 10px; cursor: pointer;
+  border: 1px solid #4A4EA8; background: transparent; color: #F2F3FF;
+  transition: background-color 160ms cubic-bezier(0.2, 0.7, 0.2, 1), border-color 160ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
-button:hover:not(:disabled) { background: var(--paper-2); border-color: var(--ink); }
-button.primary { background: var(--ink); border-color: var(--ink); color: var(--paper); }
-button.primary:hover:not(:disabled) { background: var(--ink); opacity: 0.88; }
+button:hover:not(:disabled) { background: #22257F; border-color: #7479CC; }
+button.primary { padding: 0 20px; border-color: #3FF1C0; background: #3FF1C0; color: #0B0C3A; font-weight: 700; }
+button.primary:hover:not(:disabled) { background: #3FF1C0; border-color: #3FF1C0; opacity: 0.9; }
 button:disabled { opacity: 0.55; cursor: default; }
-button:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
-@media (max-width: 720px) { .scrim { padding: 28px 7vw; } .horizon { margin-left: -7vw; padding-left: 7vw; } .horizon .sun { left: 7vw; } }
-@media (prefers-reduced-motion: reduce) { .scrim { transition: none; } }
+button:focus-visible { outline: 2px solid #3FF1C0; outline-offset: 2px; }
+@media (max-width: 520px) { .card { flex-direction: column; gap: 16px; padding: 24px; } }
+@media (prefers-reduced-motion: reduce) { .scrim, button { transition: none; } }
 `;
+
+  /** The dial glyph: a quiet ring, an amber arc nearly all the way round, a mint dot. Built as SVG nodes (no HTML strings). */
+  function dialGlyph() {
+    const NS = 'http://www.w3.org/2000/svg';
+    const node = (tag, attrs) => {
+      const n = document.createElementNS(NS, tag);
+      for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+      return n;
+    };
+    const svg = node('svg', { class: 'glyph', viewBox: '0 0 72 72', 'aria-hidden': 'true' });
+    svg.append(
+      node('circle', { cx: 36, cy: 36, r: 32, fill: 'none', stroke: '#4A4EA8', 'stroke-width': 3 }),
+      node('path', { d: 'M36 4 A32 32 0 1 1 35.9 4', fill: 'none', stroke: '#EC921F', 'stroke-width': 3, 'stroke-linecap': 'round' }),
+      node('circle', { cx: 36, cy: 36, r: 10, fill: '#3FF1C0' }),
+    );
+    return svg;
+  }
 
   /** @type {{ host: HTMLElement, root: ShadowRoot, scrim: HTMLElement, watch: MutationObserver|null, restore: () => void } | null} */
   let current = null;
@@ -91,10 +102,10 @@ button:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
 
   /**
    * Shows the overlay (replacing one that is already up).
-   * @param {{ title: string, body?: string, actions?: OverlayAction[], theme?: 'light'|'dark'|'system' }} spec
+   * @param {{ title: string, body?: string, actions?: OverlayAction[], theme?: string }} spec (`theme` is ignored: the overlay is the same in both themes)
    * @returns {{ hide: () => void }}
    */
-  function show({ title, body = '', actions = [], theme = 'light' }) {
+  function show({ title, body = '', actions = [] }) {
     hide();
 
     const host = document.createElement('div');
@@ -124,26 +135,22 @@ button:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
       });
       return button;
     });
-    const sheet = el('div', 'sheet');
-    sheet.append(titleEl);
-    if (bodyEl) sheet.append(bodyEl);
-    sheet.append(el('div', 'actions'));
-    sheet.lastChild.append(...buttons);
-    const horizon = el('div', 'horizon');
-    horizon.append(el('span', 'sun'));
-    horizon.setAttribute('aria-hidden', 'true');
-    sheet.prepend(horizon);
+    const text = el('div', 'text');
+    text.append(titleEl);
+    if (bodyEl) text.append(bodyEl);
+    const actionsEl = el('div', 'actions');
+    actionsEl.append(...buttons);
+    text.append(actionsEl);
+    const card = el('div', 'card');
+    card.append(dialGlyph(), text);
 
-    const brand = el('div', 'brand');
-    brand.append(el('span', 'dot'), el('span', '', 'At Peace'));
     const scrim = el('div', 'scrim');
-    scrim.dataset.theme = theme === 'dark' || theme === 'system' ? theme : 'light';
     scrim.setAttribute('role', 'alertdialog');
     scrim.setAttribute('aria-modal', 'true');
     scrim.setAttribute('aria-labelledby', 'ap-title');
     if (bodyEl) scrim.setAttribute('aria-describedby', 'ap-body');
     scrim.tabIndex = -1;
-    scrim.append(brand, sheet);
+    scrim.append(card);
     root.append(scrim);
 
     // Keys: never to the page; Tab stays inside; Escape is swallowed on purpose.

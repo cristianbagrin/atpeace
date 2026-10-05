@@ -106,7 +106,7 @@ function buildMaster() {
 
 function buildChips() {
   const chips = AP.ui.BULK_TAGS.filter(([tag]) => POPUP_CHIPS.includes(tag) && Object.keys(AP.schema.bulkTargets(tag)).length > 0).map(([tag, label]) => {
-    const button = h('button', { type: 'button', class: 'chip', 'aria-pressed': 'false', onClick: () => toggleBulk(tag) }, h('span', { class: 'dot', 'aria-hidden': 'true' }), label);
+    const button = h('button', { type: 'button', class: 'chip', 'aria-pressed': 'false', onClick: () => toggleBulk(tag) }, label);
     state.chips.set(tag, { button, label });
     return button;
   });
@@ -373,7 +373,7 @@ function updateWait(note, end) {
 
 function renderFocus() {
   const block = activeBlock();
-  const children = [h('h2', { class: 'caps' }, block ? 'Focus' : 'Block YouTube for')];
+  const children = [h('h2', { class: 'block-title' }, block ? 'Focus' : 'Block YouTube for')];
 
   if (!block) {
     state.friction = null;
@@ -446,12 +446,16 @@ function renderToday() {
   if (els.today.hidden) return;
 
   const num = (value) => h('span', { class: 'mono' }, String(value));
+  const tile = (value, label, positive = false) =>
+    h('div', { class: 'stat' }, h('div', { class: ['stat-value', positive && 'is-positive'] }, value), h('div', { class: 'stat-label' }, label));
   els.today.replaceChildren(
     ...[
+      // Three tiles for the eye; the sentence below is what a screen reader reads (and what tests look for).
+      h('div', { class: 'stats', 'aria-hidden': 'true' }, tile(compactDuration(activeSec), 'on YouTube'), tile(String(opens), opens === 1 ? 'open' : 'opens'), tile(String(turnedBack), 'turned back', true)),
       h(
         'p',
-        { class: 'today' },
-        h('span', { class: 'caps' }, 'Today'),
+        { class: 'today visually-hidden' },
+        h('span', null, 'Today'),
         ' ',
         h('span', { class: 'mono' }, AP.ui.formatDuration(activeSec)),
         ' on YouTube, opened ',
@@ -464,6 +468,18 @@ function renderToday() {
       hasLimit && h('p', { class: 'note' }, `Daily limit: ${Math.min(Math.round((Number(limit.usedSec) || 0) / 60), 9999)} of ${limit.dailyMinutes} min used.`),
     ].filter(Boolean),
   );
+}
+
+/** "25m", "1h 05m", "<1m": the short form for a tile. */
+function compactDuration(sec) {
+  const s = Math.max(0, Number(sec) || 0);
+  if (s === 0) return '0m';
+  if (s < 30) return '<1m';
+  const minutes = Math.max(1, Math.round(s / 60));
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest === 0 ? `${hours}h` : `${hours}h ${String(rest).padStart(2, '0')}m`;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -558,8 +574,8 @@ async function init() {
 
   buildMaster();
   document.getElementById('banner').append(...buildLock());
-  els.focus = h('section', { class: 'block', 'aria-label': 'Focus' });
-  els.today = h('section', { class: 'block', 'aria-label': 'Today', hidden: true });
+  els.focus = h('section', { class: 'block focus-block', 'aria-label': 'Focus' });
+  els.today = h('section', { class: 'block today-block', 'aria-label': 'Today', hidden: true });
   els.content.replaceChildren(
     ...[buildChips(), h('div', { class: 'ledger' }, buildPresetRow(), AP.ui.quickSettings().map(buildQuickRow)), els.focus, els.today].filter(Boolean),
   );

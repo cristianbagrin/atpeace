@@ -6,34 +6,38 @@
   <title>At Peace</title>
   <link rel="stylesheet" href="../common/tokens.css">
   <link rel="stylesheet" href="../common/base.css">
+  <link rel="stylesheet" href="../common/indigo.css">
   <link rel="stylesheet" href="blocked.css">
   <script src="../common/theme-boot.js"></script>
 </head>
-<body data-state="loading">
+<body class="indigo" data-state="loading">
   <div class="page">
     <header class="top">
-      <h1 class="wordmark"><span class="seal" aria-hidden="true"></span>At Peace</h1>
+      <h1 class="wordmark"><span class="glyph" aria-hidden="true"></span>At Peace</h1>
     </header>
 
-    <main class="column">
-      <!-- The seal is hollow here: closed. It fills in when the block ends. -->
-      <div class="horizon" aria-hidden="true"><div class="ring"></div></div>
+    <main class="stage">
+      <!-- The dial (drawn by blocked.js): ticks, and an amber arc for the time that is left. -->
+      <div class="dial ring" id="dial" aria-hidden="true"></div>
 
-      <h2 class="title" id="title"></h2>
-      <p class="sub" id="sub"></p>
+      <div class="copy" id="column">
+        <p class="kicker is-amber" id="kicker"></p>
+        <h2 class="title headline" id="title"></h2>
+        <p class="sub lede" id="sub"></p>
 
-      <div class="time" id="time" hidden>
-        <p class="clock mono" id="clock" role="timer" aria-live="off"></p>
-        <p class="until" id="until"></p>
+        <div class="time" id="time" hidden>
+          <p class="clock mono" id="clock" role="timer" aria-live="off"></p>
+          <p class="until lede" id="until"></p>
+        </div>
+
+        <div class="cta" id="cta"></div>
+        <section class="unlock" id="unlock" aria-label="Ending this early"></section>
+        <p class="note" id="note" role="status"></p>
       </div>
-
-      <div class="cta" id="cta"></div>
-      <section class="unlock" id="unlock" aria-label="Ending this early"></section>
-      <p class="note" id="note" role="status"></p>
     </main>
 
     <footer class="foot">
-      <p class="target mono" id="target"></p>
+      <p class="target" id="target"></p>
     </footer>
   </div>
 

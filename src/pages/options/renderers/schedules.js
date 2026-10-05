@@ -58,42 +58,6 @@
     };
   }
 
-  const CSS = `
-.${ROOT_CLASS} { max-width: 640px; }
-.${ROOT_CLASS} .sched { padding: var(--u2) 0; border-top: 1px solid var(--rule); }
-.${ROOT_CLASS} .sched:last-of-type { border-bottom: 1px solid var(--rule); }
-.${ROOT_CLASS} .sched.is-off .sched-body { opacity: 0.55; }
-.${ROOT_CLASS} .sched-head { display: flex; align-items: center; gap: var(--u2); }
-.${ROOT_CLASS} .sched-head input[type="text"] { flex: 1 1 auto; min-width: 0; width: auto; }
-.${ROOT_CLASS} .sched-body { display: grid; gap: var(--u1) var(--u2); margin-top: var(--u1); }
-.${ROOT_CLASS} .line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--u1) var(--u2); }
-.${ROOT_CLASS} .line .caps { min-width: 44px; }
-.${ROOT_CLASS} .days { display: flex; flex-wrap: wrap; gap: 4px; }
-.${ROOT_CLASS} .day {
-  min-width: 42px; min-height: 28px; padding: 2px 8px; border: 1px solid var(--edge); border-radius: var(--radius);
-  background: transparent; color: var(--ink); font-size: 12.5px; cursor: pointer;
-  transition: background-color var(--t-quick) var(--ease), color var(--t-quick) var(--ease);
-}
-.${ROOT_CLASS} .day[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
-.${ROOT_CLASS} .day.is-site { min-width: 0; padding: 2px 10px; }
-.${ROOT_CLASS} input[type="time"] {
-  min-height: 30px; padding: 3px 8px; border: 1px solid var(--edge); border-radius: var(--radius);
-  background: var(--paper-2); color: var(--ink); font-family: var(--font-mono); font-variant-numeric: tabular-nums;
-}
-.${ROOT_CLASS} .sched-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--u2); margin-top: var(--u1); }
-.${ROOT_CLASS} .sched-error { color: var(--danger); font-size: 12.5px; }
-.${ROOT_CLASS} .empty { margin: 0 0 var(--u2); color: var(--ink-2); font-size: 13px; }
-.${ROOT_CLASS} .add { margin-top: var(--u2); }
-`;
-
-  function ensureStyle() {
-    if (document.getElementById('ap-style-schedules')) return;
-    const style = document.createElement('style');
-    style.id = 'ap-style-schedules';
-    style.textContent = CSS;
-    document.head.append(style);
-  }
-
   /** Every preset a schedule can apply: the built-in ones, then the person's own. */
   async function presetChoices() {
     const choices = AP.presets.builtIn().map((p) => ({ id: p.id, name: p.name }));
@@ -123,7 +87,6 @@
     newSchedule,
 
     render(def, value, ctx) {
-      ensureStyle();
       const { h } = ctx;
       let draft = Array.isArray(value) ? value.map((s) => ({ ...s, days: [...s.days], siteKeys: [...(s.siteKeys ?? ['youtube'])] })) : [];
       let presets = AP.presets.builtIn().map((p) => ({ id: p.id, name: p.name }));

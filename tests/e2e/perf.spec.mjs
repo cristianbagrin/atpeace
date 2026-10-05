@@ -66,8 +66,12 @@ const HEAVY = {
   'yt.masthead.hideSearchSuggestions': true,
 };
 
+/** The background rewrites its redirect rules a moment after a settings change; a page load before that is sent to the pause page. */
+const pauseRuleGone = () => until(() => evalInExtension(async () => !(await chrome.declarativeNetRequest.getDynamicRules()).some((r) => String(r.action.redirect?.regexSubstitution).includes('/pause/'))), { what: 'the pause rule to go' });
+
 async function configure(settings) {
   await setStorage({ settings });
+  await pauseRuleGone();
   await page.bringToFront();
 }
 
@@ -92,8 +96,14 @@ function stampInPage() {
   check();
 }
 
-test('startup: tokens are on <html> a few milliseconds after document_start; the stylesheet compiles in milliseconds', { skip }, async () => {
-  await evalInExtension(() => globalThis.AtPeace.settings.applyPreset('deep-work')); // the biggest preset
+test('startup: tokens are on <html> a few milliseconds after document_start; the stylesheet compiles in milliseconds', { skip }, async (t) => {
+  // The biggest preset, minus its home redirect (the snapshot server has no Subscriptions page to answer it).
+  await evalInExtension(async () => {
+    const { settings } = globalThis.AtPeace;
+    await settings.applyPreset('deep-work');
+    await settings.save({ 'yt.home.feedMode': 'hide', 'pause.enabled': false }); // the preset also turns Mindful Pause on
+  });
+  await pauseRuleGone();
   await page.addInitScript(stampInPage);
   const rows = [];
   for (const url of ['https://www.youtube.com/', 'https://www.youtube.com/results?search_query=lofi', 'https://www.youtube.com/watch?v=abc']) {
@@ -104,9 +114,24 @@ test('startup: tokens are on <html> a few milliseconds after document_start; the
       samples.push(await page.evaluate(() => window.__apStamps));
     }
     const delta = (key) => median(samples.map((s) => s[key] - s.init));
-    rows.push({ url: new URL(url).pathname, styleMs: round(delta('style')), tokensMs: round(delta('tokens')), loadedMs: round(delta('loaded')) });
+    // The wall time above includes the snapshot's own inline script (up to 1.7 MB of JSON to parse on the same
+    // thread), so also measure how much CPU OUR scripts use between the navigation and the tokens.
+    const cpu = [];
+    let top = [];
+    for (let i = 0; i < 5; i++) {
+      const profile = await profileOurs(async () => {
+        await page.goto(url, { waitUntil: 'domcontentloaded' });
+        await until(() => page.evaluate(() => window.__apStamps?.tokens !== undefined), { what: `tokens on ${url} (profiled)` }).catch(async (err) => {
+          throw new Error(`${err.message}: ${page.url()} ${JSON.stringify(await page.evaluate(() => [window.__apStamps, document.documentElement.getAttribute('data-at-peace')]))}`);
+        });
+      });
+      cpu.push(profile.ourMs);
+      top = profile.top;
+    }
+    rows.push({ url: new URL(url).pathname, styleMs: round(delta('style')), tokensMs: round(delta('tokens')), loadedMs: round(delta('loaded')), ourCpuMs: round(median(cpu)), top });
   }
   results.startup = rows;
+  await configure({});
 
   // The compile itself, cold (first call in a fresh context) and warm (median of 30).
   const ext = await openExtPage('src/pages/options/options.html');
@@ -120,21 +145,17 @@ test('startup: tokens are on <html> a few milliseconds after document_start; the
     const first = time();
     const warm = Array.from({ length: 30 }, () => time().ms).sort((a, b) => a - b);
     const t0 = performance.now();
-    AP.schema.tokensFor(AP.settings.defaults ? AP.settings.defaults() : {}, 'youtube');
+    AP.schema.tokensFor(AP.schema.defaults(), 'youtube');
     return { firstMs: first.ms, warmMs: warm[15], bytes: first.bytes, rules: first.rules, tokensMs: performance.now() - t0 };
   });
   await ext.close();
   results.compile = { firstMs: round(compile.firstMs), warmMedianMs: round(compile.warmMs), kib: round(compile.bytes / 1024, 0), rulesApprox: compile.rules };
 
-  for (const r of rows) t_diag(`${r.url}: style in <head> +${r.styleMs} ms, tokens +${r.tokensMs} ms (median of 7)`);
-  t_diag(`compileCss('youtube'): first call ${results.compile.firstMs} ms, warm ${results.compile.warmMedianMs} ms, ${results.compile.kib} KiB`);
+  for (const r of rows) t.diagnostic(`${r.url}: style in <head> +${r.styleMs} ms, tokens +${r.tokensMs} ms (median of 7); our CPU ${r.ourCpuMs} ms (median of 5): ${r.top.join('; ')}`);
+  t.diagnostic(`compileCss('youtube'): first call ${results.compile.firstMs} ms, warm ${results.compile.warmMedianMs} ms, ${results.compile.kib} KiB`);
   for (const r of rows) assert.ok(r.tokensMs < 500, `${r.url}: tokens applied within 500 ms of document_start (was ${r.tokensMs})`);
   assert.ok(results.compile.firstMs < 250, `a cold compile is under 250 ms (was ${results.compile.firstMs})`);
 });
-
-/** node:test's diagnostic needs the test context; the specs here are sequential, so keep the last one around. */
-let currentTest = null;
-const t_diag = (message) => (currentTest ?? console).diagnostic?.(message) ?? console.log(message);
 
 // ---------------------------------------------------------------------------------------------
 // 2. The mutation bus
@@ -194,7 +215,6 @@ async function openSearch() {
 }
 
 test('mutation bus: our scripts cost a few percent of one core on a growing search page, and nothing when no feature needs it', { skip }, async (t) => {
-  currentTest = t;
   const load = { batches: 24, size: 10, gap: 250 }; // 240 cards in 6 s, about 40 cards a second, scrolling all the while
   const run = async (label, settings) => {
     await configure(settings);
@@ -243,7 +263,6 @@ const TOUR = [
 ];
 
 test('leaks: 20 SPA navigations and 10 rounds of every feature off and on leave no listener, observer or interval behind', { skip }, async (t) => {
-  currentTest = t;
   await configure(HEAVY);
   await page.goto('https://www.youtube.com/', { waitUntil: 'domcontentloaded' });
   await until(() => page.evaluate(() => document.documentElement.getAttribute('data-fixture-ready') === '1' && document.documentElement.getAttribute('data-at-peace') !== null), { what: 'the home snapshot and the engine' });
@@ -293,7 +312,7 @@ test('leaks: 20 SPA navigations and 10 rounds of every feature off and on leave 
   assert.equal(onAfter.listeners, onBefore.listeners, `listeners with every feature on did not grow: ${JSON.stringify(onAfter.byType)} vs ${JSON.stringify(onBefore.byType)}`);
   assert.deepEqual(onAfter.observers, onBefore.observers, 'observers with every feature on did not grow');
   assert.equal(onAfter.intervals, onBefore.intervals, 'intervals with every feature on did not grow');
-  assert.ok(offBefore.observers.MutationObserver === undefined, 'with every feature off the mutation observer is gone');
+  assert.ok((offBefore.observers.MutationObserver ?? 0) <= 1, `with every feature off only the engine's own style guard observes (${JSON.stringify(offBefore.observers)})`);
   results.leaks = { start, afterTours: afterTour, featuresOff: { before: offBefore, after: offAfter }, featuresOn: { before: onBefore, after: onAfter } };
 
   const diagnostics = await page.evaluate(() => document.documentElement.getAttribute('data-ap-instr') !== null);

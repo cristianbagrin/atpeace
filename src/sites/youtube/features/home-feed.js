@@ -32,31 +32,31 @@
 
   // ---- the placeholder -----------------------------------------------------------------------------------
 
-  const PALETTE_LIGHT = '--ink:#1B2050;--ink-2:#5E5A55;--rule:#B9C4D3;--edge:#757A8A;--clay:#8E7266;--seal:#E5600F;--hover:#EAE2D1;';
-  const PALETTE_DARK = '--ink:#E9E3D6;--ink-2:#A8A3B8;--rule:#33385C;--edge:#6F74A0;--clay:#B79E91;--seal:#F47A2E;--hover:#1C1F3A;';
+  // The tools' Dial tokens, light and dark. Which one is used follows YouTube's own theme (<html dark>),
+  // not the extension's setting: the card sits on YouTube's page, so it has to look right there.
+  const PALETTE_LIGHT = '--panel:#FFFFFF;--line:#DCE1EA;--field-line:#8088A0;--text:#10123F;--text-2:#5B6078;--act:#0D3CCC;--on-act:#FFFFFF;--mint:#0CE3A1;';
+  const PALETTE_DARK = '--panel:#171A45;--line:#262A5C;--field-line:#646DAA;--text:#E8EAF6;--text-2:#9EA3C7;--act:#7C95FF;--on-act:#0E1033;--mint:#3FF1C0;';
   const CSS = `
 :host { all: initial; display: block; }
 .page {
   ${PALETTE_LIGHT}
-  box-sizing: border-box; min-height: calc(100vh - 56px - 96px); padding: 12vh 7vw 56px clamp(24px, 12vw, 200px);
-  color: var(--yt-spec-text-primary, var(--ink)); cursor: text;
-  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif; -webkit-font-smoothing: antialiased;
+  box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+  min-height: calc(100vh - 56px - 96px); padding: 24px; cursor: text;
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", "Noto Sans", sans-serif; -webkit-font-smoothing: antialiased;
 }
 .page[data-theme="dark"] { ${PALETTE_DARK} }
-@media (prefers-color-scheme: dark) { .page[data-theme="system"] { ${PALETTE_DARK} } }
-.sheet { width: min(460px, 100%); }
-.horizon { position: relative; box-sizing: border-box; height: 61px; margin: 0 0 28px; border-bottom: 1px solid var(--yt-spec-10-percent-layer, var(--rule)); }
-.sun { position: absolute; left: 0; bottom: -1px; width: 60px; height: 60px; border-radius: 50%; background: var(--seal); }
-h2 { margin: 0 0 8px; font: 400 clamp(26px, 3.3vw, 32px)/1.25 "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Charter, Georgia, serif; }
-p { margin: 0; color: var(--yt-spec-text-secondary, var(--ink-2)); max-width: 36ch; }
+.card { box-sizing: border-box; width: min(400px, 100%); padding: 28px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); }
+.glyph { position: relative; display: block; box-sizing: border-box; width: 28px; height: 28px; margin: 0 0 16px; border: 2px solid var(--text); border-radius: 50%; }
+.glyph::after { content: ""; position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--mint); }
+h2 { margin: 0 0 6px; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.015em; }
+p { margin: 0; color: var(--text-2); max-width: 36ch; }
 button {
-  margin-top: 28px; font: inherit; font-size: 15px; min-height: 40px; padding: 6px 20px; border-radius: 3px; cursor: pointer;
-  border: 1px solid var(--yt-spec-text-secondary, var(--edge)); background: transparent; color: inherit;
-  transition: background-color 200ms cubic-bezier(0.2, 0.7, 0.2, 1), border-color 200ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  margin-top: 20px; font: inherit; font-size: 14px; font-weight: 600; min-height: 36px; padding: 0 16px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--act); background: var(--act); color: var(--on-act);
+  transition: opacity 160ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
-button:hover { background: var(--yt-spec-badge-chip-background, var(--hover)); border-color: currentColor; }
-button:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
-@media (max-width: 720px) { .page { padding-left: 7vw; } }
+button:hover { opacity: 0.9; }
+button:focus-visible { outline: 2px solid var(--act); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { button { transition: none; } }
 `;
 
@@ -76,7 +76,11 @@ button:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
     box?.focus();
   }
 
-  function buildPlaceholder(theme) {
+  const isYouTubeDark = () => document.documentElement.hasAttribute('dark');
+
+  let themeWatch = null;
+
+  function buildPlaceholder() {
     const host = document.createElement('div');
     host.setAttribute(HOST_ATTR, 'home');
     host.setAttribute('data-at-peace-text', TITLE); // the closed shadow root hides the text; this is a handle for tests
@@ -91,15 +95,21 @@ button:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
       root.append(style);
     }
     const page = el('div', 'page');
-    page.dataset.theme = theme === 'dark' || theme === 'system' ? theme : 'light';
-    const horizon = el('div', 'horizon');
-    horizon.setAttribute('aria-hidden', 'true');
-    horizon.append(el('span', 'sun'));
-    const button = el('button', '', 'Search');
+    const paint = () => {
+      page.dataset.theme = isYouTubeDark() ? 'dark' : 'light';
+    };
+    paint();
+    // YouTube flips <html dark> when its theme changes; follow it without rebuilding.
+    themeWatch?.disconnect();
+    themeWatch = typeof MutationObserver === 'function' ? new MutationObserver(paint) : null;
+    themeWatch?.observe(document.documentElement, { attributes: true, attributeFilter: ['dark'] });
+    const glyph = el('span', 'glyph');
+    glyph.setAttribute('aria-hidden', 'true');
+    const button = el('button', '', 'Search YouTube');
     button.type = 'button';
-    const sheet = el('div', 'sheet');
-    sheet.append(horizon, el('h2', '', TITLE), el('p', '', BODY), button);
-    page.append(sheet);
+    const card = el('div', 'card');
+    card.append(glyph, el('h2', '', TITLE), el('p', '', BODY), button);
+    page.append(card);
     page.addEventListener('click', focusSearch);
     root.append(page);
     return host;
@@ -127,6 +137,8 @@ button:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
   function removePlaceholder() {
     host?.remove();
     host = null;
+    themeWatch?.disconnect();
+    themeWatch = null;
   }
 
   function syncPlaceholder(ctx) {
@@ -138,7 +150,7 @@ button:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
     if (!anchor) return; // the page is still being built: the next mutation batch tries again
     if (host?.isConnected && host.parentNode === anchor.browse) return;
     removePlaceholder();
-    host = buildPlaceholder(ctx.settings?.['general.theme']);
+    host = buildPlaceholder();
     anchor.browse.insertBefore(host, anchor.feed);
   }
 

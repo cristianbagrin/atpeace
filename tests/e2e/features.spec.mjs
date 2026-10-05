@@ -480,6 +480,30 @@ describe('on offline snapshots', { skip: haveFixtures ? false : 'tests/e2e/artif
       await waitFor(() => document.querySelectorAll('[data-at-peace-entry]').length === 0);
     });
 
+    test('mini guide (the collapsed rail of the narrow layout): entries are tagged from `entry.data.icon.iconType`, the shape observed live; a rule that only knows the tag hides them', { skip: fixturesAvailable(['home-narrow']) ? false : 'the home-narrow snapshot is absent (tests/e2e/artifacts/research is local only)' }, async () => {
+      await configure({});
+      await open('https://www.youtube.com/?fixture=home-narrow');
+      const mini = await page.evaluate(() => {
+        const entries = [...document.querySelectorAll('ytd-mini-guide-entry-renderer')];
+        // Observed live at 1100x800 (docs/youtube-dom.md 4.7): Home, Shorts, Subscriptions, You, each with only `icon.iconType`.
+        const data = ['TAB_HOME_CAIRO', 'TAB_SHORTS_CAIRO', 'TAB_SUBSCRIPTIONS_CAIRO', 'ACCOUNT_CIRCLE_CAIRO'].map((iconType) => ({ icon: { iconType } }));
+        data.forEach((d, i) => entries[i] && (entries[i].data = d));
+        // Take away the hrefs the CSS catalog also knows, so that only the bridge's tag can identify an entry.
+        for (const link of document.querySelectorAll('ytd-mini-guide-entry-renderer a#endpoint')) link.setAttribute('href', '#');
+        return { count: entries.length, display: entries.map((e) => getComputedStyle(e).display) };
+      });
+      assert.equal(mini.count, 4, 'the snapshot has the four logged-out mini guide entries');
+      assert.ok(mini.display.every((d) => d !== 'none'), 'precondition: nothing is hidden yet');
+
+      await configure({ 'yt.guide.hideShorts': true, 'yt.guide.hideSubscriptionsEntry': true });
+      await waitFor(() => document.querySelectorAll('ytd-mini-guide-entry-renderer[data-at-peace-entry]').length === 4);
+      const after = await page.evaluate(() => [...document.querySelectorAll('ytd-mini-guide-entry-renderer')].map((e) => [e.getAttribute('data-at-peace-entry'), getComputedStyle(e).display === 'none']));
+      assert.deepEqual(after.map(([tag]) => tag), ['home', 'shorts', 'subscriptions', 'you']);
+      assert.deepEqual(after.map(([, hidden]) => hidden), [false, true, true, false], 'exactly the Shorts and Subscriptions entries are hidden, by their tags alone');
+      await configure({});
+      await waitFor(() => document.querySelectorAll('ytd-mini-guide-entry-renderer[data-at-peace-entry]').length === 0);
+    });
+
     test('channel tabs are tagged by matching the page data\'s tab list to the DOM titles; a CSS rule that only knows the tag hides the right tab', async () => {
       await open(CHANNEL);
       const dom = await page.evaluate(() => [...document.querySelectorAll('yt-tab-shape')].map((t) => t.getAttribute('tab-title')));

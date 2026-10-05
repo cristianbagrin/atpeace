@@ -172,12 +172,12 @@ Shorts" and "Hide Subscribe on Shorts" there.
 ## 9. Mindful Pause and Focus, a sanity pass (2 minutes)
 
 1. Settings, **Mindful Pause**: turn on "Pause before opening". In a new tab open `youtube.com`.
-   Expect: the breathing screen with a single orange circle, a line such as "This is your 1st time opening YouTube today.", and after the
+   Expect: the breathing screen (something that slowly grows and shrinks), a line such as "This is your 1st time opening YouTube today.", and after the
    breath the choices **Close YouTube** and **Continue for [15 minutes]**. Press Continue: YouTube opens.
    Open another YouTube tab: no second pause while the session lasts. (Set "Default time when I
    continue" to 5 minutes and wait if you want to see the "time is up" note and the video pausing.)
 2. Press **Close YouTube** on a fresh pause: the tab goes back or closes.
-3. Popup, **Focus**, press 25 minutes. Expect: open YouTube tabs turn into the "closed" page with a
+3. Popup, under **Block YouTube for**, press **25 min**. Expect: open YouTube tabs turn into the "closed" page with a
    countdown, and a new tab to YouTube does the same. End it with the early-exit control (it asks you to
    wait 30 seconds by default). Check that the countdown matches the clock.
 4. Keyboard shortcuts: **Alt+Shift+P** turns At Peace on and off, **Alt+Shift+F** starts a 25 minute

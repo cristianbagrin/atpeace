@@ -1,73 +1,33 @@
-/* The Mindful Pause (PLAN §9): linen paper, one persimmon sun on a horizon line, one serif line at
-   a time. The content column sits at 38% from the left, so the page is asymmetric and quiet.
-   Everything that moves is a slow ease; prefers-reduced-motion swaps the scaling for a soft fade. */
+/* The Mindful Pause: the indigo world (common/indigo.css) with a mint breath inside the dial.
+   One layer of words at a time, in the right-hand column. Everything that moves is a slow ease;
+   prefers-reduced-motion swaps the scaling for a soft fade. */
 
 :root {
-  --sun: clamp(96px, 20vmin, 168px);
-  --column: min(460px, 100%);
-  --edge-pad: 7vw;
   --ease-breath: cubic-bezier(0.45, 0, 0.55, 1);
 }
 
-.page {
-  overflow-x: clip;
-  min-height: 100vh;
-  min-height: 100dvh;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  padding: var(--u4) var(--edge-pad) var(--u3);
-}
-
-.top {
-  display: flex;
-  align-items: center;
-}
-
-.wordmark {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font: 600 15px/1 var(--font-serif);
-  letter-spacing: 0.02em;
-  color: var(--ink-2);
-}
-
-/* ------------------------------------------------------------------ the column */
-
-.column {
-  align-self: center;
-  width: var(--column);
-  margin-left: calc(38vw - var(--edge-pad));
-  padding-bottom: var(--u5);
-}
-
-/* The horizon runs edge to edge; the sun stands on it, at the left of the column. */
-.horizon {
-  /* Edge to edge: the line spans the whole window, the sun stands at the column's left. */
-  display: flex;
-  align-items: flex-end;
-  width: 100vw;
-  height: calc(var(--sun) + 1px);
-  margin: 0 0 var(--u4) -38vw;
-  padding-left: 38vw;
-  border-bottom: 1px solid var(--rule);
-}
-
+/* The breath: a mint disc, 75% of the dial, that pause.js scales between 0.6 and 1. */
 .sun {
-  width: var(--sun);
-  height: var(--sun);
-  margin-bottom: -1px; /* sits ON the line */
+  position: absolute;
+  inset: 12.5%;
   border-radius: 50%;
-  background: var(--seal);
-  transform-origin: 50% 100%;
+  background: var(--ix-mint);
+  transform-origin: 50% 50%;
   transform: scale(0.6);
   will-change: transform, opacity;
 }
 
+/* When the breath is over the ticks turn mint. */
+body[data-state="choosing"],
+body[data-state="session"] {
+  --dial-ticks: var(--ix-mint);
+}
+
 /* ------------------------------------------------------------------ layers (one grid cell) */
 
-.panel {
+.layers {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .layer {
@@ -91,8 +51,8 @@ body[data-state="invalid"] .invalid {
 /* ------------------------------------------------------------------ the breath */
 
 .guidance {
-  font: 400 clamp(27px, 3.6vw, 34px) / 1.25 var(--font-serif);
-  color: var(--ink);
+  font-size: clamp(40px, 4.4vw, 56px);
+  line-height: 1.05;
   transition: opacity 220ms var(--ease);
 }
 
@@ -101,152 +61,47 @@ body[data-state="invalid"] .invalid {
 }
 
 .countdown {
-  margin-top: var(--u1);
-  font-size: 15px;
-  color: var(--ink-2);
+  margin-top: 10px;
+  font-size: 17px;
+  color: var(--ix-text-2);
 }
 
 /* ------------------------------------------------------------------ the choice */
 
-.question {
-  font: 400 clamp(26px, 3.3vw, 32px) / 1.25 var(--font-serif);
-  max-width: 26ch;
-}
-
-.count-line {
-  margin-top: var(--u1);
-  max-width: 40ch;
-  color: var(--ink-2);
-  font-size: 15px;
-}
-
 .intention {
   display: grid;
-  gap: 6px;
-  margin-top: var(--u3);
+  gap: 8px;
+  margin-top: 28px;
+}
+
+.intention label {
+  color: var(--ix-text-2);
+  font-size: 13px;
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--u2);
-  margin-top: var(--u4);
+  gap: 10px;
+  margin-top: 28px;
 }
 
-.btn.big {
-  min-height: 44px;
-  padding: 8px var(--u3);
-  font-size: 16px;
-}
-
-/* "Continue for [15 minutes]" reads as one control: a button and a select in one frame. */
 .split {
-  display: inline-flex;
-  align-items: stretch;
-  min-height: 44px;
-  border: 1px solid var(--edge);
-  border-radius: var(--radius);
-  transition: border-color var(--t-quick) var(--ease), opacity var(--t-quick) var(--ease);
-}
-
-.split:hover:not(.is-disabled) {
-  border-color: var(--ink);
+  margin-top: 12px;
+  transition: opacity var(--t-quick) var(--ease);
 }
 
 .split.is-disabled {
   opacity: 0.5;
 }
 
-.split .go {
-  padding: 0 var(--u2) 0 var(--u3);
-  border: 0;
-  background: transparent;
-  font-size: 16px;
-  cursor: pointer;
-  border-radius: var(--radius) 0 0 var(--radius);
-}
-
-.split .go:hover:not(:disabled) {
-  background: var(--paper-2);
-}
-
-.split .go:disabled,
-.split select:disabled {
-  cursor: default;
-  opacity: 1; /* the frame carries the disabled look, so text never doubles up */
-}
-
-.split .select select {
-  min-height: 42px;
-  height: 100%;
-  border: 0;
-  border-left: 1px solid var(--rule);
-  border-radius: 0 var(--radius) var(--radius) 0;
-  background: transparent;
-  font-size: 16px;
-  padding-left: var(--u2);
-  padding-right: 34px;
-}
-
-.split .select::after {
-  right: 14px;
-}
-
-.split .select select:hover:not(:disabled) {
-  background: var(--paper-2);
-}
-
-.note {
-  min-height: 1.5em;
-  margin-top: var(--u2);
-  color: var(--danger);
-  font-size: 14px;
-}
-
-.note:empty {
-  margin-top: 0;
-}
-
-/* ------------------------------------------------------------------ footer */
-
-.foot {
-  min-height: 21px;
-}
-
-.target {
-  max-width: min(100%, 64ch);
-  margin-left: calc(38vw - var(--edge-pad));
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-  color: var(--ink-2);
-}
-
-/* ------------------------------------------------------------------ small screens */
-
-@media (max-width: 720px) {
-  :root {
-    --edge-pad: 7vw;
-  }
-
-  .column,
-  .target {
-    margin-left: 0;
-  }
-
-  .horizon {
-    margin-left: calc(-1 * var(--edge-pad));
-    padding-left: var(--edge-pad);
-  }
-}
-
 /* ------------------------------------------------------------------ reduced motion */
 
 @media (prefers-reduced-motion: reduce) {
   .layer,
-  .guidance {
+  .guidance,
+  .dial-ticks {
     transition-duration: 1ms;
     transition-delay: 0s;
   }

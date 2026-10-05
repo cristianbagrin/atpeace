@@ -247,6 +247,8 @@ describe('live youtube.com (logged out)', () => {
       try {
         await fn();
       } catch (err) {
+        const captcha = (await ff.driver.getCurrentUrl().catch(() => '')).includes('/sorry/');
+        if (captcha) return ctx.skip('Google served its captcha page (/sorry/); try again later');
         if (err?.code === 'YT_SORRY' || err?.code === 'YT_NOT_RENDERED') return ctx.skip(`${err.message}; try again later`);
         throw err;
       }
@@ -256,7 +258,7 @@ describe('live youtube.com (logged out)', () => {
   /** Live YouTube sometimes does not render a part of the page at all (seen: a load with no guide entries in the DOM for 10+ s): that is not a result about us. */
   async function expectRendered(check, what, timeout = 15_000) {
     const ok = await t.until(check, what, timeout).then(() => true, () => false);
-    if (!ok) throw Object.assign(new Error(`YouTube did not render ${what}`), { code: 'YT_NOT_RENDERED' });
+    if (!ok) throw Object.assign(new Error(`Live YouTube served this page without ${what} in the DOM (a page variant seen in Firefox; the same checks run on the offline snapshot)`), { code: 'YT_NOT_RENDERED' });
   }
 
   live('home: placeholder, guide entries tagged from entry.data in the page world, redirect by click with a clean history', async () => {

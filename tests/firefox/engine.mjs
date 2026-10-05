@@ -5,6 +5,7 @@ import { test, before, after } from 'node:test';
 import { By, Key } from 'selenium-webdriver';
 import { launchFirefox, UUID } from './_harness.mjs';
 import { SCENARIOS } from '../e2e/engine-scenarios.mjs';
+import { until } from '../helpers/wait.mjs';
 
 let ff;
 let driver;
@@ -31,8 +32,11 @@ const adapter = {
     await box.sendKeys(text, Key.ENTER);
   },
   async clickFirstResult() {
-    const link = await driver.findElement(By.css('ytd-video-renderer a#video-title'));
-    await link.click();
+    // The scenario starts from default settings, so nothing of ours hides results: no results means YouTube served none.
+    await until(async () => (await driver.findElements(By.css('ytd-video-renderer a#video-title'))).length > 0, { timeout: 20_000, retryErrors: true }).catch(() => {
+      throw Object.assign(new Error('Live YouTube served the search page without any video results'), { code: 'YT_NOT_RENDERED' });
+    });
+    await (await driver.findElement(By.css('ytd-video-renderer a#video-title'))).click();
   },
   async back() {
     await driver.navigate().back();
@@ -53,7 +57,9 @@ for (const scenario of SCENARIOS) {
       await new Promise((resolve) => setTimeout(resolve, 500));
       await scenario.run(adapter, t);
     } catch (err) {
-      if (err?.code === 'YT_SORRY') return t.skip(`${err.message}; try again later`);
+      // Google's captcha can arrive mid-scenario (after a click-through to a video), not only on the first load.
+      const captcha = err?.code === 'YT_SORRY' || (await driver.getCurrentUrl().catch(() => '')).includes('/sorry/');
+      if (captcha || err?.code === 'YT_NOT_RENDERED') return t.skip(`${captcha ? 'Google served its captcha page (/sorry/)' : err.message}; try again later`);
       throw err;
     }
   });

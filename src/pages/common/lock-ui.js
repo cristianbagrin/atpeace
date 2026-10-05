@@ -191,6 +191,13 @@
     const el = h('div', { class: ['lock-bar', compact && 'is-compact'], role: 'status', hidden: true }, text, button);
     let current = null;
 
+    // "Locked." leads with a small amber label; the sentence reads the same either way.
+    const setText = (message) => {
+      const lead = /^(Locked)(\..*)$/s.exec(message);
+      if (lead) text.replaceChildren(h('span', { class: 'lock-label' }, lead[1]), lead[2]);
+      else text.textContent = message;
+    };
+
     const render = (message) => {
       if (!current || current.mode === 'none') {
         el.hidden = true;
@@ -199,10 +206,10 @@
       el.hidden = false;
       el.dataset.state = current.locked ? 'locked' : 'open';
       if (current.locked) {
-        text.textContent = message ?? 'Locked. Making YouTube quieter works as usual; showing anything again asks you to unlock first.';
+        setText(message ?? 'Locked. Making YouTube quieter works as usual; showing anything again asks you to unlock first.');
         button.textContent = 'Unlock…';
       } else {
-        text.textContent = `Unlocked until ${ui.formatTimeOfDay(current.unlockedUntil)}.`;
+        setText(`Unlocked until ${ui.formatTimeOfDay(current.unlockedUntil)}.`);
         button.textContent = 'Lock now';
       }
     };

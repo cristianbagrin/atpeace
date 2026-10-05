@@ -1,76 +1,117 @@
-/* Design tokens (PLAN §9): "ink on linen". Light is the default; dark is chosen with
-   <html data-theme="dark"> or, for "Match my system", data-theme="system" + the media query.
-   data-theme is set synchronously by theme-boot.js and kept in sync by AP.ui.applyTheme().
+/* Design tokens: "Dial". Two worlds.
+     Tools (popup, options, welcome, the picker panel, the home placeholder): a cool grey ground with
+     white grouped panels. Light is the default; dark is <html data-theme="dark"> or, for "Match my
+     system", data-theme="system" + the media query. theme-boot.js sets data-theme before first paint
+     and AP.ui.applyTheme() keeps it in sync.
+     Indigo moments (pause page, blocked page, session-expiry overlay): full-screen takeovers in deep
+     indigo, in BOTH themes. Their tokens (--ix-*) never change with the theme.
 
    Contrast, measured with WCAG 2.x (tests/unit/contrast.test.mjs keeps these honest):
-     --ink    on --paper   13.3 : 1 light, 13.9 : 1 dark   (body text, needs 7)
-     --ink-2  on --paper    5.9 : 1 light,  7.3 : 1 dark   (secondary text, needs 4.5)
-     --edge   on --paper    3.7 : 1 light,  4.0 : 1 dark   (borders of controls, needs 3)
-     --rule is decoration only (row hairlines), about 1.5 : 1 by design, never the only cue. */
+     --text     on --ground / --panel   15.7 / 17.8 : 1 light, 15.4 / 13.8 : 1 dark  (body text, needs 7)
+     --text-2   on --ground / --panel    5.5 /  6.2 : 1 light,  7.5 /  6.7 : 1 dark  (secondary text, needs 4.5)
+     --act      on --panel               8.3 : 1 light,         6.0 : 1 dark         (links, selected nav)
+     --on-act   on --act                 8.3 : 1 light,         6.7 : 1 dark         (primary button text)
+     --field-line and --switch-off on --panel   3.5 : 1 light,  3.4 : 1 dark         (control boundaries, need 3)
+     --panel-line and --row-line are decoration only (panel edges, row hairlines), never the only cue. */
 
 :root {
   color-scheme: light;
 
-  --paper: #F3EEE3;   /* background */
-  --paper-2: #EAE2D1; /* raised rows, inputs */
-  --ink: #1B2050;     /* text */
-  --ink-2: #5E5A55;   /* secondary text */
-  --rule: #B9C4D3;    /* hairlines between rows (decorative) */
-  --edge: #757A8A;    /* borders of interactive controls */
-  --clay: #8E7266;    /* muted accent, focus rings (PLAN: #9A8074, darkened to keep 3:1 on --paper-2) */
-  --olive: #6F6429;   /* positive / "saved" text (PLAN: #7C7034, darkened to reach 4.5:1) */
-  --seal: #E5600F;    /* the one loud accent */
-  --danger: #A93A28;  /* PLAN: #B3412F, darkened to reach 4.5:1 on --paper-2 */
-  --veil: rgb(27 32 80 / 0.38); /* behind dialogs */
+  --ground: #EEF1F6;      /* page background */
+  --panel: #FFFFFF;       /* grouped panels, inputs */
+  --panel-line: #DCE1EA;  /* panel border (decorative) */
+  --row-line: #E8EBF2;    /* separators between rows inside a panel (decorative) */
+  --field-line: #8088A0;  /* border of a text field or select: the only cue that it is one */
+  --text: #10123F;
+  --text-2: #5B6078;
+  --act: #0D3CCC;         /* cobalt: switches on, primary buttons, links, selected nav */
+  --on-act: #FFFFFF;      /* text on --act */
+  --act-soft: #DDE5FA;    /* selected nav */
+  --switch-off: #8088A0;
+  --mint: #0CE3A1;        /* the signal dot, nothing else */
+  --mint-text: #067A57;   /* positive numbers and words */
+  --amber: #EC921F;       /* time, focus */
+  --amber-text: #9A5800;
+  --danger: #B4232C;
+  --veil: rgb(16 18 63 / 0.4); /* behind dialogs */
 
-  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Charter, Georgia, serif;
-  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
-  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-ui: system-ui, -apple-system, "Segoe UI", "Noto Sans", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; /* code only: selectors, custom CSS, JSON */
 
-  /* 7 px rhythm */
-  --u1: 7px;
-  --u2: 14px;
-  --u3: 21px;
-  --u4: 28px;
-  --u5: 42px;
-  --u6: 56px;
-  --radius: 3px;
+  --r-panel: 12px;
+  --r-field: 8px;
+  --r-button: 8px;
+  --r-pill: 14px;
 
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
-  --t-quick: 200ms;
+  --t-quick: 160ms;
   --t-slow: 400ms;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --paper: #14162B;
-  --paper-2: #1C1F3A;
-  --ink: #E9E3D6;
-  --ink-2: #A8A3B8;
-  --rule: #33385C;
-  --edge: #6F74A0;
-  --clay: #B79E91;
-  --olive: #C2B46A;
-  --seal: #F47A2E;
-  --danger: #E07A68;
-  --veil: rgb(4 5 14 / 0.62);
+  --ground: #0E1033;
+  --panel: #171A45;
+  --panel-line: #262A5C;
+  --row-line: #20245A;
+  --field-line: #646DAA;
+  --text: #E8EAF6;
+  --text-2: #9EA3C7;
+  --act: #7C95FF;
+  --on-act: #0E1033;
+  --act-soft: #252B6B;
+  --switch-off: #646DAA;
+  --mint: #3FF1C0;
+  --mint-text: #3FF1C0;
+  --amber: #F2A54A;
+  --amber-text: #F2A54A;
+  --danger: #FF6B73;
+  --veil: rgb(4 5 22 / 0.6);
 }
 
 @media (prefers-color-scheme: dark) {
   :root[data-theme="system"] {
     color-scheme: dark;
 
-    --paper: #14162B;
-    --paper-2: #1C1F3A;
-    --ink: #E9E3D6;
-    --ink-2: #A8A3B8;
-    --rule: #33385C;
-    --edge: #6F74A0;
-    --clay: #B79E91;
-    --olive: #C2B46A;
-    --seal: #F47A2E;
-    --danger: #E07A68;
-    --veil: rgb(4 5 14 / 0.62);
+    --ground: #0E1033;
+    --panel: #171A45;
+    --panel-line: #262A5C;
+    --row-line: #20245A;
+    --field-line: #646DAA;
+    --text: #E8EAF6;
+    --text-2: #9EA3C7;
+    --act: #7C95FF;
+    --on-act: #0E1033;
+    --act-soft: #252B6B;
+    --switch-off: #646DAA;
+    --mint: #3FF1C0;
+    --mint-text: #3FF1C0;
+    --amber: #F2A54A;
+    --amber-text: #F2A54A;
+    --danger: #FF6B73;
+    --veil: rgb(4 5 22 / 0.6);
   }
+}
+
+/* The indigo world. Fixed: the theme setting never touches it.
+     --ix-text     on --ix-ground / --ix-raised   13.7 / 11.6 : 1
+     --ix-text-2   on --ix-ground / --ix-raised    9.5 /  8.1 : 1
+     --ix-quiet    on --ix-ground                  5.1 : 1 (kicker, address, hints; never on --ix-raised)
+     --ix-mint     on --ix-ground                 10.4 : 1, --ix-amber on --ix-ground 6.2 : 1
+     --ix-on-mint  on --ix-mint                   12.9 : 1 (primary button text)
+     --ix-field-line on --ix-raised                3.3 : 1 (the intention field's boundary)
+     --ix-border and --ix-line are for outline buttons (their text names them) and hairlines. */
+html {
+  --ix-ground: #16186F;
+  --ix-raised: #22257F;
+  --ix-border: #4A4EA8;
+  --ix-field-line: #7479CC;
+  --ix-line: #2E3290;
+  --ix-text: #F2F3FF;
+  --ix-text-2: #C9CBF2;
+  --ix-quiet: #8C90D9;
+  --ix-mint: #3FF1C0;
+  --ix-amber: #EC921F;
+  --ix-on-mint: #0B0C3A;
 }

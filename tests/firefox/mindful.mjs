@@ -196,7 +196,7 @@ test('pause: Continue starts the session and the real site loads (a second navig
 });
 
 test('expiry: the session ends → the video stops and the overlay covers the page', async (t) => {
-  if (captcha) return t.skip('no live YouTube tab');
+  if (captcha) return t.skip('no live YouTube tab: Google served its captcha page (/sorry/) to the Continue step above');
   await driver.switchTo().window(youtubeHandle);
   const from = await mark();
   const { state } = await storage('state');
@@ -214,7 +214,7 @@ test('expiry: the session ends → the video stops and the overlay covers the pa
 });
 
 test('expiry: Escape does nothing; a block that starts now beats the overlay and sends the tab to the blocked page', async (t) => {
-  if (captcha) return t.skip('no live YouTube tab');
+  if (captcha) return t.skip('no live YouTube tab: Google served its captcha page (/sorry/) to the Continue step above');
   await driver.switchTo().window(youtubeHandle);
   const watchUrl = await driver.getCurrentUrl();
   await driver.actions().sendKeys(Key.ESCAPE).perform();

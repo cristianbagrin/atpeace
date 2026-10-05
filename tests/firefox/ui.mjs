@@ -104,7 +104,7 @@ test('options: a toggle, a select, a number and a word list save to storage; a b
     select.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await until(async () => (await settings())['general.theme'] === 'dark' && (await run(() => document.documentElement.dataset.theme)) === 'dark', { what: 'dark theme', retryErrors: true });
-  assert.equal(await run(() => getComputedStyle(document.body).backgroundColor), 'rgb(20, 22, 43)');
+  assert.equal(await run(() => getComputedStyle(document.body).backgroundColor), 'rgb(14, 16, 51)');
   await shot('options-top-dark');
 
   // number: out of range is explained and not stored; a good number is stored

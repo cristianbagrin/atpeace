@@ -1,6 +1,6 @@
 // Welcome page (Phase 4b): opened once by the background after the first install. Three short
 // steps on one calm page, no carousel:
-//   01  how much to see      the four built-in presets as ledger rows (Gentle is already applied)
+//   01  how much to see      the four built-in presets as rows in a panel (Gentle is already applied)
 //   02  a breath before YouTube   Mindful Pause on/off, the length of the breath, the session length
 //   03  keep it in reach     pinning the extension, the keyboard shortcuts, the host-access notice
 // Choices are saved the moment they are made (through the settings lock, like every page); Finish
@@ -209,7 +209,7 @@ function renderFinish(done) {
           'button',
           {
             type: 'button',
-            class: 'btn btn-quiet',
+            class: 'btn big',
             id: 'open-settings',
             onClick: () => {
               AP.api.runtime.openOptionsPage();
@@ -242,6 +242,7 @@ function renderFinish(done) {
 // ---------------------------------------------------------------------------------------------
 
 async function init() {
+  $('dial').prepend(AP.ui.dial().svg);
   const [values, customPresets] = await Promise.all([readValues(), AP.settings.listCustomPresets()]);
   state.values = values;
   state.customPresets = customPresets;

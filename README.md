@@ -130,7 +130,17 @@ The PNG icons are generated from `icons/icon.svg` with `node tools/make-icons.mj
   `node tools/yt-probe.mjs <url> --dom tests/e2e/artifacts/research/<name>.dom.json`. Without them the
   tests that need them are skipped, with a message saying so.
 - **Live tests** (a few specs open the real site) are paced and **skip**, never fail, when Google serves
-  the captcha or the page has no guide.
+  the captcha (`/sorry/`, or an HTTP 429) or serves a page without the part the test needs (no sidebar
+  entries, no search results). The skip message says which. A failure on a page that rendered normally is
+  still a failure.
+- **Also in the Chromium run:** `tests/e2e/a11y.spec.mjs` (axe-core on every extension page, plus a keyboard
+  walk) and `tests/e2e/perf.spec.mjs` (startup, CPU in our scripts while a page grows, leaks across 20
+  navigations; numbers in [docs/PERFORMANCE.md](docs/PERFORMANCE.md)). In real Firefox,
+  `tests/firefox/catalog.mjs` turns on one representative setting per section of the catalog on page
+  snapshots and checks what disappears and what must stay.
+- **Writing a wait.** Never `page.waitForFunction(async () => …)`: Playwright does not await a promise
+  returned by that predicate, so the wait passes at once. Poll from Node instead with `until()` or
+  `pageUntil()` from `tests/helpers/wait.mjs`, which await every check.
 
 ### Project layout
 
@@ -148,7 +158,7 @@ src/
   background/            event page: message router, sessions, rules (DNR), stats, guards
   pages/                 popup, options, pause, blocked, welcome, and common/ (tokens, base, components)
 icons/                   icon.svg and generated PNGs
-tests/                   unit/, e2e/ (Chromium), firefox/ (real Firefox), helpers/
+tests/                   unit/, e2e/ (Chromium), firefox/ (real Firefox), helpers/ (wait.mjs, instrument.js)
 tools/                   yt-probe.mjs, check-selectors.mjs, make-icons.mjs, verify-package.mjs
 docs/                    PLAN.md (design), youtube-dom.md (selector research), selector-report.md,
                          VERIFY.md, PERFORMANCE.md, IDEAS.md, reviews/
@@ -173,7 +183,7 @@ validation and the CSS all come from that declaration.
 
    ```js
    {
-     id: 'yt.comments.hideReplies2',     // stable forever; never rename after a release
+     id: 'yt.comments.hideExample',      // stable forever; never rename after a release
      group: 'Details',
      label: 'Hide something',              // short, plain
      description: 'One sentence about what disappears.',
@@ -181,7 +191,7 @@ validation and the CSS all come from that declaration.
      default: false,
      tags: ['comments'],                   // bulk chips: shorts, recommendations, comments, ai, metrics, ads, clutter
      page: 'watch',                        // optional: only on this page type
-     hide: ['ytd-comments #something'],    // one selector per entry; set to display:none while on
+     hide: ['ytd-comments #example'],      // one selector per entry; set to display:none while on
      since: '0.2.0',
    }
    ```
@@ -192,9 +202,9 @@ validation and the CSS all come from that declaration.
    no visible text, anchor any `:has()`, hide the container and not its contents.
 3. Run `npm test`. `validateRegistry()` fails on duplicate ids, unknown tags or pages, bad defaults and
    selector lists with top-level commas, and the preset check lists any preset that points at an unknown id.
-4. If it is a behaviour, add a file in `src/sites/youtube/features/` and register it in the **manifest's
-   content-script list**, `tests/unit/_load.mjs`, and wherever else the unit test in
-   `tests/unit/manifest.test.mjs` says (it fails when the lists disagree).
+4. If it is a behaviour, add a file in `src/sites/youtube/features/` and list it in the `content_scripts`
+   array of `manifest.json` (before `src/sites/youtube/main.js`). `npm test` fails when the manifest, the
+   Chrome test service worker and the pages' script tags disagree (`tests/unit/manifest.test.mjs`).
 5. Add it to a preset (`src/shared/presets.js`) only when it belongs there.
 
 ### Update a broken selector
