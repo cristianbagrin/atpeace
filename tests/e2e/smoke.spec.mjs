@@ -87,7 +87,8 @@ test('R1: DNR regexSubstitution redirect to an extension page keeps the full ori
   }
 
   const left = await evalInExtension(() => chrome.declarativeNetRequest.getDynamicRules());
-  assert.equal(left.length, 0, 'probe rule was not removed');
+  // The extension's own rules (the Gentle preset sends /shorts/ to the normal player) stay; only the probe must be gone.
+  assert.ok(!left.some((r) => r.id === 999), 'probe rule was not removed');
 });
 
 test('keyboard commands are registered', async (t) => {

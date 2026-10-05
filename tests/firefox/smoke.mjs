@@ -336,7 +336,8 @@ test('R1: DNR regexSubstitution redirect to a moz-extension page keeps the full 
   const left = await driver.executeAsyncScript((done) => {
     browser.declarativeNetRequest.getDynamicRules().then(done, (e) => done({ __error: String(e) }));
   });
-  assert.deepEqual(left, [], 'probe rule was not removed');
+  // The extension's own rules (the Gentle preset sends /shorts/ to the normal player) stay; only the probe must be gone.
+  assert.ok(Array.isArray(left) && !left.some((r) => r.id === 999), 'probe rule was not removed');
 });
 
 test('keyboard commands are registered with their suggested shortcuts', async () => {

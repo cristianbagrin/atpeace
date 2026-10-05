@@ -421,6 +421,60 @@ test('your week: "Clear usage history" asks, then forgets every day (and asks fo
   await page.close();
 });
 
+test('hidden elements: adding a rule is a tightening (allowed while locked); removing one is refused and the rule stays', async () => {
+  const rule = { id: 'r1', selector: 'ytd-masthead #logo', page: null, note: 'The logo', createdAt: 1 };
+  const page = await openOptions({ seed: { settings: { 'advanced.lock': { mode: 'friction', waitSeconds: 10 }, 'advanced.customRules': [rule] } }, hash: '#setting=advanced.customRules' });
+  const rules = row(page, 'advanced.customRules');
+  await rules.locator('.rule').waitFor();
+  await rules.getByRole('button', { name: /^Remove/ }).click();
+  await row(page, 'advanced.customRules').locator('.row-lock').waitFor();
+  assert.equal(await rules.locator('.rule').count(), 1, 'the rule is still listed');
+  assert.deepEqual((await stored())['advanced.customRules'].map((r) => r.id), ['r1']);
+  // adding (what the picker does, from the page) is a tightening: the guard lets it through
+  const added = await evalInExtension(async (extra) => {
+    const AP = globalThis.AtPeace;
+    const current = (await chrome.storage.local.get('settings')).settings['advanced.customRules'];
+    return AP.lock.save({ 'advanced.customRules': [...current, extra] });
+  }, { id: 'r2', selector: 'ytd-masthead #voice-search-button', page: null, note: '', createdAt: 2 });
+  assert.equal(added.ok, true);
+  assert.deepEqual((await stored())['advanced.customRules'].map((r) => r.id), ['r1', 'r2']);
+  assert.deepEqual(page.errors, []);
+  await page.close();
+});
+
+test('no section, popup or welcome page renders a bare "true", "false", "null" or "undefined" as text', async () => {
+  const today = new Date();
+  const dayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const seed = {
+    settings: { 'advanced.lock': { mode: 'friction', waitSeconds: 10 }, 'yt.general.hideAds': true, 'advanced.customRules': [{ id: 'r1', selector: '#a', page: null, note: 'x', createdAt: 1 }] },
+    stats: { [dayKey]: { youtube: { activeSec: 300, opens: 2, turnedBack: 1, continued: 1, blockedHits: 0 } } },
+  };
+  const bare = (page, root) =>
+    page.evaluate((selector) => {
+      const walker = document.createTreeWalker(document.querySelector(selector), NodeFilter.SHOW_TEXT);
+      const found = [];
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (/^(true|false|null|undefined|NaN|\[object Object\])$/.test(node.textContent.trim())) found.push(`${node.parentElement.tagName}.${node.parentElement.className}: "${node.textContent}"`);
+      }
+      return found;
+    }, root);
+
+  const options = await openOptions({ seed });
+  for (const entry of await options.locator('#sections > section').all()) {
+    const id = await entry.getAttribute('data-section');
+    assert.deepEqual(await bare(options, `#sections > section[data-section="${id}"]`), [], `section ${id}`);
+  }
+  assert.deepEqual(await bare(options, 'body'), [], 'options page');
+  await options.close();
+  const popup = await openPopup({ seed });
+  assert.deepEqual(await bare(popup, 'body'), [], 'popup');
+  await popup.close();
+  const welcome = await openPage('src/pages/welcome/welcome.html', { seed });
+  await welcome.waitForSelector('body[data-ready="true"]');
+  assert.deepEqual(await bare(welcome, 'body'), [], 'welcome');
+  await welcome.close();
+});
+
 // ---------------------------------------------------------------------------------------------
 // Dark screenshots
 // ---------------------------------------------------------------------------------------------
