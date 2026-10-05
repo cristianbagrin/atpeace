@@ -54,6 +54,20 @@ async function openPopup({ seed, stubs = {}, init, clock = false } = {}) {
   return page;
 }
 
+/**
+ * Clicks a control whose handler closes the page (the popup's footer buttons call window.close()). Playwright's
+ * click() still has bookkeeping to do after the click lands, and when the page is already gone it rejects with
+ * "Target page, context or browser has been closed": the very thing the click was meant to cause, and a race
+ * that only shows when the machine is busy. Anything else still fails the test.
+ */
+async function clickThatClosesThePage(locator) {
+  try {
+    await locator.click();
+  } catch (err) {
+    if (!/(target|page|context|browser).*closed/i.test(String(err?.message))) throw err;
+  }
+}
+
 const settings = async () => (await getStorage('settings')).settings ?? {};
 const quickRow = (page, id) => page.locator(`.row[data-id="${id}"]`);
 const registryQuick = (page) =>
@@ -402,15 +416,12 @@ test('footer: "All settings" opens the options page; "Hide an element" asks the 
   });
   const logged = page.waitForEvent('console', { predicate: (m) => m.text() === 'test:options-opened', timeout: 5000 });
   const popupClosed = page.waitForEvent('close', { timeout: 5000 }); // the popup gets out of the way afterwards
-  await page.getByRole('button', { name: 'All settings' }).click();
-  await logged;
-  await popupClosed;
+  await Promise.all([logged, popupClosed, clickThatClosesThePage(page.getByRole('button', { name: 'All settings' }))]);
 
   // With a picker that says yes, the popup gets out of the way.
   const picking = await openPopup({ stubs: { START_PICKER: { ok: true } } });
   const closed = picking.waitForEvent('close', { timeout: 5000 });
-  await picking.getByRole('button', { name: 'Hide an element' }).click();
-  await closed;
+  await Promise.all([closed, clickThatClosesThePage(picking.getByRole('button', { name: 'Hide an element' }))]);
 
   // Without a YouTube tab to pick in, it says so instead of silently doing nothing.
   const nothing = await openPopup({ stubs: { START_PICKER: { ok: false, error: 'no-picker' } } });
