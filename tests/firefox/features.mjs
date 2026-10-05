@@ -16,7 +16,7 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { By, Key } from 'selenium-webdriver';
-import { launchFirefox, extUrl, ROOT } from './_harness.mjs';
+import { launchFirefox, extUrl, ROOT, NAVIGATION_NOISE } from './_harness.mjs';
 import { fixturesAvailable, startFixtureServer } from '../e2e/_yt-fixture.mjs';
 import { until } from '../helpers/wait.mjs';
 
@@ -75,7 +75,7 @@ function tools(ff) {
     async ourErrors() {
       // Firefox logs "Promise resolved after context unloaded" for an async hook (here guard-core.js's storage read)
       // whose page navigates away mid-flight: harmless, and not ours to count (see the note in tests/firefox/engine.mjs).
-      const benign = (e) => /Promise resolved after context unloaded/.test(e);
+      const benign = (e) => NAVIGATION_NOISE.test(e);
       return [...(await ff.ourScriptErrors()), ...ff.pageErrorsSince(0).filter((e) => e.includes('moz-extension://') || e.includes('[At Peace]'))].filter((e) => !benign(e));
     },
   };

@@ -24,7 +24,7 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { By } from 'selenium-webdriver';
-import { launchFirefox, ROOT } from './_harness.mjs';
+import { launchFirefox, ROOT, NAVIGATION_NOISE } from './_harness.mjs';
 import { fixturesAvailable, startFixtureServer } from '../e2e/_yt-fixture.mjs';
 import { until, sleep } from '../helpers/wait.mjs';
 
@@ -478,7 +478,7 @@ test('Filters: a channel filter hides that channel\'s results in the search and 
 
 test('No errors from our code appeared in Firefox while doing all of the above', { skip: skipUnless('home') }, async () => {
   // Firefox logs "Promise resolved after context unloaded" when a page navigates away while an async hook is still reading storage: harmless.
-  const benign = (e) => /Promise resolved after context unloaded/.test(e);
+  const benign = (e) => NAVIGATION_NOISE.test(e);
   const errors = [...(await ff.ourScriptErrors()), ...ff.pageErrorsSince(0).filter((e) => e.includes('moz-extension://') || e.includes('[At Peace]'))].filter((e) => !benign(e));
   assert.deepEqual(errors, []);
 });

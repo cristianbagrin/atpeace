@@ -34,6 +34,13 @@ export const extUrl = (path) => `moz-extension://${UUID}/${path}`;
 export { firefox };
 
 /**
+ * What Firefox logs when a page navigates away (or goes inactive) while an extension promise, typically one of our
+ * storage reads, is still in flight. It is the browser's own note about a page that no longer exists, not an error
+ * of ours, so specs that count "errors from our code" ignore it.
+ */
+export const NAVIGATION_NOISE = /Promise (resolved after context unloaded|resolved while context is inactive|rejected after context unloaded)/;
+
+/**
  * @param {{ prefs?: Record<string, string|number|boolean> }} [config] extra Firefox preferences, applied last
  * @returns {Promise<{
  *   driver: import('selenium-webdriver').WebDriver,
