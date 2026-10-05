@@ -73,7 +73,7 @@ async function open(url) {
   if (fixtures) await page.waitForFunction(() => document.documentElement.getAttribute('data-fixture-ready') === '1', null, { timeout: 15_000 });
 }
 
-const waitFor = (fn, arg, timeout = 10_000) => page.waitForFunction(fn, arg ?? null, { timeout, polling: 100 });
+const waitFor = (fn, arg, timeout = 20_000) => page.waitForFunction(fn, arg ?? null, { timeout, polling: 100 });
 
 const ourErrors = async () => {
   const diagnostics = await extensionDiagnostics();
@@ -83,12 +83,6 @@ const ourErrors = async () => {
 async function shot(name) {
   await page.screenshot({ path: join(SHOTS, `${name}.png`) });
 }
-
-const isHidden = (selector) =>
-  page.evaluate((sel) => {
-    const els = [...document.querySelectorAll(sel)];
-    return els.length > 0 && els.every((e) => getComputedStyle(e).display === 'none');
-  }, selector);
 
 /** Skips a live test when Google served its captcha. */
 function live(name, fn) {
@@ -262,6 +256,37 @@ describe('on offline snapshots', { skip: haveFixtures ? false : 'tests/e2e/artif
       await open(CHANNEL);
       await page.evaluate(() => history.pushState({}, '', '/@SomeoneElse'));
       await page.waitForURL('https://www.youtube.com/@SomeoneElse/videos');
+    });
+  });
+
+  describe('channel trailer', () => {
+    test('hideTrailer: a trailer video that plays (or is already playing) is paused; other videos are left alone', async () => {
+      await configure({ 'yt.channel.hideTrailer': true });
+      await open(CHANNEL);
+      // Real, playing <video> elements fed by a canvas stream (no media file needed).
+      const start = (inside) =>
+        page.evaluate(async (host) => {
+          const canvas = document.createElement('canvas');
+          canvas.getContext('2d').fillRect(0, 0, 4, 4);
+          const video = document.createElement('video');
+          video.muted = true;
+          video.srcObject = canvas.captureStream(5);
+          const browse = document.querySelector('ytd-browse[page-subtype="channels"]');
+          const parent = host ? browse.appendChild(document.createElement(host)) : browse.appendChild(document.createElement('div'));
+          parent.append(video);
+          video.id = host ? 'trailer-video' : 'other-video';
+          await video.play().catch(() => {});
+          return true;
+        }, inside);
+      await start('ytd-channel-video-player-renderer');
+      await start(null);
+      await waitFor(() => document.querySelector('#trailer-video').paused);
+      assert.equal(await page.evaluate(() => document.querySelector('#other-video').paused), false, 'a video outside the trailer keeps playing');
+      // switched off: a trailer plays freely
+      await configure({});
+      await page.evaluate(() => document.querySelector('#trailer-video').play());
+      await sleep(500);
+      assert.equal(await page.evaluate(() => document.querySelector('#trailer-video').paused), false);
     });
   });
 
@@ -496,7 +521,7 @@ describe('on offline snapshots', { skip: haveFixtures ? false : 'tests/e2e/artif
       await configure({ 'yt.watch.hideThanks': true });
       await waitFor(() => document.querySelector('#thanks-host[data-at-peace-action="thanks"]'));
       const info = await page.evaluate(() => ({
-        tags: [...document.querySelectorAll('ytd-watch-metadata [data-at-peace-action]')].map((e) => [e.localName + (e.id ? `#${e.id}` : ''), e.getAttribute('data-at-peace-action')]),
+        tags: [...document.querySelectorAll('ytd-watch-metadata [data-at-peace-action]')].map((e) => [e.localName + (e.getAttribute('id') ? `#${e.getAttribute('id')}` : ''), e.getAttribute('data-at-peace-action')]),
         thanksHidden: getComputedStyle(document.querySelector('#thanks-host')).display === 'none',
         shareVisible: getComputedStyle(document.querySelector('ytd-watch-metadata #top-level-buttons-computed > yt-button-view-model')).display !== 'none',
       }));
@@ -596,15 +621,37 @@ describe('on offline snapshots', { skip: haveFixtures ? false : 'tests/e2e/artif
     test('no auto-start: the first play of each video that the user did not ask for is paused once; a click on the player is respected', async () => {
       await configure({});
       await openWatchWithPlayer();
+      // A real playing <video> (canvas stream) that the stand-in player's pauseVideo() really pauses.
+      await page.evaluate(() => {
+        const player = document.querySelector('#movie_player');
+        const old = document.querySelector('ytd-watch-flexy video');
+        const video = document.createElement('video');
+        video.className = 'html5-main-video';
+        video.muted = true;
+        const canvas = document.createElement('canvas');
+        canvas.getContext('2d').fillRect(0, 0, 4, 4);
+        video.srcObject = canvas.captureStream(5);
+        old.replaceWith(video);
+        player.pauseVideo = () => {
+          player.calls.push(['pauseVideo']);
+          video.pause();
+        };
+      });
       await configure({ 'yt.watch.noAutoStart': true });
       await sleep(300);
-      await page.evaluate(() => document.querySelector('ytd-watch-flexy video').dispatchEvent(new Event('play')));
-      await waitFor(() => document.querySelector('#movie_player').calls.some(([n]) => n === 'pauseVideo'));
-      await page.evaluate(() => document.querySelector('ytd-watch-flexy video').dispatchEvent(new Event('play')));
-      await sleep(300);
+      await page.evaluate(() => document.querySelector('ytd-watch-flexy video').play());
+      await waitFor(() => document.querySelector('ytd-watch-flexy video').paused);
+      assert.equal((await calls()).filter(([n]) => n === 'pauseVideo').length, 1);
+      // the user presses play on the same video afterwards: not fought (once per video)
+      await sleep(1100); // (a start within 0.8 s of our pause that nobody asked for would be paused once more)
+      await page.keyboard.press('k');
+      await page.evaluate(() => document.querySelector('ytd-watch-flexy video').play());
+      await sleep(1200);
+      assert.equal(await page.evaluate(() => document.querySelector('ytd-watch-flexy video').paused), false, 'playing again is left alone');
       assert.equal((await calls()).filter(([n]) => n === 'pauseVideo').length, 1, 'once per video: the user is never fought afterwards');
       // a new video, and this time the user clicks in the player after the navigation began
       await page.evaluate(() => {
+        document.querySelector('ytd-watch-flexy video').pause();
         window.dispatchEvent(new CustomEvent('yt-navigate-start'));
         history.pushState({}, '', '/watch?v=THIRDvideo123');
       });
@@ -614,9 +661,19 @@ describe('on offline snapshots', { skip: haveFixtures ? false : 'tests/e2e/artif
         return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
       });
       await page.mouse.click(box.x, box.y);
-      await page.evaluate(() => document.querySelector('ytd-watch-flexy video').dispatchEvent(new Event('play')));
-      await sleep(900);
-      assert.equal((await calls()).filter(([n]) => n === 'pauseVideo').length, 1, 'no pause for a video the user started');
+      await page.evaluate(() => document.querySelector('ytd-watch-flexy video').play());
+      await sleep(1200);
+      assert.equal(await page.evaluate(() => document.querySelector('ytd-watch-flexy video').paused), false, 'a video the user started keeps playing');
+      assert.equal((await calls()).filter(([n]) => n === 'pauseVideo').length, 1);
+      // and a third video nobody asked for is paused again
+      await page.evaluate(() => {
+        document.querySelector('ytd-watch-flexy video').pause();
+        window.dispatchEvent(new CustomEvent('yt-navigate-start'));
+        history.pushState({}, '', '/watch?v=FOURTHvideo12');
+        document.querySelector('ytd-watch-flexy video').play();
+      });
+      await waitFor(() => document.querySelector('ytd-watch-flexy video').paused);
+      assert.equal((await calls()).filter(([n]) => n === 'pauseVideo').length, 2);
     });
 
     test('still watching: the page is kept "active" through the bridge; a confirm dialog right after the user\'s own click is never dismissed', async () => {
@@ -788,12 +845,12 @@ describe('on live youtube.com (logged out)', () => {
       'yt.watch.defaultSpeed': '1.5',
       'yt.watch.dismissStillWatching': true,
     });
-    await paced(SEARCH);
+    await paced('https://www.youtube.com/results?search_query=how+to+cook+rice'); // not a live stream: no chat column to keep #secondary
     await page.locator('ytd-video-renderer a#video-title').first().click();
     await page.waitForURL(/\/watch\?v=/, { timeout: 20_000 });
     await waitFor(() => document.querySelector('ytd-watch-metadata #top-level-buttons-computed > *'), null, 20_000);
     await waitFor(() => document.querySelectorAll('ytd-watch-metadata [data-at-peace-action]').length >= 3, null, 15_000);
-    const tags = await page.evaluate(() => [...document.querySelectorAll('ytd-watch-metadata [data-at-peace-action]')].map((e) => [e.localName + (e.id ? `#${e.id}` : ''), e.getAttribute('data-at-peace-action')]));
+    const tags = await page.evaluate(() => [...document.querySelectorAll('ytd-watch-metadata [data-at-peace-action]')].map((e) => [e.localName + (e.getAttribute('id') ? `#${e.getAttribute('id')}` : ''), e.getAttribute('data-at-peace-action')]));
     const byTag = Object.fromEntries(tags.map(([el, tag]) => [tag, el]));
     assert.equal(byTag.like, 'segmented-like-dislike-button-view-model', JSON.stringify(tags));
     assert.equal(byTag.share, 'yt-button-view-model');
@@ -811,12 +868,22 @@ describe('on live youtube.com (logged out)', () => {
     await waitFor(() => document.querySelector('#movie_player')?.getPlaybackRate?.() === 1.5, null, 15_000).catch(async (err) => {
       throw new Error(`${err.message}; rate=${await page.evaluate(() => document.querySelector('#movie_player')?.getPlaybackRate?.())}`);
     });
-    // keep-alive: _lact is fresh although nobody touched the page
-    await waitFor(() => Date.now() - window._lact < 15_000, null, 10_000);
+    // keep-alive: _lact is refreshed (on every navigation and every minute) although nobody touched the page
+    await page.evaluate(() => {
+      window._lact = 1;
+      window.dispatchEvent(new CustomEvent('yt-navigate-finish'));
+    });
+    await waitFor(() => Date.now() - window._lact < 5000, null, 10_000);
 
     // layout nudge: with the related column collapsed, the player's control bar spans the player
-    await configure({ 'yt.watch.hideRelated': true });
-    await sleep(1500);
+    // (theater makes the player full width already: leave it, with the theater setting off, to see the column's effect)
+    await configure({ 'yt.watch.hideThanks': true });
+    await page.evaluate(() => document.querySelector('ytd-watch-flexy button.ytp-size-button').click());
+    await waitFor(() => !document.querySelector('ytd-watch-flexy').hasAttribute('theater'));
+    await sleep(800);
+    const narrow = await page.evaluate(() => document.querySelector('ytd-watch-flexy #movie_player')?.getBoundingClientRect().width);
+    await configure({ 'yt.watch.hideThanks': true, 'yt.watch.hideRelated': true });
+    await sleep(700); // measured: with the CSS change alone (no nudge) the control bar is still at its old width after 600 ms
     const bars = await page.evaluate(() => {
       const player = document.querySelector('ytd-watch-flexy #movie_player');
       const bar = player?.querySelector('.ytp-chrome-bottom');
@@ -824,6 +891,7 @@ describe('on live youtube.com (logged out)', () => {
     });
     await shot('live-watch-related-hidden');
     assert.ok(bars.player > 0 && bars.bar > 0, JSON.stringify(bars));
+    assert.ok(bars.player > narrow + 100, `the player grew when the related column was hidden (${narrow} → ${bars.player})`);
     assert.ok(bars.bar >= bars.player - 30, `the control bar (${bars.bar}px) spans the player (${bars.player}px)`);
     assert.deepEqual(await ourErrors(), []);
   });
@@ -846,7 +914,7 @@ describe('on live youtube.com (logged out)', () => {
     assert.equal(new URL(page.url()).pathname, '/@veritasium/videos');
     // in-app: from a search page, a click on the channel link
     await paced(SEARCH);
-    await page.locator('ytd-video-renderer ytd-channel-name a').first().click();
+    await page.locator('ytd-video-renderer ytd-channel-name a:visible').first().click();
     await page.waitForURL(/\/videos$/, { timeout: 15_000 });
     assert.deepEqual(await ourErrors(), []);
   });

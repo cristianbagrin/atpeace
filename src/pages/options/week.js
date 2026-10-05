@@ -94,16 +94,15 @@ export function buildWeek() {
       AP.warn('could not read usage numbers', err);
     }
     const week = AP.ui.weekStats(stats);
+    // (Node#replaceChildren turns a `false` argument into the text "false", unlike h(): build the list first.)
     body.replaceChildren(
-      week.hasData
-        ? renderTable(week)
-        : h('p', { class: 'empty' }, 'Nothing to show yet. Once you have used YouTube with At Peace on, the last seven days appear here.'),
-      Object.keys(stats).length > 0 &&
-        h(
-          'p',
-          { class: 'week-foot' },
-          h('button', { type: 'button', class: 'btn btn-quiet', onClick: () => clearHistory() }, 'Clear usage history…'),
-        ),
+      ...[
+        week.hasData
+          ? renderTable(week)
+          : h('p', { class: 'empty' }, 'Nothing to show yet. Once you have used YouTube with At Peace on, the last seven days appear here.'),
+        Object.keys(stats).length > 0 &&
+          h('p', { class: 'week-foot' }, h('button', { type: 'button', class: 'btn btn-quiet', onClick: () => clearHistory() }, 'Clear usage history…')),
+      ].filter(Boolean),
     );
   }
 

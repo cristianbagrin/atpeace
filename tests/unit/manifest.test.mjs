@@ -138,6 +138,7 @@ describe('extension pages obey the CSP rules (PLAN §3.2)', () => {
     manifest.options_ui.page,
     'src/pages/pause/pause.html',
     'src/pages/blocked/blocked.html',
+    'src/pages/welcome/welcome.html',
   ];
 
   for (const page of pages) {

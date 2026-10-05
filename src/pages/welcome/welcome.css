@@ -2,7 +2,6 @@
    three numbered steps separated by hairlines. The only loud thing is the seal in the wordmark. */
 
 :root {
-  --column: min(640px, 100%);
   --edge-pad: 7vw;
 }
 
@@ -22,7 +21,7 @@
 }
 
 .column {
-  width: var(--column);
+  max-width: 640px;
   margin-left: clamp(0px, 14vw, 210px);
 }
 
@@ -257,6 +256,10 @@ a.btn {
 }
 
 @media (max-width: 640px) {
+  .column {
+    margin-left: 0;
+  }
+
   .step {
     grid-template-columns: minmax(0, 1fr);
     row-gap: 4px;

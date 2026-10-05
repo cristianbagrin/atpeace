@@ -26,6 +26,7 @@ const HELPERS = ['src/shared/lock.js', 'src/pages/common/logic.js', 'src/pages/c
 for (const [name, page] of [
   ['options', 'src/pages/options/options.html'],
   ['popup', 'src/pages/popup/popup.html'],
+  ['welcome', 'src/pages/welcome/welcome.html'],
 ]) {
   describe(`${name} page`, () => {
     test('loads the shared stack in manifest order, then the page helpers, then the page module last', () => {

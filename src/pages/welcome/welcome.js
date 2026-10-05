@@ -51,8 +51,18 @@ const $ = (id) => document.getElementById(id);
 
 const allPresets = () => [...AP.presets.builtIn(), ...state.customPresets];
 
+/**
+ * The preset that matches what is set now, or null. The pause switch (step 02) is left out of the
+ * comparison: turning it on or off is its own choice and must not make step 01 say "your own mix".
+ */
+function currentPresetId() {
+  const scoped = AP.schema.all().filter((def) => AP.presets.inScope(def) && def.id !== 'pause.enabled');
+  const same = (preset) => scoped.every((def) => AP.util.deepEqual(state.values[def.id], Object.hasOwn(preset.values, def.id) ? preset.values[def.id] : def.default));
+  return allPresets().find(same)?.id ?? null;
+}
+
 function refreshPresets() {
-  const current = AP.ui.matchingPresetId(state.values, allPresets());
+  const current = currentPresetId();
   for (const [id, radio] of state.radios) radio.checked = id === current;
   $('step-1-intro').textContent =
     current === null && state.radios.size > 0
@@ -63,7 +73,7 @@ function refreshPresets() {
 async function choosePreset(id) {
   const preset = allPresets().find((p) => p.id === id);
   if (!preset) return;
-  const current = AP.ui.matchingPresetId(state.values, allPresets());
+  const current = currentPresetId();
   if (current === null && !(await AP.ui.confirm(`This replaces your current YouTube settings with “${preset.name}”.`, { title: `Apply ${preset.name}?`, confirmLabel: 'Apply' }))) {
     refreshPresets();
     return;
@@ -78,7 +88,7 @@ async function choosePreset(id) {
 
 function buildPresets() {
   const rows = PRESET_ORDER.map((id) => AP.presets.get(id)).filter(Boolean);
-  const current = AP.ui.matchingPresetId(state.values, allPresets());
+  const current = currentPresetId();
   $('presets').replaceChildren(
     ...rows.map((preset) => {
       const radio = h('input', { type: 'radio', name: 'preset', value: preset.id, checked: preset.id === current, onChange: () => choosePreset(preset.id) });

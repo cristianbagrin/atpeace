@@ -360,6 +360,24 @@ describe('typed settings', () => {
     assert.equal(S.validateValue(def, 'x'.repeat(501)), '');
   });
 
+  test('the home redirect URL only applies when the feed mode is "my own page"', () => {
+    const def = S.get('yt.home.redirectUrl');
+    assert.equal(def.requires, 'yt.home.feedMode=custom');
+    assert.deepEqual(S.parseRequires(def.requires), { id: 'yt.home.feedMode', op: '=', value: 'custom' });
+  });
+
+  test('the selects offered in the popup carry short labels that fit, and keep their full label', () => {
+    const quickSelects = S.all().filter((d) => d.type === 'select' && d.quick === true);
+    assert.deepEqual(quickSelects.map((d) => d.id).sort(), ['yt.general.thumbnails', 'yt.home.feedMode', 'yt.shorts.mode']);
+    for (const def of quickSelects) {
+      for (const o of def.options) {
+        assert.ok(typeof o.short === 'string' || o.label.length <= 12, `${def.id}/${o.value} needs a short label (label "${o.label}")`);
+        assert.ok((o.short ?? o.label).length <= 16, `${def.id}/${o.value}`);
+        assert.ok(o.label.length >= (o.short ?? o.label).length);
+      }
+    }
+  });
+
   test('playback speed options are the values the player accepts', () => {
     const def = S.get('yt.watch.defaultSpeed');
     assert.deepEqual(def.options.map((o) => o.value), ['default', '0.75', '1', '1.25', '1.5', '1.75', '2']);

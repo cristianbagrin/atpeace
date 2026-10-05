@@ -89,6 +89,12 @@
     reapplied = 0;
   }
 
+  let retryTimers = [];
+  function applyAfterNavigation() {
+    for (const t of retryTimers) clearTimeout(t);
+    retryTimers = [0, 800, 2500].map((delay) => setTimeout(() => apply(shared.mainVideo()).catch((err) => AP.warn('speed apply failed', err)), delay));
+  }
+
   const EVENTS = ['loadedmetadata', 'playing', 'ratechange'];
 
   AP.yt.features.push({
@@ -109,15 +115,20 @@
         videoId = id;
         newVideo();
       }
-      const video = shared.mainVideo();
-      if (video && video.readyState >= 1) apply(video); // metadata already there (navigation finished after it loaded)
+      // The speed is also set before the video has loaded anything: the player keeps it (verified: the
+      // API answers setPlaybackRate/getPlaybackRate on an unstarted player) and the loadedmetadata /
+      // playing handlers put it back if YouTube restores its own. The player may not exist yet, hence a
+      // few bounded retries (not a poll).
+      applyAfterNavigation();
     },
     onSettings(ctx) {
       current = ctx;
       newVideo(); // a new choice in the options: apply it to the video that is open
-      apply(shared.mainVideo());
+      applyAfterNavigation();
     },
     destroy() {
+      for (const t of retryTimers) clearTimeout(t);
+      retryTimers = [];
       if (listening) {
         listening = false;
         shared.inputs.release();

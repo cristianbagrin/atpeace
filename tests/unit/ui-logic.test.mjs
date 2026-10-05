@@ -101,6 +101,36 @@ describe('rows', () => {
     assert.deepEqual(ui.requiresState(AP.schema.get('pause.enabled'), values), { enabled: true, needs: null });
   });
 
+  test('requires "id=value" and "id!=value": enabled only while the select holds (or does not hold) that value', () => {
+    AP.schema.define('yt.fixture', [
+      { id: 'yt.fixture.mode', label: 'Mode', type: 'select', default: 'a', options: [{ value: 'a', label: 'Alpha' }, { value: 'b', label: 'Beta' }, { value: 'c', label: 'Gamma' }], feature: 'x' },
+      { id: 'yt.fixture.url', label: 'Url', type: 'text', default: '', requires: 'yt.fixture.mode=b', feature: 'x' },
+      { id: 'yt.fixture.other', label: 'Other', type: 'text', default: '', requires: 'yt.fixture.mode!=a', feature: 'x' },
+      { id: 'yt.fixture.deep', label: 'Deep', type: 'text', default: '', requires: 'yt.fixture.url', feature: 'x' },
+    ]);
+    const url = AP.schema.get('yt.fixture.url');
+    const other = AP.schema.get('yt.fixture.other');
+    const values = { 'yt.fixture.mode': 'a', 'yt.fixture.url': '' };
+    const waiting = ui.requiresState(url, values);
+    assert.equal(waiting.enabled, false);
+    assert.equal(waiting.needs.id, 'yt.fixture.mode');
+    assert.deepEqual(waiting.wants, { id: 'yt.fixture.mode', op: '=', value: 'b' });
+    assert.equal(ui.requiresHint(waiting.needs, waiting.wants), 'Applies when “Mode” is set to “Beta”.');
+    assert.equal(ui.requiresState(url, { ...values, 'yt.fixture.mode': 'c' }).enabled, false, 'a different non-default value is not enough');
+    assert.deepEqual(ui.requiresState(url, { ...values, 'yt.fixture.mode': 'b' }), { enabled: true, needs: null });
+
+    assert.equal(ui.requiresState(other, values).enabled, false);
+    assert.equal(ui.requiresHint(ui.requiresState(other, values).needs, ui.requiresState(other, values).wants), 'Applies once you change “Mode” from “Alpha”.');
+    assert.equal(ui.requiresState(other, { ...values, 'yt.fixture.mode': 'c' }).enabled, true);
+
+    // a chain through a value condition: deep -> url (truthy) -> mode=b
+    const deep = AP.schema.get('yt.fixture.deep');
+    const chain = ui.requiresState(deep, { ...values, 'yt.fixture.url': 'x' });
+    assert.equal(chain.enabled, false);
+    assert.equal(chain.needs.id, 'yt.fixture.mode');
+    assert.equal(chain.wants.value, 'b');
+  });
+
   test('requiresHint speaks plainly for toggles, selects and numbers', () => {
     assert.match(ui.requiresHint({ type: 'toggle', label: 'Pause before opening' }), /Turn on “Pause before opening”/);
     assert.match(ui.requiresHint({ type: 'select', label: 'When I open YouTube' }), /change “When I open YouTube”/);

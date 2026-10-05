@@ -209,8 +209,9 @@ test('a text setting the schema refuses is explained and not saved; a valid one 
   const def = await probe.evaluate(() => {
     const AP = globalThis.AtPeace;
     const text = AP.schema.all().find((d) => d.type === 'text');
-    const dep = text.requires ? AP.schema.get(text.requires) : null;
-    return { id: text.id, requires: dep && { id: dep.id, value: dep.type === 'select' ? dep.options.at(-1).value : true } };
+    const cond = text.requires ? AP.schema.parseRequires(text.requires) : null; // 'id', 'id=value' or 'id!=value'
+    const dep = cond ? AP.schema.get(cond.id) : null;
+    return { id: text.id, requires: dep && { id: dep.id, value: cond.op === '=' ? cond.value : dep.type === 'select' ? dep.options.at(-1).value : true } };
   });
   await probe.close();
   assert.equal(def.id, 'yt.home.redirectUrl', 'the one text setting in the catalog');
