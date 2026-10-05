@@ -99,7 +99,8 @@ yt-thumbnail-view-model, ytd-thumbnail { display: block; aspect-ratio: 16 / 9; b
 ytd-thumbnail yt-image, yt-thumbnail-view-model yt-image { display: block; height: 100%; }
 yt-lockup-metadata-view-model { display: block; padding: 8px 0; }
 ytd-search #contents.ytd-item-section-renderer, ytd-search #contents.ytd-section-list-renderer { padding: 0 24px; }
-ytd-video-renderer { display: flex; gap: 16px; padding: 8px 0; }
+ytd-video-renderer { display: flex; gap: 16px; padding: 8px 0; max-height: 230px; overflow: hidden; }
+ytd-app:not([guide-persistent-and-visible]) tp-yt-app-drawer#guide { display: none; }
 ytd-video-renderer ytd-thumbnail { width: 246px; flex: none; }
 ytd-video-renderer #dismissible { display: flex; gap: 16px; }
 ytd-video-renderer .text-wrapper { flex: 1; }
@@ -124,14 +125,16 @@ yt-img-shadow { width: 36px; height: 36px; border-radius: 50%; overflow: hidden;
 `;
 
 /** Runs in the page (stringified into the HTML): rebuilds a snapshot written by domToJsonInPage. */
-function buildInPage(json) {
+function buildInPage(json, greyImage) {
   const build = (t) => {
     if (typeof t === 'string') return document.createTextNode(t);
     const [tag, attrs, kids, ns] = t;
     const el = ns ? document.createElementNS(ns, tag) : document.createElement(tag);
     for (const k of Object.keys(attrs)) {
       try {
-        el.setAttribute(k, attrs[k]);
+        // Pictures come from YouTube's image hosts: show a grey pixel instead, in every browser, with no request at all.
+        const remoteImage = tag === 'img' && (k === 'src' || k === 'srcset') && /^https?:\/\//.test(attrs[k]);
+        el.setAttribute(k, remoteImage ? (k === 'src' ? greyImage : '') : attrs[k]);
       } catch {
         /* attribute name not valid for setAttribute */
       }
@@ -177,7 +180,7 @@ export async function fixtureHtml(name) {
   return (
     '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>YouTube (fixture)</title>' +
     `<style id="fixture-style">${WIREFRAME_CSS}</style>` +
-    `<script>document.addEventListener('DOMContentLoaded', () => (${buildInPage.toString()})(${literal}));</script>` +
+    `<script>document.addEventListener('DOMContentLoaded', () => (${buildInPage.toString()})(${literal}, 'data:image/png;base64,${GREY_PNG.toString('base64')}'));</script>` +
     '</head><body></body></html>'
   );
 }

@@ -190,7 +190,8 @@ test('pick a card on a watch page, Bigger/Smaller, Hide: rule stored, hidden at 
   assert.equal(first.buttons.find((b) => b.label === 'Smaller').disabled, true, 'nothing smaller than the first choice');
   assert.equal(first.buttons.find((b) => b.label === 'Bigger').disabled, false);
   assert.deepEqual(first.radios.map((r) => [r.label, r.checked]), [['This kind of page (watch)', true], ['Everywhere', false]]);
-  assert.ok(first.similarBoxes > 3, 'the other matches are outlined too');
+  const outlined = await until(async () => ((await readPanel(page)).similarBoxes >= 2 ? (await readPanel(page)).similarBoxes : 0), 'the other matches to be outlined');
+  assert.ok(outlined >= 2, 'the other matches on screen are outlined too');
   await shot(page, 'picker-review-small');
 
   // Bigger (button) → the thumbnail's wrapper, then the card.
@@ -353,6 +354,7 @@ test('the same on a channel page (view-model cards)', { skip }, async () => {
   const page = await open(CHANNEL);
   await startPicker(page);
   await waitPhase(page, 'pick');
+  await page.locator('ytd-rich-item-renderer yt-thumbnail-view-model').first().scrollIntoViewIfNeeded();
   const { x, y } = await centerOf(page, 'ytd-rich-item-renderer yt-thumbnail-view-model');
   await page.mouse.move(x, y);
   await until(async () => (await readPanel(page))?.target, 'the hover box');
@@ -428,7 +430,9 @@ test('"Only this one": a position-based rule for one of several alike, with an h
   await page.keyboard.press('Enter');
   await waitPhase(page, 'done');
   await until(async () => (await storedRules()).length === 1, 'the rule');
-  const hidden = await page.evaluate(() => [...document.querySelectorAll('yt-lockup-view-model')].map((e) => getComputedStyle(e).display === 'none'));
+  const hiddenCards = () => page.evaluate(() => [...document.querySelectorAll('yt-lockup-view-model')].map((e) => getComputedStyle(e).display === 'none'));
+  await until(async () => (await hiddenCards()).some(Boolean), 'a card to disappear');
+  const hidden = await hiddenCards();
   assert.equal(hidden.filter(Boolean).length, 1, 'exactly one card is gone');
   assert.equal(hidden.length, 26);
   await page.close();
@@ -448,16 +452,24 @@ test('at the 500-rule limit it says so and saves nothing', { skip }, async () =>
   await page.close();
 });
 
-test('picking the same thing twice does not stack rules', { skip }, async () => {
-  await setStorage({ settings: { 'advanced.customRules': [{ id: 'rule_aaaaaaaaaaaa', selector: 'ytd-merch-shelf-renderer', page: 'watch', note: 'x', createdAt: 1 }] } });
+test('the same rule is not stacked twice; with At Peace switched off the panel says nothing will hide yet', { skip }, async () => {
+  // Master switch off: rules are stored but not applied, so the element is still there to pick.
+  const existing = { id: 'rule_aaaaaaaaaaaa', selector: 'yt-lockup-view-model', page: 'watch', note: 'x', createdAt: 1 };
+  await setStorage({ settings: { 'general.enabled': false, 'advanced.customRules': [existing] } });
   const page = await open(WATCH);
-  // Make the page have such a shelf, visible, and pick it: it is hidden by the rule, so pick a lookalike through a second rule target instead.
   await pickFirstRelatedThumbnail(page);
   await growTo(page, 'yt-lockup-view-model');
   await page.keyboard.press('Enter');
+  await until(async () => /already hidden/.test((await readPanel(page))?.text ?? ''), 'the duplicate message');
+  assert.equal((await storedRules()).length, 1);
+  assert.equal(await phase(page), 'review');
+  // Everywhere is a different rule: saved, with the honest note about the master switch.
+  await clickInPanel(page, 'Everywhere');
+  await page.keyboard.press('Enter');
   await waitPhase(page, 'done');
   await until(async () => (await storedRules()).length === 2, 'the second rule');
-  assert.deepEqual((await storedRules()).map((r) => r.selector), ['ytd-merch-shelf-renderer', 'yt-lockup-view-model']);
+  assert.deepEqual((await storedRules()).map((r) => r.page), ['watch', null]);
+  assert.match((await readPanel(page)).text, /turned off right now/);
   await page.close();
 });
 

@@ -82,7 +82,7 @@
   const CLASS_PLAYER = /^ytp-[a-z][a-z0-9-]*$/;
   // State (changes while you look), and presentation helpers (how it is laid out, not what it is).
   const CLASS_STATE = /(?:-mode|-hover|-active|-visible|-hidden|-open|-opened|-closed|-expanded|-collapsed|-focused|-selected|-playing|-paused|-ended|-buffering|-autohide|-enabled|-disabled|-loading|-shown|(?:Loaded|Loading|Hidden|Visible|Active|Selected|Expanded|Collapsed|Open|Focused|Hover|Playing|Paused|Disabled|Enabled|Dark|Light|Mode|Hovered|Pressed))$|^ytp-(?:hide|show|autohide|fullscreen|big|small|large|hover|menu-shown)/;
-  const CLASS_PRESENTATION = /(?:WhiteSpace|Ellipsis|Truncate|ContentMode|FillParent|Align|Flex|Margin|Padding|Width|Height|Wrap|Clip|Overflow|Color|Rounded|Border|Shadow|Gradient|Spacing|Size[A-Z]|Fit)/;
+  const CLASS_PRESENTATION = /(?:WhiteSpace|Ellipsis|Truncate|ContentMode|FillParent|Align|Flex|Margin|Padding|Width|Height|Wrap|Clip|Overflow|Color|Rounded|Border|Shadow|Gradient|Spacing|Size[A-Z]|Fit|Imation|Animation|Transition|Ripple|Interaction|TouchResponse)/;
   const VARIANT_WORD = /(?:Vertical|Horizontal|Compact|Large|Small|Medium|Has[A-Z]|Is[A-Z]|With|Without|Dark|Light|Hover|Active)/;
 
   /** True when an id looks machine-made (digits, hex, UUIDs, `:r1:`, random mixed-case tokens): never stable. */
@@ -119,7 +119,7 @@
     return typeof tag === 'string' && COMPONENT_TAG.test(tag) && !INFRA_TAG.test(tag) && !SVG_RESERVED.has(tag);
   }
 
-  const attrValueOk = (v) => typeof v === 'string' && v.length <= 80 && !/["\\\u0000-\u001f]/.test(v);
+  const attrValueOk = (v) => typeof v === 'string' && v.length <= 80 && !v.includes('"') && !v.includes('\\') && ![...v].some((c) => c.charCodeAt(0) < 32);
 
   /** `/shorts/dQw…` → `/shorts/`; `/feed/subscriptions?x` → `/feed/subscriptions`; null when no known prefix applies. */
   function hrefPrefix(href) {
@@ -551,13 +551,14 @@
 
   const CSS = `
 :host { all: initial; }
-.layer { position: fixed; inset: 0; pointer-events: none; }
+.layer { ${PALETTE_LIGHT} position: fixed; inset: 0; pointer-events: none; }
+.layer[data-theme="dark"] { ${PALETTE_DARK} }
+@media (prefers-color-scheme: dark) { .layer[data-theme="system"] { ${PALETTE_DARK} } }
 .box { position: fixed; box-sizing: border-box; pointer-events: none; display: none; border-radius: 2px; }
 .box.target { outline: 2px solid var(--seal); outline-offset: -1px; background: color-mix(in srgb, var(--seal) 14%, transparent); }
 .box.target.refused { outline: 2px dashed var(--ink-2); background: color-mix(in srgb, var(--ink-2) 12%, transparent); }
 .box.similar { outline: 1.5px dashed var(--seal); outline-offset: -1px; opacity: 0.75; }
 .panel {
-  ${PALETTE_LIGHT}
   position: fixed; right: 16px; bottom: 16px; width: 332px; max-width: calc(100vw - 32px); box-sizing: border-box;
   padding: 14px; background: var(--paper); color: var(--ink); border: 1px solid var(--edge); border-radius: 3px;
   font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif; -webkit-font-smoothing: antialiased;
@@ -565,8 +566,6 @@
 }
 .panel[data-side="left"] { right: auto; left: 16px; }
 .panel, .panel * { cursor: default; }
-.panel[data-theme="dark"] { ${PALETTE_DARK} }
-@media (prefers-color-scheme: dark) { .panel[data-theme="system"] { ${PALETTE_DARK} } }
 .head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; font: 600 15px/1.2 "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Charter, Georgia, serif; letter-spacing: 0.02em; }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--seal); flex: none; }
 p { margin: 0; }
@@ -697,7 +696,7 @@ label.check { display: flex; gap: 7px; align-items: center; margin-top: 9px; cur
     const targetBox = el('div', 'box target');
     layer.append(targetBox);
     const panel = el('section', 'panel');
-    panel.dataset.theme = 'light';
+    layer.dataset.theme = 'light';
     panel.setAttribute('role', 'dialog');
     panel.setAttribute('aria-label', 'Hide an element');
     const head = el('div', 'head');
@@ -1026,6 +1025,7 @@ label.check { display: flex; gap: 7px; align-items: center; margin-top: 9px; cur
           note: settings['general.enabled'] === false ? 'At Peace is turned off right now, so it will stay visible until you turn it back on.' : '',
         };
         state.doneText = n > 1 ? `Hidden: ${n} items${page ? ` on ${PAGE_FOR_NOTE[page] ?? `${page} pages`}` : ''}.` : `Hidden${page ? ` on ${PAGE_FOR_NOTE[page] ?? `${page} pages`}` : ''}.`;
+        state.busy = false; // before the confirmation draws, or its Undo would start disabled
         enterDone();
       } catch (err) {
         AP.warn('picker could not save the rule', err);
@@ -1071,7 +1071,7 @@ label.check { display: flex; gap: 7px; align-items: center; margin-top: 9px; cur
       target.addEventListener(type, handler, options);
       return () => target.removeEventListener(type, handler, options);
     }
-    let blockers = [];
+    const blockers = [];
     function removeBlockers() {
       for (const off of blockers.splice(0)) off();
     }
@@ -1079,13 +1079,12 @@ label.check { display: flex; gap: 7px; align-items: center; margin-top: 9px; cur
     const ours = (event) => event.target === host;
 
     function hitAt(x, y) {
-      let hit = null;
       try {
-        hit = doc.elementFromPoint(x, y);
+        const hit = doc.elementFromPoint(x, y);
+        return hit && hit !== host ? hit : null;
       } catch {
-        hit = null;
+        return null;
       }
-      return hit && hit !== host ? hit : null;
     }
 
     function onPointerBlock(event) {
@@ -1228,7 +1227,7 @@ label.check { display: flex; gap: 7px; align-items: center; margin-top: 9px; cur
     AP.settings.effective().then(
       (settings) => {
         const theme = settings['general.theme'];
-        panel.dataset.theme = theme === 'dark' || theme === 'system' ? theme : 'light';
+        layer.dataset.theme = theme === 'dark' || theme === 'system' ? theme : 'light';
       },
       () => {},
     );

@@ -97,7 +97,7 @@ export function readPanel(page) {
         target: target.style.display === 'block' ? { ...rect(target), refused: target.classList.contains('refused') } : null,
         similarBoxes: [...this.querySelectorAll('.box.similar')].filter((b) => b.style.display === 'block').length,
         panel: rect(q('.panel')),
-        theme: q('.panel').dataset.theme,
+        theme: q('.layer').dataset.theme,
       };
     }`,
   );

@@ -11,7 +11,14 @@ let core;
 
 beforeEach(async () => {
   installFakeBrowser();
-  AP = await loadAtPeace([...CORE_SCRIPTS, ...SCHEMA_SCRIPTS, 'src/sites/youtube/page.js', 'src/content/picker.js']);
+  AP = await loadAtPeace([
+    ...CORE_SCRIPTS,
+    ...SCHEMA_SCRIPTS,
+    'src/sites/youtube/page.js',
+    'src/content/picker.js',
+    'src/pages/options/renderers/registry.js',
+    'src/pages/options/renderers/custom-rules.js',
+  ]);
   core = AP.picker.selector;
 });
 afterEach(() => uninstallFakeBrowser());
@@ -341,5 +348,50 @@ describe('wiring', () => {
     const reply = await AP.api.runtime.sendMessage({ type: AP.msg.TYPES.START_PICKER });
     assert.deepEqual(reply, { ok: false, error: 'no-document' });
     assert.equal(await AP.api.runtime.sendMessage({ type: 'SOMETHING_ELSE' }), undefined, 'not ours: no answer');
+  });
+});
+
+describe('the custom-rules editor (src/pages/options/renderers/custom-rules.js)', () => {
+  const editor = () => AP.optionsRenderers['advanced.customRules'];
+
+  test('is registered for the setting, with update() for live changes', () => {
+    const def = AP.schema.get('advanced.customRules');
+    assert.ok(def);
+    assert.equal(AP.optionsRendererFor(def), editor());
+    assert.equal(typeof editor().render, 'function');
+    assert.equal(typeof editor().update, 'function');
+  });
+
+  test('offers exactly the YouTube page types the engine knows', () => {
+    assert.deepEqual(editor().PAGES.map((p) => p.value), [...AP.yt.page.TYPES]);
+    for (const p of editor().PAGES) assert.ok(p.label.length > 2, p.value);
+  });
+
+  test('refuses what the picker refuses, with the same words (the two copies must not drift apart)', () => {
+    const samples = [
+      'html', 'body', 'ytd-app', 'ytd-page-manager', '#content', '#page-manager', ':root', '*', 'div', 'span:first-child', 'ytd-app > ytd-page-manager',
+      'body.dark', 'div > a', 'ytd-foo body', 'ytd-merch-shelf-renderer', '#related', 'ytd-watch-flexy #secondary', 'a[href^="/shorts/"]',
+      '.ytLockupViewModelHost', 'ytd-app ytd-masthead', 'ytd-rich-item-renderer:not([hidden])', 'div.thing', 'ytd-foo >  ytd-bar', 'a[title="x > y"]',
+    ];
+    for (const selector of samples) {
+      assert.equal(editor().refuseSelectorText(selector), core.refuseSelectorText(selector), selector);
+    }
+  });
+
+  test('checkSelector: one valid, safe, specific selector; the browser is asked whether it parses', () => {
+    const accepts = (s) => editor().checkSelector(s, () => {});
+    assert.deepEqual(accepts('  ytd-merch-shelf-renderer  '), { ok: true, selector: 'ytd-merch-shelf-renderer' });
+    assert.deepEqual(accepts('ytd-watch-flexy   #secondary'), { ok: true, selector: 'ytd-watch-flexy #secondary' }, 'whitespace is tidied');
+    assert.deepEqual(accepts('ytd-foo[title="a, b"]'), { ok: true, selector: 'ytd-foo[title="a, b"]' }, 'a comma inside brackets is not a list');
+    const refused = (s, probe) => editor().checkSelector(s, probe ?? (() => {}));
+    assert.match(refused('').message, /Type a selector/);
+    assert.match(refused('ytd-a, ytd-b').message, /one selector at a time/);
+    assert.match(refused('div[', () => { throw new SyntaxError('bad'); }).message, /not a valid selector/);
+    assert.match(refused('ytd-foo { display: none }', () => {}).message, /braces, semicolons/);
+    assert.match(refused('ytd-foo /* hi */').message, /braces, semicolons|comments/);
+    assert.match(refused('body').message, /page itself/);
+    assert.match(refused('div').message, /too much/);
+    // Whatever it accepts, the engine accepts too.
+    assert.equal(AP.schema.isSafeSelector(accepts('ytd-foo[title="a, b"]').selector), true);
   });
 });
