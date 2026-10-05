@@ -82,7 +82,10 @@ function tools(ff) {
       if (fixture) await until(() => run(() => document.documentElement.getAttribute('data-fixture-ready') === '1'), 'the snapshot', 20_000);
     },
     async ourErrors() {
-      return [...(await ff.ourScriptErrors()), ...ff.pageErrorsSince(0).filter((e) => e.includes('moz-extension://') || e.includes('[At Peace]'))];
+      // Firefox logs "Promise resolved after context unloaded" for an async hook (here guard-core.js's storage read)
+      // whose page navigates away mid-flight: harmless, and not ours to count (see the note in tests/firefox/engine.mjs).
+      const benign = (e) => /Promise resolved after context unloaded/.test(e);
+      return [...(await ff.ourScriptErrors()), ...ff.pageErrorsSince(0).filter((e) => e.includes('moz-extension://') || e.includes('[At Peace]'))].filter((e) => !benign(e));
     },
   };
 }
@@ -253,16 +256,23 @@ describe('live youtube.com (logged out)', () => {
       try {
         await fn();
       } catch (err) {
-        if (err?.code === 'YT_SORRY') return ctx.skip(`${err.message}; try again later`);
+        if (err?.code === 'YT_SORRY' || err?.code === 'YT_NOT_RENDERED') return ctx.skip(`${err.message}; try again later`);
         throw err;
       }
     });
+  }
+
+  /** Live YouTube sometimes does not render a part of the page at all (seen: a load with no guide entries in the DOM for 10+ s): that is not a result about us. */
+  async function expectRendered(check, what, timeout = 15_000) {
+    const ok = await t.until(check, what, timeout).then(() => true, () => false);
+    if (!ok) throw Object.assign(new Error(`YouTube did not render ${what}`), { code: 'YT_NOT_RENDERED' });
   }
 
   live('home: placeholder, guide entries tagged from entry.data in the page world, redirect by click with a clean history', async () => {
     await t.configure({ 'yt.home.feedMode': 'hide', 'yt.guide.hideWatchLater': true });
     await paced('https://www.youtube.com/');
     await t.until(() => t.run(() => document.querySelector('[data-at-peace-placeholder="home"]')), 'the placeholder');
+    await expectRendered(() => t.run(() => document.querySelectorAll('ytd-guide-entry-renderer').length >= 5), 'its guide entries');
     await t.until(() => t.run(() => document.querySelectorAll('ytd-guide-entry-renderer[data-at-peace-entry]').length >= 4), 'guide entry tags', 20_000);
     const tags = await t.run(() => Object.fromEntries([...document.querySelectorAll('ytd-guide-entry-renderer[data-at-peace-entry]')].map((e) => [e.getAttribute('data-at-peace-entry'), e.querySelector('a#endpoint')?.getAttribute('href') ?? null])));
     assert.deepEqual(tags, { home: '/', shorts: null, subscriptions: '/feed/subscriptions', you: '/feed/you', history: '/feed/history' });
@@ -313,9 +323,22 @@ describe('live youtube.com (logged out)', () => {
     await paced(SEARCH);
     await t.until(() => t.run(() => document.querySelectorAll('ytd-video-renderer').length >= 10), 'results');
     await t.until(() => t.run(() => document.querySelector('[data-at-peace-filtered]')), 'filtered cards');
-    const cards = await t.run(() => [...document.querySelectorAll('ytd-video-renderer')].map((c) => [c.querySelector('a#video-title')?.getAttribute('title') ?? null, c.hasAttribute('data-at-peace-filtered'), getComputedStyle(c).display === 'none']));
-    const wrong = cards.filter(([title, marked, hidden]) => title !== null && (marked !== title.toLowerCase().includes('lofi') || hidden !== marked));
-    assert.deepEqual(wrong, [], `cards that disagree with the filter (of ${cards.length})`);
+    const wrongCards = () =>
+      t.run(() => {
+        const cards = [...document.querySelectorAll('ytd-video-renderer')].map((c) => [c.querySelector('a#video-title')?.getAttribute('title') ?? null, c.hasAttribute('data-at-peace-filtered'), getComputedStyle(c).display === 'none']);
+        return { total: cards.length, wrong: cards.filter(([title, marked, hidden]) => title !== null && (marked !== title.toLowerCase().includes('lofi') || hidden !== marked)) };
+      });
+    // (the list keeps growing for a moment while YouTube renders: judge it once the number of cards has settled)
+    let count = -1;
+    for (let stable = 0; stable < 3; ) {
+      await sleep(500);
+      const { total } = await wrongCards();
+      stable = total === count ? stable + 1 : 0;
+      count = total;
+    }
+    await t.until(async () => (await wrongCards()).wrong.length === 0, 'every card agreeing with the filter', 6000).catch(() => null);
+    const { total, wrong } = await wrongCards();
+    assert.deepEqual(wrong, [], `cards that disagree with the filter (of ${total})`);
     assert.equal(await t.run(() => document.querySelectorAll('a[href^="/shorts/"]').length), 0);
     await t.shot('firefox-live-search-filtered');
     const id = await t.run(() => document.querySelector('a[data-at-peace-href]')?.getAttribute('data-at-peace-href')?.split('/shorts/')[1]?.split(/[?&#]/)[0] ?? null);
@@ -334,6 +357,7 @@ describe('live youtube.com (logged out)', () => {
     await t.until(() => t.run(() => document.querySelector('ytd-video-renderer a#video-title')), 'search results', 20_000);
     await t.driver.findElement(By.css('ytd-video-renderer a#video-title')).click();
     await t.until(async () => /\/watch\?v=/.test(await t.driver.getCurrentUrl()), 'the watch page', 20_000);
+    await expectRendered(() => t.run(() => document.querySelectorAll('ytd-watch-metadata #top-level-buttons-computed > *').length >= 2), 'the buttons under the video', 25_000);
     await t.until(() => t.run(() => document.querySelectorAll('ytd-watch-metadata [data-at-peace-action]').length >= 3), 'action tags', 20_000);
     const tags = await t.run(() => [...document.querySelectorAll('ytd-watch-metadata [data-at-peace-action]')].map((e) => [e.localName + (e.getAttribute('id') ? `#${e.getAttribute('id')}` : ''), e.getAttribute('data-at-peace-action')]));
     const byTag = Object.fromEntries(tags.map(([el, tag]) => [tag, el]));

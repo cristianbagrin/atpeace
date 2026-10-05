@@ -23,18 +23,46 @@
   }
 
   let debugSent = false;
+  let wanted = false;
+  let timer = null;
+  let attempts = 0;
+
+  /** Asks the bridge to tag; if it does not answer (it can load a little after us), asks again a few times. */
+  async function ensureOn() {
+    clearTimeout(timer);
+    timer = null;
+    if (!wanted) return;
+    const res = await bridge()?.call('setTags', true);
+    if (res?.ok) {
+      attempts = 0;
+      if (AP.debug && !debugSent) {
+        debugSent = true;
+        bridge()?.call('setDebug', true);
+      }
+      return;
+    }
+    if (++attempts <= 6) {
+      if (attempts === 1) AP.warn('page bridge did not answer yet; will retry', res?.error);
+      timer = setTimeout(ensureOn, 2000 * attempts);
+    }
+  }
 
   AP.yt.features.push({
     id: 'bridgeTags',
     settings: tagSettings(AP.schema.all().filter((def) => String(def.id).startsWith('yt.'))),
     init() {
-      bridge()?.call('setTags', true);
-      if (AP.debug && !debugSent) {
-        debugSent = true;
-        bridge()?.call('setDebug', true);
-      }
+      wanted = true;
+      attempts = 0;
+      ensureOn();
+    },
+    onNavigate() {
+      // Idempotent, and another chance when the bridge has not answered so far.
+      if (attempts > 0 || !timer) ensureOn();
     },
     destroy() {
+      wanted = false;
+      clearTimeout(timer);
+      timer = null;
       bridge()?.call('setTags', false);
     },
   });
