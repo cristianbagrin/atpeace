@@ -14,14 +14,14 @@ inside the extension. The Deep work preset (the biggest one) is on unless stated
 
 | page | `<style>` in the document | tokens on `<html>` (wall clock) | our CPU until then |
 |---|---|---|---|
-| home | +13 to 20 ms | +23 to 33 ms | 10 to 13 ms |
-| search results | +12 to 16 ms | +50 to 68 ms | 12 ms |
-| video page | +19 to 40 ms | +97 to 165 ms | 11 to 13 ms |
+| home | +12 to 20 ms | +19 to 33 ms | 8 to 13 ms |
+| search results | +10 to 16 ms | +33 to 68 ms | 8 to 12 ms |
+| video page | +15 to 40 ms | +50 to 165 ms | 11 to 13 ms |
 
 Median of 7 loads (wall clock) and of 5 loads (CPU), several runs. The wall-clock time is
 the time to the first free moment of the page's thread after our storage read; on the snapshot pages it is
 inflated by the page's own work (the video-page snapshot is a 1.7 MB inline script to parse), which is why
-our CPU is listed too: **about 10 to 13 ms of our code runs before the page is styled**, whatever the
+our CPU is listed too: **about 8 to 13 ms of our code runs before the page is styled**, whatever the
 page. The stylesheet is injected before the page's first paint, so nothing flickers.
 
 - Compiling the stylesheet from the schema (`AP.schema.compileCss('youtube')`: 395 rules, 69 KiB):
@@ -37,7 +37,7 @@ A search page that gains 40 cards a second for 6.5 seconds (240 cards, scrolling
 | settings | our CPU | per second |
 |---|---|---|
 | nothing needs the mutation observer (all features off) | 0 ms | 0 ms/s |
-| every observing feature on: calm titles, filters, hover guard, Shorts links, autoplay, theater, speed, still-watching, channel tab, home placeholder, bridge tags | 80 to 95 ms | **about 13 ms/s (1.3 % of one core)** |
+| every observing feature on: calm titles, filters, hover guard, Shorts links, autoplay, theater, speed, still-watching, channel tab, home placeholder, bridge tags | 80 to 95 ms | **about 13 to 14 ms/s (1.4 % of one core)** |
 
 With every feature on, the top of the profile is the page bridge tagging guide entries and channel tabs
 (`tagEntries`, about 40 ms in 6.5 s, roughly 6 ms/s), then the filters (`cardInfo`, `normalize`, about 9 ms)

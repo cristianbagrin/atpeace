@@ -634,16 +634,14 @@ group('channel: trailer, banner, header counts and Home rows hide; other tabs ar
 // Shorts
 // ---------------------------------------------------------------------------------------------
 
-group('shorts: the player is hidden while Shorts are redirected or blocked, and shown when allowed', async () => {
+group('shorts: the player is shown when allowed, its small settings trim it', async () => {
   await open('https://www.youtube.com/shorts/C0STkNVChLI', { ready: 'ytd-shorts' });
   await apply({ 'yt.shorts.mode': 'allow' });
   await expectShown('Shorts player when allowed', ['ytd-shorts']);
   await shot('shorts-allowed');
-  await apply({ 'yt.shorts.mode': 'block' });
-  await expectHidden('Shorts player when blocked', ['ytd-shorts']);
-  await shot('shorts-blocked');
-  await apply({ 'yt.shorts.mode': 'watch' });
-  await expectHidden('Shorts player while redirected', ['ytd-shorts']);
+  // Modes "block" and "watch" are not tried here: since the Phase 3b redirects they send the page somewhere else the
+  // moment they are switched on (the blocked page, /watch), so the player cannot be observed hidden. The redirects are
+  // checked in features.spec.mjs / tests/firefox/features.mjs, the hiding rule itself in tests/unit/youtube-schema.test.mjs.
   await apply({ 'yt.shorts.mode': 'allow', 'yt.shorts.hideComments': true, 'yt.shorts.hideLikeCounts': true, 'yt.shorts.hideSubscribe': true, 'yt.shorts.hideRemix': true });
   await expectShown('Shorts player stays with its buttons trimmed', ['ytd-shorts']);
   await expectHidden('Shorts buttons', ['ytd-shorts reel-action-bar-view-model > button-view-model:nth-of-type(1)', 'ytd-shorts yt-reel-channel-bar-view-model .ytReelChannelBarViewModelReelSubscribeButton', 'ytd-shorts reel-action-bar-view-model like-button-view-model .ytSpecButtonShapeWithLabelLabel'], { optional: true });

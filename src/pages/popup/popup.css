@@ -297,6 +297,9 @@ body {
 }
 
 .foot .btn-quiet {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px; /* WCAG 2.2 target size */
   font-size: 13px;
 }
 

@@ -23,11 +23,13 @@ plays for at least a minute (any), and a channel you are subscribed to.
 5. Open `https://www.youtube.com/`. Click the toolbar puzzle-piece button; At Peace should be listed.
    The welcome page says to pin it: confirm that the wording ("Pin to Toolbar" beside At Peace) matches
    what Zen shows. Zen's menu may be named differently; note it if so.
-6. Open the settings (popup, then **Settings**, or the extension's Options). Everything below happens
+6. Open the settings (the popup's **All settings** button, or the extension's Options in `about:addons`). Everything below happens
    there and in the popup.
 
 Tip: keep the settings open in one tab and YouTube in another. Changes apply to YouTube at once, no
-reload needed.
+reload needed. The list of sections on the left of the settings shows, beside each YouTube section, how
+many of its switches are on (and "On" beside Mindful Pause), so you can see at a glance that a switch
+registered; the number should go up by one for each switch you turn on below.
 
 ## 1. Top bar, signed in (1 minute)
 
@@ -172,14 +174,20 @@ Shorts" and "Hide Subscribe on Shorts" there.
 ## 9. Mindful Pause and Focus, a sanity pass (2 minutes)
 
 1. Settings, **Mindful Pause**: turn on "Pause before opening". In a new tab open `youtube.com`.
-   Expect: the breathing screen (something that slowly grows and shrinks), a line such as "This is your 1st time opening YouTube today.", and after the
-   breath the choices **Close YouTube** and **Continue for [15 minutes]**. Press Continue: YouTube opens.
-   Open another YouTube tab: no second pause while the session lasts. (Set "Default time when I
-   continue" to 5 minutes and wait if you want to see the "time is up" note and the video pausing.)
+   Expect: a dark indigo page with a dial of fine tick marks and a mint circle that slowly swells and
+   shrinks, the small line "Before YouTube" above it and the words "Breathe in…". After the breath the
+   line above reads like "4th time today" (the exact sentence, "This is your 4th time opening YouTube
+   today.", is there for screen readers), the question "Open YouTube?" appears, and two choices: the main
+   button **Close YouTube** and **Continue for** with a row of minute choices (5, 10, 15 ...). Press
+   Continue: YouTube opens. Open another YouTube tab: no second pause while the session lasts. (Set
+   "Default time when I continue" to 5 minutes and wait if you want to see the "time is up" note and the
+   video pausing.)
 2. Press **Close YouTube** on a fresh pause: the tab goes back or closes.
-3. Popup, under **Block YouTube for**, press **25 min**. Expect: open YouTube tabs turn into the "closed" page with a
-   countdown, and a new tab to YouTube does the same. End it with the early-exit control (it asks you to
-   wait 30 seconds by default). Check that the countdown matches the clock.
+3. Popup, under **Block YouTube for**, press **25 min**. Expect: open YouTube tabs turn into the same
+   indigo page, now saying "YouTube is closed for now." with a large countdown and the time it ends, and a
+   new tab to YouTube does the same. End it with the early-exit control (it asks you to wait 30 seconds
+   by default). Check that the countdown matches the clock. Afterwards the popup shows three stat tiles
+   (time **on YouTube**, **opens**, **turned back**) that match what you just did.
 4. Keyboard shortcuts: **Alt+Shift+P** turns At Peace on and off, **Alt+Shift+F** starts a 25 minute
    block (end it right after), **Alt+Shift+H** starts "Hide an element" on a YouTube page (Esc leaves it).
    If Zen already uses one of these, the shortcut simply does nothing: rebind it in `about:addons`,
@@ -194,6 +202,25 @@ Shorts" and "Hide Subscribe on Shorts" there.
   search, video, ...), and one sentence on what you saw. A screenshot helps.
 - The `[At Peace]` lines from the console, if any (below).
 - Your Zen version (`about:support`, "Version") and whether you were signed in.
+
+## 11. Keeping it after the check (optional, 5 minutes)
+
+A temporary add-on disappears when Zen restarts. To keep At Peace, sign it once for yourself (free, unlisted,
+never published):
+
+1. Make an account at https://addons.mozilla.org/ and open https://addons.mozilla.org/developers/addon/api/key/
+   to create an API key and secret.
+2. In the project folder:
+
+   ```sh
+   npm install
+   export WEB_EXT_API_KEY=...         # the "JWT issuer"
+   export WEB_EXT_API_SECRET=...      # the "JWT secret"
+   npm run sign
+   ```
+
+3. When it finishes, drag the `.xpi` from `web-ext-artifacts/` onto a Zen window and accept the prompt.
+   Remove the temporary copy first (`about:debugging`, **Remove**) so there is only one At Peace.
 
 ## When something fails
 

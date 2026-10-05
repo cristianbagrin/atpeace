@@ -141,6 +141,7 @@ at-peace/
 | `npm run selectors` | `node tools/check-selectors.mjs` live coverage report → `docs/selector-report.md` |
 | `npm run start:firefox` | `web-ext run` |
 | `npm run build` | `web-ext build` → `web-ext-artifacts/at-peace-<version>.zip` |
+| `npm run verify:package` | build, then check the zip holds only manifest/icons/src and every reference resolves |
 | `npm run sign` | `web-ext sign --channel=unlisted` (user supplies keys) |
 
 ---

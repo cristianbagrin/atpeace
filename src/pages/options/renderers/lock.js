@@ -116,8 +116,10 @@
 
         const choices = h(
           'fieldset',
-          { class: 'lock-modes', role: 'radiogroup', 'aria-label': 'How the lock holds you back' },
-          MODES.map((mode, index) =>
+          // Named by the row's own label; the radios are named by their choice labels alone, so no
+          // input carries two labels.
+          { class: 'lock-modes', role: 'radiogroup', 'aria-labelledby': ctx.labelId },
+          MODES.map((mode) =>
             h(
               'label',
               { class: 'lock-choice' },
@@ -125,7 +127,6 @@
                 type: 'radio',
                 name: 'lock-mode',
                 value: mode.value,
-                id: index === 0 ? ctx.inputId : null,
                 checked: view.choice === mode.value,
                 onChange: () => {
                   view.choice = mode.value;
