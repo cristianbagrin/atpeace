@@ -8,7 +8,7 @@
 // callers fall back to DOM methods or do nothing. Other error codes come from the bridge:
 // 'no-player', 'no-method', 'bad-command', 'bad-argument', 'failed'.
 //
-// Protocol (all `window.postMessage`, same window only; the page can read it, so the nonce is an
+// Protocol (all `window.postMessage`, same origin; the page can read it, so the nonce is an
 // anti-crosstalk measure, not a secret): see the header of page-bridge.js.
 //   hello → hello-ack handshake (repeated whenever the bridge announces `ready`, so it works
 //   whichever of the two scripts starts first), then cmd/res pairs matched by id.
@@ -49,7 +49,10 @@
 
   function onMessage(event) {
     try {
-      if (event.source !== globalThis) return;
+      // Not `event.source === window`: in Firefox's isolated world the source of a message from the page
+      // world is a different wrapper object than our `window` (measured), so that test never passes.
+      // Same origin is what can be checked; the nonce guards the commands' answers.
+      if (event.origin !== globalThis.location?.origin) return;
       const msg = event.data;
       if (msg === null || typeof msg !== 'object' || msg.ns !== NS) return;
       if (msg.dir === 'ready') {

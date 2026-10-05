@@ -500,7 +500,7 @@ describe('page bridge: nonce protocol and the isolated client', () => {
     Object.defineProperty(globalThis, 'removeEventListener', { configurable: true, value: (t, fn) => clientListeners.splice(0, clientListeners.length, ...clientListeners.filter(([x, y]) => !(x === t && y === fn))) });
     Object.defineProperty(globalThis, 'location', { configurable: true, value: { origin: 'https://www.youtube.com' } });
     // The page's single window: a post from either world reaches the listeners of both, asynchronously.
-    const deliver = (data, to) => queueMicrotask(() => to === 'client' ? clientListeners.filter(([t]) => t === 'message').forEach(([, fn]) => fn({ source: globalThis, data: structuredClone(data) })) : main.send(structuredClone(data)));
+    const deliver = (data, to) => queueMicrotask(() => to === 'client' ? clientListeners.filter(([t]) => t === 'message').forEach(([, fn]) => fn({ source: globalThis, origin: 'https://www.youtube.com', data: structuredClone(data) })) : main.send(structuredClone(data)));
     Object.defineProperty(globalThis, 'postMessage', { configurable: true, value: (data) => { deliver(data, 'main'); deliver(data, 'client'); } });
     main.win.onPost = (data) => { deliver(data, 'client'); deliver(data, 'main'); };
     return {
@@ -568,6 +568,44 @@ describe('page bridge: nonce protocol and the isolated client', () => {
     assert.deepEqual(p.calls, []);
     main.send({ ns: 'at-peace', dir: 'cmd', nonce, id: 5, cmd: 'pauseVideo' });
     assert.deepEqual(p.calls, [['pauseVideo']]);
+  });
+
+  test('the client only trusts messages from its own origin, and answers only for its own nonce', async () => {
+    const saved = {};
+    for (const k of ['addEventListener', 'removeEventListener', 'postMessage', 'location']) saved[k] = Object.getOwnPropertyDescriptor(globalThis, k);
+    const listeners = [];
+    const posted = [];
+    Object.defineProperty(globalThis, 'addEventListener', { configurable: true, value: (t, fn) => listeners.push([t, fn]) });
+    Object.defineProperty(globalThis, 'removeEventListener', { configurable: true, value: () => {} });
+    Object.defineProperty(globalThis, 'postMessage', { configurable: true, value: (d) => posted.push(d) });
+    Object.defineProperty(globalThis, 'location', { configurable: true, value: { origin: 'https://www.youtube.com' } });
+    const deliver = (data, origin = 'https://www.youtube.com') => listeners.filter(([t]) => t === 'message').forEach(([, fn]) => fn({ source: globalThis, origin, data }));
+    try {
+      let result = null;
+      const call = AP.yt.bridge.call('getPlayerState').then((r) => (result = r));
+      await new Promise((r) => setTimeout(r, 20));
+      assert.equal(posted[0].dir, 'hello');
+      deliver({ ns: 'at-peace', dir: 'hello-ack' }, 'https://evil.example');
+      await new Promise((r) => setTimeout(r, 30));
+      assert.equal(posted.some((m) => m.dir === 'cmd'), false, 'an ack from another origin does not complete the handshake');
+      deliver({ ns: 'at-peace', dir: 'hello-ack' });
+      await new Promise((r) => setTimeout(r, 30));
+      const cmd = posted.find((m) => m.dir === 'cmd');
+      assert.ok(cmd, 'the command goes out after a real ack');
+      deliver({ ns: 'at-peace', dir: 'res', nonce: 'someone-elses-nonce-0123456789', id: cmd.id, ok: true, value: 9 });
+      deliver({ ns: 'at-peace', dir: 'res', nonce: cmd.nonce, id: cmd.id, ok: true, value: 9 }, 'https://evil.example');
+      await new Promise((r) => setTimeout(r, 30));
+      assert.equal(result, null, 'neither a foreign nonce nor a foreign origin answers it');
+      deliver({ ns: 'at-peace', dir: 'res', nonce: cmd.nonce, id: cmd.id, ok: true, value: 2 });
+      await call;
+      assert.deepEqual(result, { ok: true, value: 2 });
+    } finally {
+      AP.yt.bridge.stop();
+      for (const [k, d] of Object.entries(saved)) {
+        if (d) Object.defineProperty(globalThis, k, d);
+        else delete globalThis[k];
+      }
+    }
   });
 
   test('with no bridge the client degrades: no-bridge, quickly, and never throws', async () => {

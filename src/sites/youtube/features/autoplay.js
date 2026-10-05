@@ -138,6 +138,22 @@
     resetBudgets();
   };
 
+  /**
+   * A video starts playing: the player builds its controls then. In Firefox an unstarted player keeps them
+   * hidden and a click on the switch does nothing (measured, headless Firefox 157: aria-checked stays
+   * "true"), so the budget spent on those clicks is given back and the switch is looked at again once
+   * the controls exist.
+   */
+  const onStarted = (event) => {
+    try {
+      if (!on(AUTOPLAY) || !isMainVideo(event.target)) return;
+      resetBudgets();
+      setTimeout(ensureAutonavOff, 500);
+    } catch (err) {
+      AP.warn('autoplay start handler failed', err);
+    }
+  };
+
   const onEnded = (event) => {
     if (!isMainVideo(event.target)) return;
     setTimeout(cancelCountdown, 400);
@@ -150,6 +166,7 @@
     shared.inputs.acquire();
     window.addEventListener('yt-navigate-start', onNavStart, true);
     document.addEventListener('play', onPlay, true);
+    document.addEventListener('playing', onStarted, true);
     document.addEventListener('ended', onEnded, true);
   }
 
@@ -159,6 +176,7 @@
     shared.inputs.release();
     window.removeEventListener('yt-navigate-start', onNavStart, true);
     document.removeEventListener('play', onPlay, true);
+    document.removeEventListener('playing', onStarted, true);
     document.removeEventListener('ended', onEnded, true);
     clearTimeout(recheckTimer);
     clearTimeout(verifyTimer);

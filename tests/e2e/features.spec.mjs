@@ -38,7 +38,7 @@ let fixtures = null; // { hits } when the offline group is running
 async function startBrowser({ offline }) {
   await launch();
   await mkdir(SHOTS, { recursive: true });
-  if (offline) fixtures = await installYouTubeFixtures(getContext());
+  fixtures = offline ? await installYouTubeFixtures(getContext()) : null;
   page = trackErrors(await getContext().newPage());
   await page.setViewportSize({ width: 1440, height: 900 });
 }
@@ -814,15 +814,27 @@ describe('on live youtube.com (logged out)', () => {
     await paced(SEARCH);
     await waitFor(() => document.querySelectorAll('ytd-video-renderer').length >= 10);
     await waitFor(() => document.querySelector('[data-at-peace-filtered]'));
+    // Cards are filled in progressively: wait until every card agrees with the filter (no card disagreeing for a moment).
+    const disagreeing = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll('ytd-video-renderer')]
+          .map((c) => [c.querySelector('a#video-title')?.getAttribute('title') ?? null, c.hasAttribute('data-at-peace-filtered'), getComputedStyle(c).display === 'none'])
+          .filter(([title, marked, hidden]) => title !== null && (marked !== title.toLowerCase().includes('lofi') || hidden !== marked)),
+      );
+    // (the list keeps growing for a moment while YouTube renders: judge it once the number of cards has settled)
+    let count = -1;
+    for (let stable = 0; stable < 3; ) {
+      await sleep(500);
+      const now = await page.evaluate(() => document.querySelectorAll('ytd-video-renderer').length);
+      stable = now === count ? stable + 1 : 0;
+      count = now;
+    }
+    await waitFor(() => [...document.querySelectorAll('ytd-video-renderer')].every((c) => { const t = c.querySelector('a#video-title')?.getAttribute('title'); return t == null || c.hasAttribute('data-at-peace-filtered') === t.toLowerCase().includes('lofi'); }), null, 6000).catch(() => null);
+    assert.deepEqual(await disagreeing(), [], 'every card agrees with the filter');
     const info = await page.evaluate(() => ({
-      cards: [...document.querySelectorAll('ytd-video-renderer')].map((c) => [c.querySelector('a#video-title')?.getAttribute('title').toLowerCase().includes('lofi'), c.hasAttribute('data-at-peace-filtered'), getComputedStyle(c).display === 'none']),
       shortsLeft: document.querySelectorAll('a[href^="/shorts/"]').length,
       shortsRewritten: document.querySelectorAll('a[data-at-peace-href]').length,
     }));
-    for (const [match, marked, hidden] of info.cards) {
-      assert.equal(marked, Boolean(match));
-      assert.equal(hidden, Boolean(match));
-    }
     assert.equal(info.shortsLeft, 0);
     await shot('live-search-filtered');
     if (info.shortsRewritten > 0) {

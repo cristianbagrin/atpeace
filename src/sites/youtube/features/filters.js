@@ -304,6 +304,29 @@
     if (commentWords.needles.length > 0 || commentWords.regexes.length > 0) evaluateComments(root);
   }
 
+  /**
+   * YouTube sometimes puts a different video into a card that already exists (the title changes in
+   * place: no element is added, so the mutation bus says nothing). One sweep a moment after each burst
+   * of changes re-reads every card's text; evaluating a card is idempotent and touches the DOM only
+   * when its answer changed.
+   */
+  let sweepTimer = null;
+  const SWEEP_MS = 900;
+  function scheduleSweep() {
+    if (sweepTimer !== null) return;
+    sweepTimer = setTimeout(() => {
+      sweepTimer = null;
+      if (current) scan(document.documentElement);
+    }, SWEEP_MS);
+  }
+
+  /** After a navigation, a few later sweeps catch text that settles without any element being added (bounded, not polling). */
+  let lateTimers = [];
+  function sweepLater() {
+    for (const t of lateTimers) clearTimeout(t);
+    lateTimers = [1500, 4000, 9000].map((ms) => setTimeout(() => current && scan(document.documentElement), ms));
+  }
+
   function scheduleRetry() {
     if (retryTimer !== null) return;
     retryTimer = setTimeout(() => {
@@ -338,6 +361,8 @@
     onNavigate(ctx) {
       current = ctx;
       scan(document.documentElement); // cached pages are shown again with their old marks: make sure they are right
+      scheduleSweep();
+      sweepLater();
     },
     onSettings(ctx) {
       current = ctx;
@@ -346,10 +371,15 @@
     onMutations(ctx, roots) {
       current = ctx;
       for (const root of roots) scan(root);
+      scheduleSweep();
     },
     destroy() {
       clearTimeout(retryTimer);
       retryTimer = null;
+      clearTimeout(sweepTimer);
+      sweepTimer = null;
+      for (const t of lateTimers) clearTimeout(t);
+      lateTimers = [];
       pending.clear();
       clearMarks();
       current = null;
