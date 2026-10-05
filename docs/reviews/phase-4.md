@@ -26,3 +26,28 @@ Known gaps (tracked): no live-YouTube verification of picker sizing; no `:has()`
 (picking a generic wrapper hides all of its kind; "Only this one" is positional).
 Bug spotted in a screenshot: stray "false" text after "Your week" on the options page →
 sent to 4b (owner of that page right now).
+
+## 4b — Settings lock, onboarding, follow-ups — approved
+
+Agent-reported: `npm test` 820/820, lint clean (eslint + web-ext 0/0/0), `lock.spec` 14/14 and
+`welcome.spec` 6/6 (Chromium), `tests/firefox/lock.mjs` 4/4 (real Firefox, incl. a real 10 s
+friction wait and fresh-install welcome). Screens reviewed: welcome (three numbered steps,
+ledger rows, calm copy), locked popup refusal ("Locked. That would show something again.
+Unlock…"), friction unlock dialog. All faithful to §9.
+
+Lock semantics: tightening always allowed; loosening needs a 10-minute unlock; a single pure
+`AP.lock.isLoosening(def, old, new)` with a per-setting matrix test; `guardPatch` on every
+page plus background enforcement of FOCUS_END, STATS_CLEAR and the on/off shortcut; a unit test
+fails if any page writes settings without the guard. Password = PBKDF2-SHA256 250k + salt,
+never stored. Friction is trusted from the page (acceptable: "protect from your 11 pm self").
+
+Follow-ups closed: popup short labels (#1), `requires: 'id=value'` (#2), STATS_CLEAR (#3),
+lock + custom-rules renderers (#4), stray "false" (fixed at the root: `replaceChildren` with a
+boolean; regression test walks all text nodes).
+
+New items for Phase 5:
+- Audit every `waitForFunction(async …)` in tests: Playwright doesn't await a promise-returning
+  predicate, so those waits may pass vacuously. Replace with a polling `until()` helper.
+- PLAN §5/§8.1 should list `state.lockUnlockedUntil`, `LOCK_UNLOCK`, `LOCK_RELOCK`,
+  `STATS_CLEAR`, `ONBOARDING_DONE` (Opus updates PLAN).
+- Zen pin instructions: verify wording in Zen (user checklist).
