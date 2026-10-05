@@ -51,3 +51,26 @@ New items for Phase 5:
 - PLAN §5/§8.1 should list `state.lockUnlockedUntil`, `LOCK_UNLOCK`, `LOCK_RELOCK`,
   `STATS_CLEAR`, `ONBOARDING_DONE` (Opus updates PLAN).
 - Zen pin instructions: verify wording in Zen (user checklist).
+
+# Review — Phase 6 (Dial re-skin) — approved
+
+The user rejected the first visual direction as generic. Opus re-seeded the design (design-seed
+skill), studied Untrap's store screenshots, and drew the "Dial" direction on a Claude Design
+board; Sonnet K ported it to every surface.
+
+Verified: screenshots reviewed (pause choice, blocked focus, options Video page, popup, welcome,
+home placeholder on dark YouTube, icon sizes on light/dark toolbars) — faithful to the board.
+Agent-reported: `npm test` 855/855, lint clean, Chromium UI E2E 141/141, Firefox UI/mindful/
+picker/lock/features 39 pass / 3 skipped (live YouTube captcha). Contrast for every token pair is
+asserted; switch track/field borders were darkened to reach 3:1 (`--field-line`), dark-mode
+primary buttons use dark text (`--on-act`).
+
+Opus follow-up: the popup measured ~660 px with every section shown (Firefox caps popups at
+600 px) → compacted rows (28 px), focus and stat tiles; measured 591 px; popup spec 21/21.
+
+Kept on purpose: strings asserted by tests (blocked titles, "Breathe in…", "Continue for"), native
+selects where a segmented control doesn't fit (default speed, theme), the pause minutes as a
+segmented mirror of the real `<select>`.
+
+Open: two intermittent E2E flakes handed to Phase 5 (popup footer timing; focus spec racing the
+install-time Gentle preset).

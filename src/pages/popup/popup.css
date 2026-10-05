@@ -9,8 +9,8 @@ body {
   width: 360px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px 14px 14px;
+  gap: 8px;
+  padding: 10px 14px 12px;
   font-size: 13px;
 }
 
@@ -113,7 +113,8 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  min-height: 32px;
+  /* 28 px rows keep eleven quick settings, Focus and Today inside Firefox's 600 px popup. */
+  min-height: 28px;
   padding: 0 12px;
 }
 
@@ -172,8 +173,8 @@ body {
 .focus-block {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px;
+  gap: 8px;
+  padding: 10px 12px;
   border: 1px solid var(--panel-line);
   border-radius: 10px;
   background: var(--panel);
@@ -191,7 +192,7 @@ body {
 }
 
 .focus-buttons .btn {
-  min-height: 32px;
+  min-height: 30px;
   padding-inline: 4px;
   border-color: transparent;
   background: var(--ground);
@@ -260,14 +261,14 @@ body {
 }
 
 .stat {
-  padding: 10px 12px;
+  padding: 7px 12px;
   border: 1px solid var(--panel-line);
   border-radius: 10px;
   background: var(--panel);
 }
 
 .stat-value {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   line-height: 1.25;
   font-variant-numeric: tabular-nums;
