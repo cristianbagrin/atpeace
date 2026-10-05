@@ -301,7 +301,7 @@ map of a preset applied by an active schedule (§8.4) or `null`. Computed by
 |---|---|---|
 | `settings` | `{ [id]: value }` — only values that differ from default are required, but full maps are fine | options, popup, welcome |
 | `customPresets` | `[{ id, name, values: {[id]: value}, createdAt }]` | options |
-| `state` | `{ sessions: {[siteKey]: untilMs}, block: {until, reason, siteKeys[]}\|null, extraTime: {[day]: minutes}, scheduleOverride: presetId\|null }` | background (only) |
+| `state` | `{ sessions: {[siteKey]: untilMs}, sessionMinutes, block: {until, reason, siteKeys[]}\|null, blocks: [...], extraTime: {[day]: minutes}, scheduleOverride: presetId\|null, lockUnlockedUntil }` | background (only) |
 | `stats` | `{ [YYYY-MM-DD]: { [siteKey]: { activeSec, opens, turnedBack, continued, blockedHits } } }` (keep 90 days) | background (only) |
 | `meta` | `{ schemaVersion, installedAt, onboarded, lastVersion }` | background |
 
@@ -480,6 +480,8 @@ from storage on each event. Use `alarms` for anything in the future.
 `FOCUS_START {minutes|untilEndOfDay, siteKeys}`, `FOCUS_END`, `HEARTBEAT {siteKey}`,
 `CLOSE_TAB` (closes `sender.tab.id`), `GET_STATUS` → `{ block, sessions, today stats, schedule }`,
 `OPEN_OPTIONS {section?}`, `START_PICKER`.
+Added during the build: `LIMIT_GRACE`, `BLOCKED_OPENED` (3c); `LOCK_UNLOCK {password|frictionDone}`,
+`LOCK_RELOCK`, `STATS_CLEAR`, `ONBOARDING_DONE` (4b — accepted only from extension pages).
 
 ### 8.2 DNR rules compiler (`rules.js`)
 
