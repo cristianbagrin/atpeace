@@ -125,6 +125,9 @@ export const SCENARIOS = [
   {
     name: 'a compiled static rule really applies in the browser (the page does not block the injected <style>)',
     async run(b) {
+      // Start from the untouched baseline: a fresh install applies the Gentle preset, which
+      // already hides the button this scenario toggles.
+      await b.setStorage({ settings: {} });
       await open(b);
       // A real catalog setting whose element exists on every logged-out page.
       const id = 'yt.masthead.hideVoiceSearch';
@@ -132,7 +135,7 @@ export const SCENARIOS = [
       const { css } = await state(b);
       assert.ok(css.includes(id), `the compiled sheet contains rules for ${id}`);
       await waitFor(b, (sel) => Boolean(document.querySelector(sel)), button, { what: 'the voice search button' });
-      assert.notEqual((await b.evaluate(elementInfo, button)).display, 'none');
+      await waitFor(b, (sel) => getComputedStyle(document.querySelector(sel)).display !== 'none', button, { what: 'the button to be visible at baseline' });
       await b.setStorage({ settings: { [id]: true } });
       await waitFor(b, (sel) => getComputedStyle(document.querySelector(sel)).display === 'none', button, { what: 'the button to disappear' });
       await b.setStorage({ settings: {} });
