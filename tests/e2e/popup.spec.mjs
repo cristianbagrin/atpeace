@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { launch, close, getContext, extUrl, trackErrors, setStorage, getStorage, evalInExtension, ARTIFACTS } from './harness.mjs';
+import { pageUntil } from '../helpers/wait.mjs';
 
 const SHOTS = join(ARTIFACTS, 'ui');
 const POPUP = 'src/pages/popup/popup.html';
@@ -99,19 +100,19 @@ test('a quick toggle and a quick select save to storage, and the master switch d
   const page = await openPopup();
   const toggleId = (await registryQuick(page)).find((q) => q.type === 'toggle' && q.id.startsWith('yt.')).id;
   await quickRow(page, toggleId).locator('.row-label').click();
-  await page.waitForFunction(async (id) => (await chrome.storage.local.get('settings')).settings?.[id] === true, toggleId);
+  await pageUntil(page, async (id) => (await chrome.storage.local.get('settings')).settings?.[id] === true, toggleId);
 
   const select = (await registryQuick(page)).find((q) => q.type === 'select');
   const value = await page.evaluate((id) => globalThis.AtPeace.schema.get(id).options.at(-1).value, select.id);
   await quickRow(page, select.id).locator('select').selectOption(value);
-  await page.waitForFunction(async ([id, v]) => (await chrome.storage.local.get('settings')).settings?.[id] === v, [select.id, value]);
+  await pageUntil(page, async ([id, v]) => (await chrome.storage.local.get('settings')).settings?.[id] === v, [select.id, value]);
 
   await page.locator('#master input.switch').click();
-  await page.waitForFunction(async () => (await chrome.storage.local.get('settings')).settings?.['general.enabled'] === false);
+  await pageUntil(page, async () => (await chrome.storage.local.get('settings')).settings?.['general.enabled'] === false);
   assert.equal(await page.locator('.master-state').textContent(), 'Off');
   assert.equal(await page.evaluate(() => document.body.dataset.master), 'off');
   await page.locator('#master input.switch').click();
-  await page.waitForFunction(async () => (await chrome.storage.local.get('settings')).settings?.['general.enabled'] === true);
+  await pageUntil(page, async () => (await chrome.storage.local.get('settings')).settings?.['general.enabled'] === true);
   assert.equal(await page.locator('.master-state').textContent(), 'On');
   assert.deepEqual(page.errors, []);
   await page.close();
@@ -123,7 +124,7 @@ test('bulk chips set every tagged setting, show partly, and go back off', async 
   const chip = page.locator('.chip', { hasText: 'Comments' });
   assert.equal(await chip.getAttribute('data-state'), 'none');
   await chip.click();
-  await page.waitForFunction(async (t) => {
+  await pageUntil(page, async (t) => {
     const s = (await chrome.storage.local.get('settings')).settings ?? {};
     return Object.entries(t).every(([id, v]) => s[id] === v);
   }, targets);
@@ -382,7 +383,7 @@ test('the preset menu asks before replacing anything, and applies on "Apply"', a
 
   await page.locator('#preset-select').selectOption('focused');
   await bar.getByRole('button', { name: 'Apply' }).click();
-  await page.waitForFunction(async (id) => (await chrome.storage.local.get('settings')).settings?.[id] !== undefined, Object.keys(expected)[0]);
+  await pageUntil(page, async (id) => (await chrome.storage.local.get('settings')).settings?.[id] !== undefined, Object.keys(expected)[0]);
   const stored = await settings();
   for (const [id, v] of Object.entries(expected)) assert.deepEqual(stored[id], v, id);
   await page.waitForFunction(() => document.querySelector('#preset-select').value === 'focused');
@@ -472,7 +473,7 @@ test('keyboard only: a sensible Tab order, visible focus everywhere, Space and E
   const toggle = quick.find((q) => q.type === 'toggle' && q.id.startsWith('yt.'));
   await page.locator(`.row[data-id="${toggle.id}"] input.switch`).focus();
   await page.keyboard.press('Space');
-  await page.waitForFunction(async (id) => (await chrome.storage.local.get('settings')).settings?.[id] === true, toggle.id);
+  await pageUntil(page, async (id) => (await chrome.storage.local.get('settings')).settings?.[id] === true, toggle.id);
   await page.locator('.chip', { hasText: 'Shorts' }).focus();
   await page.keyboard.press('Enter');
   await page.waitForFunction(() => document.querySelector('.chip[data-state="all"]'));

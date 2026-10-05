@@ -83,6 +83,12 @@ export default [
     },
   },
 
+  // Test-only content script (a classic script injected into the Chromium variant of the extension).
+  {
+    files: ['tests/helpers/instrument.js'],
+    languageOptions: { sourceType: 'script', globals: { ...globals.browser } },
+  },
+
   // Firefox chrome-context scripts (executeScript after setContext('chrome')) see these.
   {
     files: ['tests/firefox/**/*.mjs'],

@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { launch, close, getContext, extUrl, trackErrors, setStorage, getStorage, evalInExtension, ARTIFACTS } from './harness.mjs';
+import { until } from '../helpers/wait.mjs';
 
 const SHOTS = join(ARTIFACTS, 'lock');
 const OPTIONS = 'src/pages/options/options.html';
@@ -56,15 +57,6 @@ const switchOf = (page, id) => row(page, id).locator('input.switch');
 const dialog = (page) => page.locator('dialog[open]');
 const lockBar = (page) => page.locator('.lock-bar');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-/** Polls an async condition (page.waitForFunction does not wait for a promise-returning predicate). */
-async function until(check, timeout = 8000) {
-  const start = Date.now();
-  while (!(await check())) {
-    if (Date.now() - start > timeout) throw new Error(`condition not met within ${timeout} ms: ${check}`);
-    await sleep(50);
-  }
-}
-
 /** A real password lock, made the way the page makes it. */
 async function passwordLock(password = PASSWORD) {
   return evalInExtension((p) => globalThis.AtPeace.lock.createPasswordLock(p), password);

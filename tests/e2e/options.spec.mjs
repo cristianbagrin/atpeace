@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { launch, close, getContext, extUrl, trackErrors, setStorage, getStorage, evalInExtension, ARTIFACTS } from './harness.mjs';
+import { pageUntil } from '../helpers/wait.mjs';
 
 const SHOTS = join(ARTIFACTS, 'ui');
 const OPTIONS = 'src/pages/options/options.html';
@@ -119,12 +120,12 @@ test('toggling a switch saves at once and shows "Saved"; toggling back stores th
   assert.equal(await input.isChecked(), false);
 
   await row(page, id).locator('.row-label').click(); // the whole row is the click target
-  await page.waitForFunction(async (key) => (await chrome.storage.local.get('settings')).settings?.[key] === true, id);
+  await pageUntil(page, async (key) => (await chrome.storage.local.get('settings')).settings?.[key] === true, id);
   assert.equal(await input.isChecked(), true);
   await page.waitForSelector('.saved.is-visible');
 
   await input.click();
-  await page.waitForFunction(async (key) => (await chrome.storage.local.get('settings')).settings?.[key] === false, id);
+  await pageUntil(page, async (key) => (await chrome.storage.local.get('settings')).settings?.[key] === false, id);
   assert.equal((await settings())[id], false);
   assert.deepEqual(page.errors, []);
   await page.close();
@@ -137,7 +138,7 @@ test('selects save the chosen option', async () => {
     return { id: def.id, value: def.options.at(-1).value };
   });
   await row(page, id).locator('select').selectOption(value);
-  await page.waitForFunction(async ([key, v]) => (await chrome.storage.local.get('settings')).settings?.[key] === v, [id, value]);
+  await pageUntil(page, async ([key, v]) => (await chrome.storage.local.get('settings')).settings?.[key] === v, [id, value]);
   await page.close();
 });
 
@@ -175,7 +176,7 @@ test('a number out of range is explained inline and never saved; a good one is',
 
   await input.fill('12');
   await input.blur();
-  await page.waitForFunction(async () => (await chrome.storage.local.get('settings')).settings?.['pause.breathSeconds'] === 12);
+  await pageUntil(page, async () => (await chrome.storage.local.get('settings')).settings?.['pause.breathSeconds'] === 12);
   assert.equal(await row(page, 'pause.breathSeconds').locator('.row-error').isVisible(), false);
   assert.equal(await input.getAttribute('aria-invalid'), 'false');
   await page.close();
@@ -198,7 +199,7 @@ test('word lists: one entry per line, a broken /regex/ is explained and not save
 
   await area.fill('spoiler\n/colou?r/i\n\nspoiler\nleak');
   await area.blur();
-  await page.waitForFunction(async (key) => JSON.stringify((await chrome.storage.local.get('settings')).settings?.[key]) === '["spoiler","/colou?r/i","leak"]', id);
+  await pageUntil(page, async (key) => JSON.stringify((await chrome.storage.local.get('settings')).settings?.[key]) === '["spoiler","/colou?r/i","leak"]', id);
   assert.equal(await error.isVisible(), false);
   await page.close();
 });
@@ -226,7 +227,7 @@ test('a text setting the schema refuses is explained and not saved; a valid one 
 
   await input.fill('/feed/subscriptions');
   await input.blur();
-  await page.waitForFunction(async (id) => (await chrome.storage.local.get('settings')).settings?.[id] === '/feed/subscriptions', def.id);
+  await pageUntil(page, async (id) => (await chrome.storage.local.get('settings')).settings?.[id] === '/feed/subscriptions', def.id);
   assert.equal(await row(page, def.id).locator('.row-error').isVisible(), false);
   await page.close();
 });
@@ -300,7 +301,7 @@ test('bulk chips show all / partly / off and set every tagged setting', async ()
   assert.equal(await chip.getAttribute('aria-pressed'), 'false');
 
   await chip.click();
-  await page.waitForFunction(async (t) => {
+  await pageUntil(page, async (t) => {
     const s = (await chrome.storage.local.get('settings')).settings ?? {};
     return Object.entries(t).every(([id, v]) => s[id] === v);
   }, targets);
@@ -352,7 +353,7 @@ test('presets: apply (with confirmation), save current, rename, delete', async (
   assert.deepEqual(await settings(), {});
   await presetButton(page, 'Focused', 'Apply').click();
   await confirmDialog(page).click();
-  await page.waitForFunction(async (id) => (await chrome.storage.local.get('settings')).settings?.[id] !== undefined, expected.ids[0]);
+  await pageUntil(page, async (id) => (await chrome.storage.local.get('settings')).settings?.[id] !== undefined, expected.ids[0]);
   const applied = await settings();
   for (const [id, v] of Object.entries(expected.values)) assert.deepEqual(applied[id], v, id);
   await page.waitForFunction(() => document.querySelector('.preset-now')?.textContent.includes('Focused'));
@@ -362,7 +363,7 @@ test('presets: apply (with confirmation), save current, rename, delete', async (
   await page.getByRole('button', { name: /Save my current settings as a preset/ }).click();
   await page.locator('dialog[open] input[type="text"]').fill('Evening');
   await confirmDialog(page).click();
-  await page.waitForFunction(async () => (await chrome.storage.local.get('customPresets')).customPresets?.length === 1);
+  await pageUntil(page, async () => (await chrome.storage.local.get('customPresets')).customPresets?.length === 1);
   const custom = (await getStorage('customPresets')).customPresets;
   assert.equal(custom[0].name, 'Evening');
   for (const [id, v] of Object.entries(expected.values)) assert.deepEqual(custom[0].values[id], v, `custom preset keeps ${id}`);
@@ -373,13 +374,13 @@ test('presets: apply (with confirmation), save current, rename, delete', async (
   assert.equal(await field.inputValue(), 'Evening');
   await field.fill('Wind-down');
   await confirmDialog(page).click();
-  await page.waitForFunction(async () => (await chrome.storage.local.get('customPresets')).customPresets?.[0]?.name === 'Wind-down');
+  await pageUntil(page, async () => (await chrome.storage.local.get('customPresets')).customPresets?.[0]?.name === 'Wind-down');
 
   // Delete it (asks first).
   await presetButton(page, 'Wind-down', 'Delete').click();
   assert.match(await page.locator('dialog[open]').textContent(), /will be removed/);
   await confirmDialog(page).click();
-  await page.waitForFunction(async () => ((await chrome.storage.local.get('customPresets')).customPresets ?? []).length === 0);
+  await pageUntil(page, async () => ((await chrome.storage.local.get('customPresets')).customPresets ?? []).length === 0);
   await page.keyboard.press('Escape');
   assert.deepEqual(page.errors, []);
   await page.close();
@@ -417,7 +418,7 @@ test('backup: export, reset, import restores the settings and presets; the repor
   assert.deepEqual(await settings(), before);
   await page.getByRole('button', { name: 'Reset…' }).click();
   await confirmDialog(page).click();
-  await page.waitForFunction(async () => Object.keys((await chrome.storage.local.get('settings')).settings ?? {}).length === 0);
+  await pageUntil(page, async () => Object.keys((await chrome.storage.local.get('settings')).settings ?? {}).length === 0);
   assert.equal((await getStorage('customPresets')).customPresets.length, 1, 'presets survive a reset');
   await page.waitForFunction(() => document.documentElement.dataset.theme === 'light'); // the theme went back to the default
   await page.waitForFunction(() => !document.querySelector('.row[data-id="yt.general.hideAds"] input.switch').checked);

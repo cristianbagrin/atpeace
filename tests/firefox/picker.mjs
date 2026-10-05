@@ -17,6 +17,7 @@ import { join } from 'node:path';
 import { By, Key } from 'selenium-webdriver';
 import { launchFirefox, extUrl, ROOT } from './_harness.mjs';
 import { fixturesAvailable, startFixtureServer } from '../e2e/_yt-fixture.mjs';
+import { until } from '../helpers/wait.mjs';
 
 const SHOTS = join(ROOT, 'tests', 'e2e', 'artifacts', 'picker');
 const HAVE = fixturesAvailable();
@@ -52,17 +53,6 @@ const url = (path) => `${server.origin}${path}`;
 const WATCH = '/watch?v=abc';
 const PLAYLIST = '/playlist?list=PL1';
 const shot = async (name) => writeFile(join(SHOTS, `${name}.png`), await driver.takeScreenshot(), 'base64');
-
-async function until(fn, what, timeout = 8000) {
-  const end = Date.now() + timeout;
-  let last;
-  while (Date.now() < end) {
-    last = await fn();
-    if (last) return last;
-    await sleep(80);
-  }
-  throw new Error(`timed out waiting for ${what}`);
-}
 
 /** Runs fn in a dedicated tab on an extension page (messages and storage work there), then returns to the tab we came from. */
 async function inExt(fn) {

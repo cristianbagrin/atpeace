@@ -6,6 +6,7 @@ import { test, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { launch, close, extUrl, evalInExtension } from './harness.mjs';
 import { resetStorage, configure, newTab, shotEl, dnrRules, settle, ourErrors } from './_mindful.mjs';
+import { pageUntil } from '../helpers/wait.mjs';
 
 before(async () => {
   await launch();
@@ -119,7 +120,7 @@ test('pause sites: switch a site off, then remove it (the access is handed back)
   await editor.locator('.site').nth(1).waitFor();
 
   await editor.getByLabel('Pause before opening example.org').uncheck();
-  await page.waitForFunction(async () => (await chrome.storage.local.get('settings')).settings['pause.sites'][1].enabled === false);
+  await pageUntil(page, async () => (await chrome.storage.local.get('settings')).settings['pause.sites'][1].enabled === false);
 
   await editor.getByRole('button', { name: 'Remove example.org' }).click();
   await page.waitForFunction(() => document.querySelectorAll('[data-id="pause.sites"] .site').length === 1);
@@ -164,12 +165,12 @@ test('schedules: add one, change days and times, switch preset; invalid edits wa
   // Days: add Saturday, drop Monday.
   await editor.getByRole('button', { name: 'Saturday' }).click();
   await editor.getByRole('button', { name: 'Monday' }).click();
-  await page.waitForFunction(async () => JSON.stringify((await chrome.storage.local.get('settings')).settings['focus.schedules'][0].days) === '[2,3,4,5,6]');
+  await pageUntil(page, async () => JSON.stringify((await chrome.storage.local.get('settings')).settings['focus.schedules'][0].days) === '[2,3,4,5,6]');
 
   // Times, including one that runs past midnight.
   await editor.getByLabel(/^Start time for/).fill('22:00');
   await editor.getByLabel(/^End time for/).fill('06:30');
-  await page.waitForFunction(async () => {
+  await pageUntil(page, async () => {
     const s = (await chrome.storage.local.get('settings')).settings['focus.schedules'][0];
     return s.start === '22:00' && s.end === '06:30';
   });
@@ -182,7 +183,7 @@ test('schedules: add one, change days and times, switch preset; invalid edits wa
   assert.equal(schedules[0].end, '06:30', 'the last valid version is still what is stored');
   await shotEl(editor, 'options-schedules-invalid');
   await editor.getByLabel(/^End time for/).fill('07:00');
-  await page.waitForFunction(async () => (await chrome.storage.local.get('settings')).settings['focus.schedules'][0].end === '07:00');
+  await pageUntil(page, async () => (await chrome.storage.local.get('settings')).settings['focus.schedules'][0].end === '07:00');
   assert.equal(await editor.getByRole('alert').filter({ hasText: 'cannot be the same' }).count(), 0);
 
   // No days at all.
@@ -190,13 +191,13 @@ test('schedules: add one, change days and times, switch preset; invalid edits wa
   await editor.getByRole('alert').filter({ hasText: 'at least one day' }).waitFor();
   assert.equal((await stored())['focus.schedules'][0].days.length, 1, 'one day was still stored before the last click');
   await editor.getByRole('button', { name: 'Sunday' }).click();
-  await page.waitForFunction(async () => JSON.stringify((await chrome.storage.local.get('settings')).settings['focus.schedules'][0].days.sort()) === '[0]');
+  await pageUntil(page, async () => JSON.stringify((await chrome.storage.local.get('settings')).settings['focus.schedules'][0].days.sort()) === '[0]');
 
   // Apply a preset instead of closing the site.
   await editor.getByLabel(/^What .* does/).selectOption('preset:deep-work');
-  await page.waitForFunction(async () => (await chrome.storage.local.get('settings')).settings['focus.schedules'][0].action === 'preset:deep-work');
+  await pageUntil(page, async () => (await chrome.storage.local.get('settings')).settings['focus.schedules'][0].action === 'preset:deep-work');
   await editor.getByLabel(/is on$/).uncheck();
-  await page.waitForFunction(async () => (await chrome.storage.local.get('settings')).settings['focus.schedules'][0].enabled === false);
+  await pageUntil(page, async () => (await chrome.storage.local.get('settings')).settings['focus.schedules'][0].enabled === false);
   assert.deepEqual(ourErrors(page), []);
   await page.close();
 });
@@ -214,7 +215,7 @@ test('schedules: several, named, with custom presets listed; remove works', asyn
   await page.waitForFunction(() => document.querySelectorAll('[data-id="focus.schedules"] .sched').length === 2);
   await editor.getByLabel('Name of schedule 2').fill('Evenings');
   await editor.getByLabel('Name of schedule 2').press('Tab');
-  await page.waitForFunction(async () => (await chrome.storage.local.get('settings')).settings['focus.schedules'][1].name === 'Evenings');
+  await pageUntil(page, async () => (await chrome.storage.local.get('settings')).settings['focus.schedules'][1].name === 'Evenings');
   await shotEl(editor, 'options-schedules');
   await editor.getByRole('button', { name: 'Remove Work hours' }).click();
   await page.waitForFunction(() => document.querySelectorAll('[data-id="focus.schedules"] .sched').length === 1);

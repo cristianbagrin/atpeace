@@ -6,21 +6,11 @@ import assert from 'node:assert/strict';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { launch, close, getContext, extUrl, trackErrors, setStorage, getStorage, evalInExtension, ARTIFACTS } from './harness.mjs';
+import { until } from '../helpers/wait.mjs';
 
 const SHOTS = join(ARTIFACTS, 'lock');
 const WELCOME = 'src/pages/welcome/welcome.html';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-/** Polls an async condition (page.waitForFunction does not wait for a promise-returning predicate). */
-async function until(check, timeout = 8000) {
-  const start = Date.now();
-  let last;
-  while (!(last = await check())) {
-    if (Date.now() - start > timeout) throw new Error(`condition not met within ${timeout} ms: ${check}`);
-    await sleep(50);
-  }
-  return last;
-}
 
 let installTab = null;
 

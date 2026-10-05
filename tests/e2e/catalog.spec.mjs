@@ -20,6 +20,7 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { launch, close, getContext, setStorage, trackErrors, ARTIFACTS } from './harness.mjs';
+import { watchGate, liveSkipReason } from './_live.mjs';
 
 const SHOTS = join(ARTIFACTS, 'catalog');
 const PAUSE_MS = Number(process.env.CATALOG_PAUSE_MS ?? 12_000);
@@ -37,7 +38,7 @@ let lastLoad = 0;
 before(async () => {
   await launch();
   await mkdir(SHOTS, { recursive: true });
-  page = trackErrors(await getContext().newPage());
+  page = watchGate(trackErrors(await getContext().newPage()));
   await page.setViewportSize({ width: 1440, height: 900 });
 });
 
@@ -173,9 +174,10 @@ function group(name, fn) {
     try {
       await fn(t);
     } catch (err) {
-      if (err?.code === 'YT_SORRY') {
+      const why = await liveSkipReason(err, page);
+      if (why) {
         skippedGroups.push(name);
-        return t.skip(`${err.message}; run again in a few minutes`);
+        return t.skip(why);
       }
       throw err;
     }

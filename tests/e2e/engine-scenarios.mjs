@@ -15,20 +15,14 @@
 // which is fine; the engine does not care what is on the page, only which page it is.
 import assert from 'node:assert/strict';
 import { engineState, elementInfo, setReloadMarker, getReloadMarker, startRecording, stopRecording } from './_page-fns.mjs';
+import { until } from '../helpers/wait.mjs';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const HOME = 'https://www.youtube.com/';
 const SEARCH = 'https://www.youtube.com/results?search_query=lofi';
 
-export async function waitFor(b, fn, arg, { timeout = 20_000, interval = 100, what = 'condition' } = {}) {
-  const end = Date.now() + timeout;
-  let last;
-  while (Date.now() < end) {
-    last = await b.evaluate(fn, arg);
-    if (last) return last;
-    await sleep(interval);
-  }
-  throw new Error(`timed out waiting for ${what}; last value: ${JSON.stringify(last)}`);
+export function waitFor(b, fn, arg, { timeout = 20_000, interval = 100, what = 'condition' } = {}) {
+  return until(() => b.evaluate(fn, arg), { timeout, interval, what });
 }
 
 const state = (b) => b.evaluate(engineState);

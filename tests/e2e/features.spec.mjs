@@ -19,6 +19,8 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { launch, close, getContext, setStorage, evalInExtension, trackErrors, extensionDiagnostics, extUrl, ARTIFACTS } from './harness.mjs';
 import { fixturesAvailable, installYouTubeFixtures } from './_yt-fixture.mjs';
+import { until } from '../helpers/wait.mjs';
+import { watchGate, liveSkipReason, gate } from './_live.mjs';
 
 const SHOTS = join(ARTIFACTS, 'features');
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -39,7 +41,7 @@ async function startBrowser({ offline }) {
   await launch();
   await mkdir(SHOTS, { recursive: true });
   fixtures = offline ? await installYouTubeFixtures(getContext()) : null;
-  page = trackErrors(await getContext().newPage());
+  page = watchGate(trackErrors(await getContext().newPage()));
   await page.setViewportSize({ width: 1440, height: 900 });
 }
 
@@ -54,14 +56,11 @@ const dnrRules = () => evalInExtension(() => chrome.declarativeNetRequest.getDyn
 
 /** Waits until the background's dynamic rules satisfy `predicate` (it applies them a moment after the storage change). */
 async function waitForRules(predicate, what) {
-  const end = Date.now() + 8000;
   let last = [];
-  while (Date.now() < end) {
-    last = await dnrRules();
-    if (predicate(last)) return last;
-    await sleep(100);
-  }
-  throw new Error(`timed out waiting for DNR rules: ${what}; have ${JSON.stringify(last.map((r) => r.condition.regexFilter))}`);
+  await until(async () => predicate((last = await dnrRules())), { timeout: 8000, interval: 100, what: `DNR rules: ${what}` }).catch((err) => {
+    throw new Error(`${err.message}; have ${JSON.stringify(last.map((r) => r.condition.regexFilter))}`);
+  });
+  return last;
 }
 
 /** Navigates and waits for the engine's first settings (and, offline, for the snapshot to be built). */
@@ -90,7 +89,8 @@ function live(name, fn) {
     try {
       await fn(t);
     } catch (err) {
-      if (err?.code === 'YT_SORRY') return t.skip(`${err.message}; try again later`);
+      const why = await liveSkipReason(err, page);
+      if (why) return t.skip(why);
       throw err;
     }
   });
@@ -790,7 +790,15 @@ describe('on live youtube.com (logged out)', () => {
     await configure({ 'yt.home.feedMode': 'hide', 'yt.guide.hideWatchLater': true });
     await paced(HOME);
     await waitFor(() => document.querySelector('[data-at-peace-placeholder="home"]'));
-    await waitFor(() => document.querySelectorAll('ytd-guide-entry-renderer[data-at-peace-entry]').length >= 4);
+    // Live YouTube sometimes serves the home page with no sidebar entries in the DOM at all (a page variant, seen
+    // in Chromium and Firefox): that says nothing about the bridge, whose guide tags are checked on the snapshot.
+    await waitFor(() => document.querySelectorAll('ytd-guide-entry-renderer').length >= 5, null, 15_000).catch(() => {
+      throw gate('Live YouTube served the home page without its sidebar entries (guide tags are checked on the offline snapshot instead)');
+    });
+    await waitFor(() => document.querySelectorAll('ytd-guide-entry-renderer[data-at-peace-entry]').length >= 4).catch(async (err) => {
+      const seen = await page.evaluate(() => `${document.querySelectorAll('ytd-guide-entry-renderer').length} guide entries, ${document.querySelectorAll('[data-at-peace-entry]').length} tagged`);
+      throw new Error(`${err.message} (${seen})`);
+    });
     const tags = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('ytd-guide-entry-renderer[data-at-peace-entry]')].map((e) => [e.getAttribute('data-at-peace-entry'), e.querySelector('a#endpoint')?.getAttribute('href') ?? null])));
     assert.deepEqual(tags, { home: '/', shorts: null, subscriptions: '/feed/subscriptions', you: '/feed/you', history: '/feed/history' });
     assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('ytd-browse[page-subtype="home"] #primary')).display), 'none');

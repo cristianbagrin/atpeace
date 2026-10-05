@@ -19,6 +19,7 @@ import { fixturesAvailable, installYouTubeFixtures } from './_yt-fixture.mjs';
 import {
   startPicker, phase, waitPhase, readPanel, clickInPanel, clickOnlyThisOne, windowListenerCount, waitEngine, allHidden, noneHidden, storedRules, displays,
 } from './_picker.mjs';
+import { until } from '../helpers/wait.mjs';
 
 const SHOTS = join(ARTIFACTS, 'picker');
 const WATCH = 'https://www.youtube.com/watch?v=abc';
@@ -53,17 +54,6 @@ async function open(url) {
 }
 
 const shot = (page, name) => page.screenshot({ path: join(SHOTS, `${name}.png`) });
-
-async function until(fn, what, timeout = 6000) {
-  const end = Date.now() + timeout;
-  let last;
-  while (Date.now() < end) {
-    last = await fn();
-    if (last) return last;
-    await new Promise((resolve) => setTimeout(resolve, 60));
-  }
-  throw new Error(`timed out waiting for ${what}`);
-}
 
 /** The middle of an element's box, in viewport coordinates. */
 async function centerOf(page, selector, nth = 0) {

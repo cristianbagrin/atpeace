@@ -10,7 +10,8 @@
 // with a grey PNG so nothing leaves the machine.
 //
 //   fixturesAvailable(names?)           → boolean; specs call it first and skip when it is false
-//   fixtureNameForUrl(url)              → snapshot name for a www.youtube.com URL (or null)
+//   fixtureNameForUrl(url)              → snapshot name for a www.youtube.com URL (or null); `?fixture=<name>` forces
+//                                         one (any snapshot on this machine, e.g. /?fixture=home-narrow)
 //   fixtureHtml(name, { url? })         → the HTML document (string)
 //   installYouTubeFixtures(context, {  → Playwright: answers every https://www.youtube.com/** request
 //     map?, stubImages? })                 with the matching snapshot (others: 404), returns { hits }
@@ -47,6 +48,8 @@ export function fixtureNameForUrl(url) {
   } catch {
     return null;
   }
+  const forced = parsed.searchParams.get('fixture');
+  if (forced && /^[a-z0-9-]+$/.test(forced) && existsSync(snapshotPath(forced))) return forced;
   const [first = '', second = ''] = parsed.pathname.split('/').filter(Boolean);
   if (first === '') return 'home';
   if (first === 'watch') return 'watch-chapters';

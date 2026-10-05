@@ -18,6 +18,7 @@ import { join } from 'node:path';
 import { By, Key } from 'selenium-webdriver';
 import { launchFirefox, extUrl, ROOT } from './_harness.mjs';
 import { fixturesAvailable, startFixtureServer } from '../e2e/_yt-fixture.mjs';
+import { until } from '../helpers/wait.mjs';
 
 const SHOTS = join(ROOT, 'tests', 'e2e', 'artifacts', 'features');
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -45,16 +46,6 @@ function tools(ff) {
     }
   }
 
-  const until = async (fn, what, timeout = 15_000) => {
-    const end = Date.now() + timeout;
-    let last;
-    while (Date.now() < end) {
-      last = await fn();
-      if (last) return last;
-      await sleep(100);
-    }
-    throw new Error(`timed out waiting for ${what}; last: ${JSON.stringify(last)}`);
-  };
   const run = (fn, arg) => driver.executeScript(fn, arg ?? null);
 
   return {

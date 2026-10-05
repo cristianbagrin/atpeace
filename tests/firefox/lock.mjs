@@ -9,6 +9,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { By, Key } from 'selenium-webdriver';
 import { launchFirefox, extUrl, ROOT } from './_harness.mjs';
+import { until } from '../helpers/wait.mjs';
 
 const SHOTS = join(ROOT, 'tests', 'e2e', 'artifacts', 'lock');
 const OPTIONS = extUrl('src/pages/options/options.html');
@@ -22,21 +23,6 @@ let driver;
 let welcomeHandle = null;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-async function until(what, fn, timeout = 15_000) {
-  const end = Date.now() + timeout;
-  let last;
-  while (Date.now() < end) {
-    try {
-      last = await fn();
-      if (last) return last;
-    } catch (err) {
-      last = err;
-    }
-    await sleep(100);
-  }
-  throw new Error(`timed out waiting for ${what}${last instanceof Error ? `: ${last.message}` : ''}`);
-}
 
 const css = (selector) => driver.findElement(By.css(selector));
 const run = (fn, ...args) => driver.executeScript(fn, ...args);
@@ -53,7 +39,7 @@ async function shot(name) {
 async function open(url) {
   await sleep(300);
   await driver.get(url);
-  await until('the page to be ready', () => run(() => document.body.dataset.ready === 'true' || document.querySelector('#content:not([aria-busy])') !== null));
+  await until(() => run(() => document.body.dataset.ready === 'true' || document.querySelector('#content:not([aria-busy])') !== null), { what: 'the page to be ready', retryErrors: true });
   await sleep(200);
 }
 
@@ -77,17 +63,13 @@ before(async () => {
   await driver.manage().window().setRect({ width: 1280, height: 1000 });
   // The temporary install counts as a first install: the background opens the welcome page.
   const original = await driver.getWindowHandle();
-  welcomeHandle = await until(
-    'the welcome tab',
-    async () => {
+  welcomeHandle = await until(async () => {
       for (const handle of await driver.getAllWindowHandles()) {
         await driver.switchTo().window(handle);
         if ((await driver.getCurrentUrl()).includes(WELCOME_PATH)) return handle;
       }
       return null;
-    },
-    15_000,
-  ).catch(() => null);
+    }, { what: 'the welcome tab', retryErrors: true, timeout: 15_000 }).catch(() => null);
   if (!welcomeHandle) await driver.switchTo().window(original);
 });
 
@@ -98,7 +80,7 @@ after(async () => {
 test('welcome: the first install opens it, Gentle is applied, choices are saved, Finish marks the onboarding done', async () => {
   assert.ok(welcomeHandle, 'no welcome tab appeared after the install');
   await driver.switchTo().window(welcomeHandle);
-  await until('the page', () => run(() => document.body.dataset.ready === 'true'));
+  await until(() => run(() => document.body.dataset.ready === 'true'), { what: 'the page', retryErrors: true });
   assert.equal((await meta()).onboarded, false);
   assert.equal((await settings())['yt.shorts.mode'], 'watch', 'Gentle is in place');
   assert.equal(await run(() => document.querySelector('input[name="preset"]:checked').value), 'gentle');
@@ -106,27 +88,27 @@ test('welcome: the first install opens it, Gentle is applied, choices are saved,
 
   // a preset
   await click(await driver.findElement(By.xpath('//label[contains(@class,"choice")][.//span[normalize-space()="Focused"]]')));
-  await until('Focused applied', async () => (await settings())['yt.home.feedMode'] === 'hide');
+  await until(async () => (await settings())['yt.home.feedMode'] === 'hide', { what: 'Focused applied', retryErrors: true });
   assert.equal((await settings())['yt.comments.hideAll'], true);
   // the pause: switch, breath, session
   await click(await driver.findElement(By.xpath('//label[normalize-space()="Pause before opening YouTube"]')));
-  await until('pause on', async () => (await settings())['pause.enabled'] === true);
+  await until(async () => (await settings())['pause.enabled'] === true, { what: 'pause on', retryErrors: true });
   assert.equal(await run(() => document.querySelector('input[name="preset"]:checked').value), 'focused', 'the pause does not unselect the preset');
   const breath = await css('#pause input[type="number"]');
   await breath.clear();
   await breath.sendKeys('9', Key.TAB);
-  await until('breath 9', async () => (await settings())['pause.breathSeconds'] === 9);
+  await until(async () => (await settings())['pause.breathSeconds'] === 9, { what: 'breath 9', retryErrors: true });
   await run(() => {
     const select = document.querySelector('#pause select');
     select.value = '30';
     select.dispatchEvent(new Event('change', { bubbles: true }));
   });
-  await until('session 30', async () => (await settings())['pause.sessionMinutes'] === '30');
+  await until(async () => (await settings())['pause.sessionMinutes'] === '30', { what: 'session 30', retryErrors: true });
   await shot('welcome-choices');
 
   // finish
   await click('#finish-button');
-  await until('the finished state', () => run(() => document.getElementById('open-youtube') !== null));
+  await until(() => run(() => document.getElementById('open-youtube') !== null), { what: 'the finished state', retryErrors: true });
   assert.equal((await meta()).onboarded, true);
   assert.equal(await css('#open-youtube').getAttribute('href'), 'https://www.youtube.com/');
   assert.ok(await css('#open-settings'));
@@ -143,44 +125,44 @@ test('options: password lock — refused loosening shows a calm note, wrong pass
   await css('#lock-password').sendKeys(PASSWORD);
   await css('#lock-password-again').sendKeys(PASSWORD);
   await click(await byText('button', 'Turn on the lock'));
-  await until('the lock to be saved', async () => (await settings())['advanced.lock']?.mode === 'password');
+  await until(async () => (await settings())['advanced.lock']?.mode === 'password', { what: 'the lock to be saved', retryErrors: true });
   const lock = (await settings())['advanced.lock'];
   assert.ok(lock.iterations >= 200_000 && lock.salt && lock.hash);
   assert.ok(!JSON.stringify(await ff.getStorage()).includes(PASSWORD));
-  await until('the lock bar', () => run(() => /Locked\./.test(document.querySelector('.lock-bar')?.textContent ?? '') && !document.querySelector('.lock-bar').hidden));
+  await until(() => run(() => /Locked\./.test(document.querySelector('.lock-bar')?.textContent ?? '') && !document.querySelector('.lock-bar').hidden), { what: 'the lock bar', retryErrors: true });
 
   // loosening: refused, the switch goes back
   const label = `.row[data-id="${HIDE_ADS}"] .row-label`;
   await click(label);
-  await until('the locked note', () => run((id) => !document.querySelector(`.row[data-id="${id}"] .row-lock`).hidden, HIDE_ADS));
+  await until(() => run((id) => !document.querySelector(`.row[data-id="${id}"] .row-lock`).hidden, HIDE_ADS), { what: 'the locked note', retryErrors: true });
   assert.equal((await settings())[HIDE_ADS], true);
   assert.equal(await run((id) => document.querySelector(`.row[data-id="${id}"] input.switch`).checked, HIDE_ADS), true);
   await shot('options-refused');
 
   // unlock: wrong, then right
   await click(`.row[data-id="${HIDE_ADS}"] .row-lock button`);
-  await until('the dialog', () => run(() => document.querySelector('dialog[open] input[type="password"]') !== null));
+  await until(() => run(() => document.querySelector('dialog[open] input[type="password"]') !== null), { what: 'the dialog', retryErrors: true });
   await shot('unlock-dialog');
   await css('dialog[open] input[type="password"]').sendKeys('wrong', Key.ENTER);
-  await until('the error', () => run(() => !document.querySelector('dialog[open] .unlock-error').hidden));
+  await until(() => run(() => !document.querySelector('dialog[open] .unlock-error').hidden), { what: 'the error', retryErrors: true });
   assert.equal((await state()).lockUnlockedUntil ?? 0, 0);
   const field = await css('dialog[open] input[type="password"]');
   await field.clear();
   await field.sendKeys(PASSWORD, Key.ENTER);
-  await until('the dialog to close', () => run(() => document.querySelector('dialog[open]') === null));
+  await until(() => run(() => document.querySelector('dialog[open]') === null), { what: 'the dialog to close', retryErrors: true });
   assert.ok((await state()).lockUnlockedUntil > Date.now());
-  await until('"Unlocked until"', () => run(() => /Unlocked until/.test(document.querySelector('.lock-bar').textContent)));
+  await until(() => run(() => /Unlocked until/.test(document.querySelector('.lock-bar').textContent)), { what: '"Unlocked until"', retryErrors: true });
 
   // now it goes through; "Lock now" closes it again
   await click(label);
-  await until('hideAds off', async () => (await settings())[HIDE_ADS] === false);
+  await until(async () => (await settings())[HIDE_ADS] === false, { what: 'hideAds off', retryErrors: true });
   await run(() => window.scrollTo(0, 0));
   await click(await byText('button', 'Lock now'));
-  await until('relocked', async () => ((await state()).lockUnlockedUntil ?? 0) === 0);
+  await until(async () => ((await state()).lockUnlockedUntil ?? 0) === 0, { what: 'relocked', retryErrors: true });
   await click(label);
-  await until('turning it on is allowed while locked', async () => (await settings())[HIDE_ADS] === true);
+  await until(async () => (await settings())[HIDE_ADS] === true, { what: 'turning it on is allowed while locked', retryErrors: true });
   await click(label);
-  await until('the note again', () => run((id) => !document.querySelector(`.row[data-id="${id}"] .row-lock`).hidden, HIDE_ADS));
+  await until(() => run((id) => !document.querySelector(`.row[data-id="${id}"] .row-lock`).hidden, HIDE_ADS), { what: 'the note again', retryErrors: true });
   assert.equal((await settings())[HIDE_ADS], true);
   assert.deepEqual(await ff.ourScriptErrors(), []);
 });
@@ -188,24 +170,24 @@ test('options: password lock — refused loosening shows a calm note, wrong pass
 test('popup: locked, refused with a note, the friction unlock is inline (wait, then the sentence)', async () => {
   await reset({ settings: { 'advanced.lock': { mode: 'friction', waitSeconds: 10 } } });
   await open(POPUP);
-  await until('the lock bar', () => run(() => !document.querySelector('.lock-bar').hidden));
+  await until(() => run(() => !document.querySelector('.lock-bar').hidden), { what: 'the lock bar', retryErrors: true });
   await click('#master input.switch');
-  await until('the refusal', () => run(() => /That would show something again/.test(document.querySelector('.lock-bar').textContent)));
+  await until(() => run(() => /That would show something again/.test(document.querySelector('.lock-bar').textContent)), { what: 'the refusal', retryErrors: true });
   assert.equal(await run(() => document.querySelector('#master input.switch').checked), true);
   assert.equal((await settings())['general.enabled'], undefined);
   await shot('popup-refused');
 
   await click(await byText('button', 'Unlock…'));
-  await until('the unlock steps', () => run(() => document.querySelector('.unlock-inline .unlock-sentence') !== null));
+  await until(() => run(() => document.querySelector('.unlock-inline .unlock-sentence') !== null), { what: 'the unlock steps', retryErrors: true });
   assert.equal(await run(() => document.querySelector('.unlock-inline input[type="text"]').disabled), true);
   await shot('popup-unlock-wait');
-  await until('the wait to end (10 s)', () => run(() => !document.querySelector('.unlock-inline input[type="text"]').disabled), 20_000);
+  await until(() => run(() => !document.querySelector('.unlock-inline input[type="text"]').disabled), { what: 'the wait to end (10 s)', retryErrors: true, timeout: 20_000 });
   const sentence = await css('.unlock-inline .unlock-sentence').getText();
   await css('.unlock-inline input[type="text"]').sendKeys(sentence, Key.ENTER);
-  await until('"Unlocked until"', () => run(() => /Unlocked until/.test(document.querySelector('.lock-bar').textContent)));
+  await until(() => run(() => /Unlocked until/.test(document.querySelector('.lock-bar').textContent)), { what: '"Unlocked until"', retryErrors: true });
   await shot('popup-unlocked');
   await click('#master input.switch');
-  await until('At Peace off', async () => (await settings())['general.enabled'] === false);
+  await until(async () => (await settings())['general.enabled'] === false, { what: 'At Peace off', retryErrors: true });
   assert.deepEqual(await ff.ourScriptErrors(), []);
 });
 
@@ -222,12 +204,12 @@ test('options: "When I open YouTube" short labels in the popup, the redirect row
     select.value = 'custom';
     select.dispatchEvent(new Event('change', { bubbles: true }));
   });
-  await until('the row to open up', () => run(() => !document.querySelector('.row[data-id="yt.home.redirectUrl"]').classList.contains('is-disabled')));
+  await until(() => run(() => !document.querySelector('.row[data-id="yt.home.redirectUrl"]').classList.contains('is-disabled')), { what: 'the row to open up', retryErrors: true });
 
   await open(`${OPTIONS}#section=week`);
   await click(await byText('button', 'Clear usage history…'));
-  await until('the dialog', () => run(() => document.querySelector('dialog[open]') !== null));
+  await until(() => run(() => document.querySelector('dialog[open]') !== null), { what: 'the dialog', retryErrors: true });
   await click(await byText('button', 'Clear history'));
-  await until('stats cleared', async () => Object.keys((await ff.getStorage('stats')).stats ?? {}).length === 0);
+  await until(async () => Object.keys((await ff.getStorage('stats')).stats ?? {}).length === 0, { what: 'stats cleared', retryErrors: true });
   assert.deepEqual(await ff.ourScriptErrors(), []);
 });

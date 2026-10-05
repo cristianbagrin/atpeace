@@ -20,6 +20,8 @@ export default {
     'web-ext-config.mjs',
     // Chrome-only service worker used by the E2E harness. Firefox (the target) never loads it.
     'src/background/sw-chrome.js',
+    // The icon's source drawing: only the generated PNGs are used at run time (tools/make-icons.mjs reads the SVG from the repo).
+    'icons/icon.svg',
   ],
   build: {
     filename: 'at-peace-{version}.zip',

@@ -35,7 +35,7 @@ let helperPage = null;
  * Copies manifest + src + icons into a temp dir with the Chrome-specific manifest rewrites.
  * @returns {Promise<string>} directory to pass to --load-extension
  */
-export async function buildChromeVariant() {
+export async function buildChromeVariant({ instrument = false } = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'at-peace-chrome-'));
   tempDirs.push(dir);
   await cp(join(ROOT, 'src'), join(dir, 'src'), { recursive: true });
@@ -44,17 +44,24 @@ export async function buildChromeVariant() {
   const manifest = JSON.parse(await readFile(join(ROOT, 'manifest.json'), 'utf8'));
   manifest.background = { service_worker: 'src/background/sw-chrome.js' };
   delete manifest.browser_specific_settings;
+  if (instrument) {
+    // Test-only: a content script that runs first in the isolated world and counts listeners / observers /
+    // intervals (tests/helpers/instrument.js). Never part of the shipped package.
+    await cp(join(ROOT, 'tests', 'helpers', 'instrument.js'), join(dir, '__instrument.js'));
+    manifest.content_scripts = [{ matches: ['*://www.youtube.com/*'], js: ['__instrument.js'], run_at: 'document_start', all_frames: false }, ...manifest.content_scripts];
+  }
   await writeFile(join(dir, 'manifest.json'), JSON.stringify(manifest, null, 2));
   return dir;
 }
 
 /**
  * Launches Chromium with the extension. Resolves once the extension's service worker is up.
+ * @param {{ instrument?: boolean }} [options] instrument: add the test-only counting content script (see buildChromeVariant)
  * @returns {Promise<{ context: import('playwright').BrowserContext, extensionId: string }>}
  */
-export async function launch() {
+export async function launch({ instrument = false } = {}) {
   if (context) throw new Error('harness already launched; call close() first');
-  const extensionDir = await buildChromeVariant();
+  const extensionDir = await buildChromeVariant({ instrument });
   const profileDir = await mkdtemp(join(tmpdir(), 'at-peace-profile-'));
   tempDirs.push(profileDir);
   await mkdir(ARTIFACTS, { recursive: true });

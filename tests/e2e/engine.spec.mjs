@@ -3,12 +3,13 @@
 import { test, before, after } from 'node:test';
 import { launch, close, getContext, setStorage, extensionDiagnostics, trackErrors } from './harness.mjs';
 import { SCENARIOS } from './engine-scenarios.mjs';
+import { watchGate, liveSkipReason, gate } from './_live.mjs';
 
 let page;
 
 before(async () => {
   await launch();
-  page = trackErrors(await getContext().newPage());
+  page = watchGate(trackErrors(await getContext().newPage()));
 });
 
 after(async () => {
@@ -35,7 +36,12 @@ const adapter = {
     await box.press('Enter');
   },
   async clickFirstResult() {
-    await page.locator('ytd-video-renderer a#video-title').first().click();
+    const first = page.locator('ytd-video-renderer a#video-title').first();
+    // The scenario starts from default settings, so nothing of ours hides results: no results means YouTube served none.
+    await first.waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {
+      throw gate('Live YouTube served the search page without any video results');
+    });
+    await first.click();
   },
   async back() {
     await page.goBack({ waitUntil: 'commit' });
@@ -54,7 +60,8 @@ for (const scenario of SCENARIOS) {
       await new Promise((resolve) => setTimeout(resolve, 500)); // let the previous page finish reacting before it unloads
       await scenario.run(adapter, t);
     } catch (err) {
-      if (err?.code === 'YT_SORRY') return t.skip(`${err.message}; try again later`);
+      const why = await liveSkipReason(err, page);
+      if (why) return t.skip(why);
       throw err;
     }
   });

@@ -16,10 +16,12 @@
     "selectors": "node tools/check-selectors.mjs",
     "start:firefox": "web-ext run",
     "build": "web-ext build",
+    "verify:package": "npm run build --silent && node tools/verify-package.mjs",
     "sign": "web-ext sign --channel=unlisted"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "axe-core": "^4.13.0",
     "eslint": "^10.12.0",
     "globals": "^17.13.0",
     "selenium-webdriver": "^4.50.0",
