@@ -241,7 +241,9 @@
       env.navigate(`${env.urlFor(PAUSE_PAGE)}#${env.pageUrl()}`);
     }
 
-    async function leave() {
+    /** @param {boolean} [turnedBack] a visit that began with "Breathe again" ends in Leave: it counts as turned back, like Close on the pause page */
+    async function leave(turnedBack = false) {
+      if (turnedBack) Promise.resolve(env.send?.(AP.msg.TYPES.PAUSE_TURN_BACK, { siteKey })).catch(() => {}); // (sent before the tab goes)
       let res;
       try {
         res = await env.closeTab();
@@ -371,7 +373,7 @@
         kicker: opens > 0 ? `${AP.breath.ordinal(opens)} time today` : undefined,
         title: 'Continue?',
         theme: snapshot?.theme ?? 'light',
-        actions: [{ label: leaveLabel, primary: true, onClick: leave }],
+        actions: [{ label: leaveLabel, primary: true, onClick: () => leave(true) }],
         minutes: MINUTE_CHOICES.map((m) => ({ value: String(m), label: minuteLabel(m) })),
         selected: String(snapshot?.defaultMinutes ?? 15),
         onContinue: (value) => continueFor(Number(value), opens),

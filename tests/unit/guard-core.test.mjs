@@ -685,6 +685,15 @@ describe('guard controller: the overlay after a session (finish this video, brea
     h.log.overlays.at(-1).onBreathDone();
     await h.log.overlays.at(-1).actions[0].onClick();
     assert.equal(h.log.closed, 1);
+    assert.deepEqual(h.log.sent.at(-1), ['PAUSE_TURN_BACK', { siteKey: 'youtube' }], 'a visit that ends in Leave counts as turned back, like Close on the pause page');
+  });
+
+  test('the first Leave (no breath taken) closes the tab and counts nothing', async () => {
+    const h = harness(EXPIRED);
+    await h.guard.start();
+    await h.log.overlays[0].actions[0].onClick();
+    assert.equal(h.log.closed, 1);
+    assert.deepEqual(h.log.sent, []);
   });
 });
 

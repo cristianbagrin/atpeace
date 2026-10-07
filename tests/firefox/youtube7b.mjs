@@ -167,17 +167,57 @@ describe('7b on offline snapshots', { skip: HAVE ? false : 'research snapshots a
       await configure({});
       await open('/@LinusTechTips/featured?fixture=channel-home-ltt');
       assert.equal(await run(addHeaderButtonInPage, { data: { accessibilityId: 'eml.header_join_button', onTap: { innertubeCommand: { commandMetadata: {}, modalEndpoint: {} } } }, label: 'Join' }), 2);
-      await configure({ 'yt.channel.hideJoinButton': true });
-      await until(async () => JSON.stringify(await run(headerButtonsInPage)) === JSON.stringify([['subscribe', true], ['join', false]]), 'Join hidden, Subscribe shown', 15_000);
       await run((tabs) => {
         const browse = document.querySelector('ytd-browse[page-subtype="channels"]');
         browse.data = { contents: { twoColumnBrowseResultsRenderer: { tabs: tabs.map((t) => (t.expandable ? { expandableTabRenderer: { title: t.title, endpoint: { commandMetadata: { webCommandMetadata: { url: t.url } } } } } : { tabRenderer: { title: t.title, endpoint: { commandMetadata: { webCommandMetadata: { url: t.url } } } } })) } } };
       }, SHELVES.LinusTechTips.tabs);
-      await configure({ 'yt.channel.hideShowsTab': true });
+      await configure({ 'yt.channel.hideJoinButton': true, 'yt.channel.hideShowsTab': true });
+      await until(async () => JSON.stringify(await run(headerButtonsInPage)) === JSON.stringify([['subscribe', true], ['join', false]]), 'Join hidden, Subscribe shown', 15_000);
       const shown = () => run(() => [...document.querySelectorAll('yt-tab-shape[role="tab"]')].map((t) => [t.getAttribute('data-at-peace-tab'), getComputedStyle(t).display !== 'none']));
       await until(async () => (await shown()).some(([name, visible]) => name === 'shows' && !visible), 'Shows tab hidden', 15_000);
       assert.deepEqual((await shown()).map(([, v]) => v), [true, true, true, true, false, true, true, true]);
       assert.deepEqual(await ourErrors(), []);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Live youtube.com in Firefox (logged out): the bridge reads the real data of a channel's Home tab.
+// Google may answer with its captcha: the test then skips (it says nothing about At Peace).
+// ---------------------------------------------------------------------------------------------
+
+describe('7b on live youtube.com', () => {
+  let ff;
+  before(async () => {
+    ff = await launchFirefox();
+    await ff.driver.manage().window().setRect({ width: 1440, height: 900 });
+    await mkdir(SHOTS, { recursive: true });
+  });
+  after(async () => ff?.close());
+
+  test('a channel Home tab: rows are typed from YouTube\'s own data and hidden one by one; tabs and header too', async (t) => {
+    const { driver } = ff;
+    const run = (fn, arg) => driver.executeScript(fn, arg ?? null);
+    await ff.setStorage({ settings: { 'yt.channel.hideRowMembers': true, 'yt.channel.hideRowPosts': true, 'yt.channel.hideShowsTab': true } });
+    await driver.get('https://www.youtube.com/@LinusTechTips/featured');
+    if ((await driver.getCurrentUrl()).includes('/sorry/')) return t.skip('Google served its captcha page');
+    await until(() => run(() => document.documentElement.hasAttribute('data-at-peace')), 'the engine', 20_000);
+    // Rows below the fold are drawn as the page is scrolled.
+    for (let i = 1; i <= 12; i += 1) {
+      await run((y) => window.scrollTo(0, y), i * 900);
+      await sleep(600);
+    }
+    await run(() => window.scrollTo(0, 0));
+    const rows = () => run(() => [...document.querySelectorAll('ytd-browse[page-subtype="channels"]:not([hidden]) ytd-item-section-renderer')].map((s) => [s.querySelector(':scope > #contents > *')?.getAttribute('data-at-peace-shelf') ?? null, getComputedStyle(s).display === 'none']));
+    await until(async () => (await rows()).some(([type]) => type === 'members'), 'the members-only row is tagged', 15_000);
+    const now = await rows();
+    assert.ok(now.length >= 8, `${now.length} rows drawn`);
+    for (const [type, hidden] of now) assert.equal(hidden, type === 'members' || type === 'posts', `${type}: hidden=${hidden}`);
+    const tabs = await run(() => [...document.querySelectorAll('yt-tab-shape[role="tab"]')].map((tab) => [tab.getAttribute('data-at-peace-tab'), getComputedStyle(tab).display === 'none']));
+    assert.deepEqual(tabs.filter(([, hidden]) => hidden).map(([name]) => name), ['shows']);
+    assert.ok(tabs.some(([name]) => name === 'videos'), 'the other tabs are tagged and shown');
+    await run(() => window.scrollTo(0, 700));
+    await writeFile(join(SHOTS, 'ff-live-channel-rows.png'), await driver.takeScreenshot(), 'base64');
+    await ff.setStorage({ settings: {} });
   });
 });

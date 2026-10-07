@@ -296,6 +296,27 @@ test('Leave closes the tab', async () => {
   await opener.close();
 });
 
+test('Leave after a breath closes the tab and counts as turned back (the first Leave counts nothing)', async () => {
+  const opener = await newTab();
+  await opener.goto('about:blank');
+  await send('PAUSE_CONTINUE', { siteKey: 'youtube', minutes: 5 });
+  const page = await newTab();
+  await page.goto(HOME, { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => document.documentElement.getAttribute('data-at-peace-loaded') === '1');
+  await expireSoon();
+  await settled(page);
+  await clickInOverlay(page, 'Breathe again');
+  await waitOverlay(page, 'choice', 8000);
+  const closed = new Promise((resolve) => page.once('close', resolve));
+  await clickInOverlay(page, 'Leave');
+  await Promise.race([closed, new Promise((_, reject) => setTimeout(() => reject(new Error('tab did not close')), 8000))]);
+  const { stats } = await readState();
+  assert.equal(stats[today()].youtube.turnedBack, 1);
+  assert.equal(stats[today()].youtube.opens, 1);
+  assert.equal(stats[today()].youtube.continued, 1, 'only the session that ended; the breath was not continued');
+  await opener.close();
+});
+
 test('a focus block that starts during the breath sends the tab to the blocked page', async () => {
   const page = await open(HOME, { play: false });
   await expireSoon();
