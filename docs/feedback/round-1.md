@@ -16,3 +16,11 @@ The user tested 0.1.0 in Zen on macOS. Each item, the decision, and who does it.
 | 10 | Channel pages: hide individual sections (Posts, "Our Members", Join, Community…) | Per-section settings for channel home shelves (by type), header buttons (Join, etc.) and tabs, tagged language-free by the page bridge; "Hide all rows" stays. | 7b |
 | 11 | Publishing to Mozilla must let Claude update it without extra work | Release pipeline: version bump script, GitHub Actions that test, sign and submit to AMO on a tag, AMO listing metadata, docs/RELEASING.md. | 7d |
 | 12 | Subtract what isn't useful; no other socials | Remove: calm titles, custom CSS (and its sanitizer), pause breath escalation + "show count"/"expiry overlay" toggles (behaviour stays on), the intention prompt, the picker's "Only this one". Other socials dropped from the roadmap. | 7b (calm titles), 7c (rest) |
+
+## Additions after the first answers
+
+| # | Feedback / decision | Owner |
+|---|---|---|
+| 1 (decided) | Mac shortcuts: ⌥⇧P / ⌥⇧F / ⌥⇧H. | 7a |
+| 11 (decided) | Private (unlisted) AMO signing; licence "All rights reserved"; auto-updates from a small public repo `cristianbagrin/at-peace-updates` holding only signed `.xpi` files and `updates.json` (the source repo stays private). | 7d |
+| 13 | "Your N minutes are up" overlay: drop the sub-sentence; **Esc dismisses it**; "Breathe again" must not leave or reload the page (breathe in place, then continue); add **"Finish this video"** — the overlay hides and returns when the current video ends (or when you open another video). Esc = "Finish this video" on a watch page, "Breathe again" elsewhere. | 7c |
