@@ -93,7 +93,7 @@ export function readPanel(page) {
         notes: [...this.querySelectorAll('.note, .fine')].map((n) => n.textContent),
         buttons: [...this.querySelectorAll('button')].map((b) => ({ label: b.childNodes[0].textContent, disabled: b.disabled, ...rect(b) })),
         radios: [...this.querySelectorAll('[role=radio]')].map((r) => ({ label: r.textContent, checked: r.getAttribute('aria-checked') === 'true', ...rect(r) })),
-        checkbox: q('input[type=checkbox]') ? { checked: q('input[type=checkbox]').checked, ...rect(q('input[type=checkbox]')) } : null,
+        checkbox: q('input[type=checkbox]') ? true : null,
         target: target.style.display === 'block' ? { ...rect(target), refused: target.classList.contains('refused') } : null,
         similarBoxes: [...this.querySelectorAll('.box.similar')].filter((b) => b.style.display === 'block').length,
         panel: rect(q('.panel')),
@@ -111,13 +111,6 @@ export async function clickInPanel(page, label) {
   if (!hit) throw new Error(`no "${label}" in the panel (have: ${[...info.buttons, ...info.radios].map((b) => b.label).join(', ')})`);
   if (hit.disabled) throw new Error(`"${label}" is disabled`);
   await page.mouse.click(hit.x + hit.width / 2, hit.y + hit.height / 2);
-}
-
-/** Toggles the "Only this one" checkbox with a real click. */
-export async function clickOnlyThisOne(page) {
-  const info = await readPanel(page);
-  if (!info?.checkbox) throw new Error('no "Only this one" checkbox');
-  await page.mouse.click(info.checkbox.x + info.checkbox.width / 2, info.checkbox.y + info.checkbox.height / 2);
 }
 
 /**

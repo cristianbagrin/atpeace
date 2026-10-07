@@ -246,16 +246,6 @@ describe('limitStatus, blocks and breath (pure)', () => {
     assert.equal(S.blockForSite(blocks, 'zzz', 1000), null);
   });
 
-  test('breathSeconds escalates per extra visit in the last hour and caps at 30', () => {
-    const s = { 'pause.breathSeconds': 6, 'pause.escalate': true, 'pause.escalateStep': 2 };
-    assert.equal(S.breathSeconds(s, 1), 6);
-    assert.equal(S.breathSeconds(s, 2), 8);
-    assert.equal(S.breathSeconds(s, 5), 14);
-    assert.equal(S.breathSeconds(s, 100), 30);
-    assert.equal(S.breathSeconds({ ...s, 'pause.escalate': false }, 5), 6);
-    assert.equal(S.breathSeconds({ ...s, 'pause.breathSeconds': 30 }, 9), 30);
-  });
-
   test('pruneSessions drops ended sessions and sessions of sites without a pause', () => {
     const draft = { sessions: { youtube: 5000, 'a.com': 5000, old: 10 }, sessionMinutes: { youtube: 5, 'a.com': 5, old: 5, gone: 1 } };
     const settings = { 'pause.enabled': true, 'pause.sites': [{ siteKey: 'youtube', domain: 'youtube.com', enabled: true }, { siteKey: 'a.com', domain: 'a.com', enabled: false }] };
@@ -267,23 +257,25 @@ describe('limitStatus, blocks and breath (pure)', () => {
 });
 
 describe('pause flow (handlers)', () => {
-  beforeEach(() => w.settings({ 'pause.enabled': true, 'pause.escalate': true, 'pause.escalateStep': 3, 'pause.breathSeconds': 6 }));
+  beforeEach(() => w.settings({ 'pause.enabled': true, 'pause.breathSeconds': 6 }));
 
-  test('PAUSE_OPENED counts the visit and escalates the breath within the hour', async () => {
+  test('PAUSE_OPENED counts the visit; the breath is always as long as the setting says', async () => {
     const first = await send('PAUSE_OPENED', { siteKey: 'youtube' });
-    assert.deepEqual(first, { ok: true, opens: 1, recent: 1, breathSeconds: 6, sessionUntil: null });
+    assert.deepEqual(first, { ok: true, opens: 1, breathSeconds: 6, sessionUntil: null });
     w.advance(5 * MIN);
     const second = await send('PAUSE_OPENED', { siteKey: 'youtube' });
-    assert.deepEqual([second.opens, second.recent, second.breathSeconds], [2, 2, 9]);
-    w.advance(61 * MIN); // the first two fall out of the hour
-    assert.deepEqual((({ opens, recent, breathSeconds }) => [opens, recent, breathSeconds])(await send('PAUSE_OPENED', { siteKey: 'youtube' })), [3, 1, 6]);
+    assert.deepEqual([second.opens, second.breathSeconds], [2, 6], 'a second visit within the hour breathes just as long');
+    w.advance(61 * MIN);
+    assert.deepEqual((({ opens, breathSeconds }) => [opens, breathSeconds])(await send('PAUSE_OPENED', { siteKey: 'youtube' })), [3, 6]);
+    await w.settings({ 'pause.enabled': true, 'pause.breathSeconds': 12 });
+    assert.equal((await send('PAUSE_OPENED', { siteKey: 'youtube' })).breathSeconds, 12);
+    assert.equal(S.breathSeconds, undefined);
   });
 
   test('a reload of the pause page (repeat) is not a new visit', async () => {
     await send('PAUSE_OPENED', { siteKey: 'youtube' });
     const again = await send('PAUSE_OPENED', { siteKey: 'youtube', repeat: true });
     assert.equal(again.opens, 1);
-    assert.equal(again.recent, 1);
   });
 
   test('only configured sites are accepted', async () => {
@@ -295,7 +287,7 @@ describe('pause flow (handlers)', () => {
   test('PAUSE_CONTINUE stores the session, counts it, removes the pause rule and sets the expiry alarm', async () => {
     await S.reconcile();
     assert.equal((await w.rules()).length, 1, 'a pause rule exists before');
-    const res = await send('PAUSE_CONTINUE', { siteKey: 'youtube', minutes: 15, intention: '  a tutorial   on bread  ' });
+    const res = await send('PAUSE_CONTINUE', { siteKey: 'youtube', minutes: 15 });
     assert.deepEqual(res, { ok: true, until: w.now() + 15 * MIN });
     const state = await w.state();
     assert.deepEqual(state.sessions, { youtube: w.now() + 15 * MIN });
@@ -306,7 +298,7 @@ describe('pause flow (handlers)', () => {
     const today = (await AP.state.getStats(AP.util.dayKey(w.now()))).youtube;
     assert.equal(today.continued, 1);
     const raw = (await fake.storage.local.get('stats')).stats[AP.util.dayKey(w.now())].youtube;
-    assert.deepEqual(raw.intentions.map((i) => i.text), ['a tutorial on bread']);
+    assert.equal('intentions' in raw, false, 'nothing but the counters is stored');
   });
 
   test('minutes must be a sane number', async () => {

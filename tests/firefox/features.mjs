@@ -111,7 +111,7 @@ describe('offline snapshots', { skip: HAVE ? false : 'research snapshots are abs
   });
   const url = (path) => `${server.origin}${path}`;
 
-  test('home placeholder: drawn in place of the feed (closed shadow root), clicking it puts the cursor in the search box', async () => {
+  test('home placeholder: drawn in place of the feed (closed shadow root): a glyph and one line, nothing to click', async () => {
     await t.configure({ 'yt.home.feedMode': 'hide' });
     await t.open(url('/'), { fixture: true });
     const info = await t.until(
@@ -125,13 +125,13 @@ describe('offline snapshots', { skip: HAVE ? false : 'research snapshots are abs
         }),
       'the placeholder',
     );
-    assert.equal(info.text, 'Your home feed is hidden.');
+    assert.equal(info.text, 'Your home is hidden.');
     assert.equal(info.feedHidden, true);
     assert.equal(info.shadow, true, 'closed shadow root');
     assert.ok(info.w > 300 && info.h > 200);
     await t.shot('firefox-home-placeholder');
     await t.driver.actions({ async: true }).move({ x: Math.round(info.x + 200), y: Math.round(info.y + info.h / 2) }).click().perform();
-    assert.equal(await t.run(() => document.activeElement?.getAttribute('name')), 'search_query');
+    assert.notEqual(await t.run(() => document.activeElement?.getAttribute('name')), 'search_query', 'clicking the card does not steal the focus');
   });
 
   test('filters: keywords hide matching results, a regex line works, an invalid one is ignored, un-matching un-marks', async () => {

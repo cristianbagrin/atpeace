@@ -7,7 +7,7 @@
 //      keeps it in the document,
 //   2. mirrors the effective settings into `data-at-peace` (tokens that gate every rule) and
 //      `data-at-peace-page` (current page type) on <html>, and into <style id="at-peace-dynamic">
-//      (picker rules, custom CSS),
+//      (the elements the picker hid),
 //   3. follows settings changes live (no reload),
 //   4. follows SPA navigation and runs feature lifecycles with one shared mutation observer.
 //
@@ -87,51 +87,10 @@
     return (feature.settings ?? []).some((id) => isOn(ctx.settings?.[id]));
   }
 
-  /** Decodes CSS escapes (\75 rl → url) so obfuscated constructs can be spotted. */
-  function decodeCssEscapes(css) {
-    return css.replace(/\\([0-9a-fA-F]{1,6})\s?|\\([\s\S])/g, (_m, hex, ch) => {
-      if (ch !== undefined) return ch;
-      const code = parseInt(hex, 16);
-      return code === 0 || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff) ? '\uFFFD' : String.fromCodePoint(code);
-    });
-  }
-
-  // Everything that can make the browser fetch something: @import, url(non-data), and the other
-  // image functions that take URLs/strings.
-  const IMPORT_RE = /@import\b[^;{}]*;?/gi;
-  // The lookahead sits right after "(": a lookahead placed after `\s*` could be defeated by the
-  // regex engine backtracking into fewer spaces.
-  const URL_RE = /url\((?!\s*["']?\s*data:)[^)]*\)/gi;
-  const FETCH_FN_RE = /(?<![\w-])(?:-webkit-|-moz-)?(?:image-set|image|cross-fade|element|image-rect|src)\s*\(/gi;
-
-  function stripFetches(css) {
-    return css.replace(IMPORT_RE, '').replace(URL_RE, 'none').replace(FETCH_FN_RE, 'blocked(');
-  }
-
-  /**
-   * Makes user CSS (settings, imported files) unable to load anything: comments and `</style`
-   * removed, `@import` removed, every `url(…)` that is not a `data:` URL replaced, `image-set()`
-   * and friends disarmed. If decoding CSS escapes would reveal one of those constructs (an
-   * obfuscation attempt) the whole text is rejected and '' is returned.
-   * @param {unknown} css
-   * @returns {string}
-   */
-  function sanitizeCustomCss(css) {
-    if (typeof css !== 'string' || css.trim() === '') return '';
-    const text = stripFetches(
-      css
-        .replace(/\/\*[\s\S]*?(\*\/|$)/g, '')
-        .replace(/<\/style/gi, ''),
-    );
-    const decoded = decodeCssEscapes(text);
-    if (decoded !== text && stripFetches(decoded) !== decoded) return '';
-    return text.trim();
-  }
-
   /**
    * The dynamic stylesheet: picker rules (`advanced.customRules`, hidden under the master token
-   * and optional page scope), sanitized `advanced.customCss`, and whatever a site adds through
-   * `extra(settings)`. Empty when the master switch is off.
+   * and optional page scope) and whatever a site adds through `extra(settings)`. Empty when the
+   * master switch is off.
    * @param {Record<string, any>} settings effective settings
    * @param {{ site?: string, extra?: (settings: Record<string, any>) => string }} [options]
    * @returns {string}
@@ -146,8 +105,6 @@
       const prefix = AP.schema.gate(MASTER_ID, typeof rule.page === 'string' && rule.page !== '' ? rule.page : null);
       for (const part of AP.schema.splitSelectorList(rule.selector)) parts.push(`${prefix} ${part} { display: none !important; }`);
     }
-    const custom = sanitizeCustomCss(settings['advanced.customCss']);
-    if (custom) parts.push(custom);
     if (typeof extra === 'function') {
       try {
         const more = extra(settings);
@@ -593,7 +550,6 @@
     },
     isOn,
     isFeatureActive,
-    sanitizeCustomCss,
     buildDynamicCss,
     collapseRoots,
   };

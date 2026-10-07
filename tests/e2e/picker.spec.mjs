@@ -17,7 +17,7 @@ import { ARTIFACTS } from './harness.mjs';
 import { send, resetStorage, newTab, ourErrors } from './_mindful.mjs';
 import { fixturesAvailable, installYouTubeFixtures } from './_yt-fixture.mjs';
 import {
-  startPicker, phase, waitPhase, readPanel, clickInPanel, clickOnlyThisOne, windowListenerCount, waitEngine, allHidden, noneHidden, storedRules, displays,
+  startPicker, phase, waitPhase, readPanel, clickInPanel, windowListenerCount, waitEngine, allHidden, noneHidden, storedRules, displays,
 } from './_picker.mjs';
 import { until } from '../helpers/wait.mjs';
 
@@ -99,7 +99,7 @@ test('START_PICKER starts it; Esc leaves without a trace (no host, no style, no 
   assert.equal(await page.locator('style[data-at-peace-picker-style]').count(), 1, 'crosshair style while picking');
   assert.ok((await windowListenerCount(page)) > listenersBefore, 'listeners are on while picking');
   const panel = await readPanel(page);
-  assert.match(panel.text, /Point at something and click it/);
+  assert.match(panel.text, /Click what to hide/);
   assert.deepEqual(panel.buttons.map((b) => b.label), ['Cancel']);
   assert.equal(await startPicker(page).then((r) => r.already), true, 'starting twice changes nothing');
 
@@ -176,7 +176,7 @@ test('pick a card on a watch page, Bigger/Smaller, Hide: rule stored, hidden at 
   const first = await pickFirstRelatedThumbnail(page);
   // The first choice is the smallest thing with a steady name: the thumbnail image box. 26 of them in this list.
   assert.match(first.selector, /^\.ytThumbnailViewModelImage$|^yt-thumbnail-view-model/);
-  assert.match(first.count, /^\d+ similar items on this page$/);
+  assert.match(first.count, /^\d+ similar items$/);
   assert.equal(first.buttons.find((b) => b.label === 'Smaller').disabled, true, 'nothing smaller than the first choice');
   assert.equal(first.buttons.find((b) => b.label === 'Bigger').disabled, false);
   assert.deepEqual(first.radios.map((r) => [r.label, r.checked]), [['This kind of page (watch)', true], ['Everywhere', false]]);
@@ -195,7 +195,7 @@ test('pick a card on a watch page, Bigger/Smaller, Hide: rule stored, hidden at 
   await page.keyboard.press('ArrowUp');
   await until(async () => (await readPanel(page)).selector === 'yt-lockup-view-model', 'Bigger again');
   const panel = await readPanel(page);
-  assert.match(panel.count, /^26 similar items on this page$/);
+  assert.match(panel.count, /^26 similar items$/);
   assert.equal(panel.target.refused, false);
   await shot(page, 'picker-review-card');
 
@@ -327,7 +327,7 @@ test('on a search page: pick a result, the selector is the component, the count 
   await page.mouse.click(target.x, target.y);
   await waitPhase(page, 'review');
   const card = await growTo(page, 'ytd-video-renderer');
-  assert.match(card.count, /^\d+ similar items on this page$/);
+  assert.match(card.count, /^\d+ similar items$/);
   await shot(page, 'picker-search-result');
   await page.keyboard.press('Enter');
   await waitPhase(page, 'done');
@@ -351,7 +351,7 @@ test('the same on a channel page (view-model cards)', { skip }, async () => {
   await page.mouse.click(x, y);
   await waitPhase(page, 'review');
   const card = await growTo(page, 'yt-lockup-view-model');
-  assert.match(card.count, /^30 similar items on this page$/);
+  assert.match(card.count, /^30 similar items$/);
   await page.keyboard.press('Enter');
   await waitPhase(page, 'done');
   await until(() => allHidden(page, 'yt-lockup-view-model'), 'hidden');
@@ -408,23 +408,18 @@ test('Bigger stops before most of the page, says why, and Hide cannot be used on
   await page.close();
 });
 
-test('"Only this one": a position-based rule for one of several alike, with an honest warning', { skip }, async () => {
+test('no "Only this one": the panel has no checkbox and a rule is never position-based', { skip }, async () => {
   const page = await open(WATCH);
   await pickFirstRelatedThumbnail(page);
   await growTo(page, 'yt-lockup-view-model');
-  await clickOnlyThisOne(page);
-  await until(async () => (await readPanel(page)).count === 'Just this one.', 'unique mode');
   const panel = await readPanel(page);
-  assert.match(panel.selector, /:nth-child\(\d+\)$/);
-  assert.ok(panel.notes.some((n) => /position/.test(n)));
+  assert.equal(panel.checkbox, null, 'nothing to tick');
+  assert.doesNotMatch(panel.text, /only this one|position/i);
+  assert.equal(panel.notes.length, 0, 'no warnings either');
   await page.keyboard.press('Enter');
   await waitPhase(page, 'done');
   await until(async () => (await storedRules()).length === 1, 'the rule');
-  const hiddenCards = () => page.evaluate(() => [...document.querySelectorAll('yt-lockup-view-model')].map((e) => getComputedStyle(e).display === 'none'));
-  await until(async () => (await hiddenCards()).some(Boolean), 'a card to disappear');
-  const hidden = await hiddenCards();
-  assert.equal(hidden.filter(Boolean).length, 1, 'exactly one card is gone');
-  assert.equal(hidden.length, 26);
+  assert.doesNotMatch((await storedRules())[0].selector, /:nth-/);
   await page.close();
 });
 
@@ -459,7 +454,7 @@ test('the same rule is not stacked twice; with At Peace switched off the panel s
   await waitPhase(page, 'done');
   await until(async () => (await storedRules()).length === 2, 'the second rule');
   assert.deepEqual((await storedRules()).map((r) => r.page), ['watch', null]);
-  assert.match((await readPanel(page)).text, /turned off right now/);
+  assert.match((await readPanel(page)).text, /At Peace is off, so it stays visible/);
   await page.close();
 });
 

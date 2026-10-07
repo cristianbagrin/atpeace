@@ -76,7 +76,7 @@ test('axe: popup, options (basic and advanced) and welcome have no violations', 
 
 test('axe: the pause page while breathing and when it asks, and the blocked page', async () => {
   await resetStorage();
-  await configure({ 'pause.enabled': true, 'pause.breathSeconds': 3, 'pause.askIntention': true });
+  await configure({ 'pause.enabled': true, 'pause.breathSeconds': 3 });
   const pause = await newTab();
   await pause.goto(`${extUrl('src/pages/pause/pause.html')}#${TARGET}`);
   await waitPauseState(pause, 'breathing');

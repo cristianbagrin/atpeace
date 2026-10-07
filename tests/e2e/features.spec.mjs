@@ -107,7 +107,7 @@ describe('on offline snapshots', { skip: haveFixtures ? false : 'tests/e2e/artif
   after(async () => close());
 
   describe('home feed', () => {
-    test('feedMode "hide" draws a calm placeholder in place of the feed; clicking it puts the cursor in the search box', async () => {
+    test('feedMode "hide" draws a placeholder in place of the feed: a glyph and one line, nothing to click', async () => {
       await configure({ 'yt.home.feedMode': 'hide' });
       await open(HOME);
       await waitFor(() => document.querySelector('[data-at-peace-placeholder="home"]'));
@@ -117,14 +117,15 @@ describe('on offline snapshots', { skip: haveFixtures ? false : 'tests/e2e/artif
         const primary = document.querySelector('ytd-browse[page-subtype="home"] #primary');
         return { text: host.getAttribute('data-at-peace-text'), rect: rect.toJSON(), parent: host.parentElement.localName, feedHidden: getComputedStyle(primary).display === 'none', openShadow: host.shadowRoot };
       });
-      assert.equal(info.text, 'Your home feed is hidden.');
+      assert.equal(info.text, 'Your home is hidden.');
       assert.equal(info.parent, 'ytd-browse');
       assert.equal(info.feedHidden, true, 'the feed column is hidden by the catalog CSS');
       assert.equal(info.openShadow, null, 'the shadow root is closed');
       assert.ok(info.rect.width > 300 && info.rect.height > 200, 'the placeholder has a real box');
       await shot('home-placeholder');
+      // Nothing to click: no search button, and clicking the card does not steal the focus any more.
       await page.mouse.click(info.rect.x + 200, info.rect.y + info.rect.height / 2);
-      assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('name')), 'search_query');
+      assert.notEqual(await page.evaluate(() => document.activeElement?.getAttribute('name')), 'search_query');
       assert.deepEqual(await ourErrors(), []);
     });
 

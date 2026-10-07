@@ -50,14 +50,13 @@
     site: null,
     title: 'Focus & limits',
     order: 910,
-    description: 'Blocks, weekly schedules and a daily time limit.',
+    description: 'Blocks, schedules and a daily limit.',
   });
 
   AP.schema.define('focus', [
     {
       id: 'focus.unlockFriction',
       label: 'Ending a block early',
-      description: 'What it takes to end a focus block before its time.',
       type: 'select',
       default: 'wait',
       options: [
@@ -71,7 +70,6 @@
     {
       id: 'focus.strict',
       label: 'No early exit',
-      description: 'A block cannot be ended before it runs out. Choose with care.',
       type: 'toggle',
       default: false,
       preset: false,
@@ -80,7 +78,7 @@
     {
       id: 'focus.dailyMinutes',
       label: 'Daily limit',
-      description: 'Blocks YouTube for the rest of the day once you reach this many active minutes. 0 means no limit.',
+      description: '0 means no limit.',
       type: 'number',
       default: 0,
       min: 0,
@@ -93,7 +91,7 @@
     {
       id: 'focus.limitGrace',
       label: 'Extra time after the limit',
-      description: 'How many "5 more minutes" you can ask for each day. 0 means none.',
+      description: '“5 more minutes” requests per day.',
       type: 'number',
       default: 1,
       min: 0,
@@ -106,7 +104,6 @@
     {
       id: 'focus.schedules',
       label: 'Weekly schedules',
-      description: 'Block sites, or switch to a preset, at the same times each week.',
       type: 'list',
       default: [],
       item: schedule,

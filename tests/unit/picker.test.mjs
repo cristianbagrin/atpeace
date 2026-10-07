@@ -184,7 +184,7 @@ describe('selectors the picker builds', () => {
     const refused = core.generate(onlyAria);
     assert.equal(refused.ok, false);
     assert.equal(refused.reason, 'no-hook');
-    assert.match(refused.message, /steady way/);
+    assert.equal(refused.message, 'Cannot pick that one. Try Bigger or Smaller.');
   });
 
   test('links are picked by where they lead, never by their text', () => {
@@ -214,7 +214,7 @@ describe('selectors the picker builds', () => {
     assert.equal(ok(core.generate(share)).selector, 'yt-button-view-model[data-at-peace-action="share"]');
   });
 
-  test('selectors never contain text, aria, or nth-child unless asked for', () => {
+  test('selectors never contain text, aria, or nth-child', () => {
     const page = watchPage();
     for (const target of [page.merch, page.like, page.join, page.cards[0], page.generated, page.shortsLink]) {
       const sel = ok(core.generate(target)).selector;
@@ -225,22 +225,38 @@ describe('selectors the picker builds', () => {
   });
 });
 
-describe('"Only this one" (position-based, last resort)', () => {
-  test('uses :nth-child only when nothing else tells the element apart', () => {
-    const { like, share, doc } = watchPage();
-    const res = ok(core.generate(share, { unique: true }));
-    assert.equal(res.unique, true);
-    assert.equal(res.count, 1);
-    assert.deepEqual(doc.querySelectorAll(res.selector), [share]);
-    assert.match(res.selector, /:nth-child\(2\)$/);
-    assert.notEqual(res.selector, ok(core.generate(like, { unique: true })).selector);
+describe('position is never a hook', () => {
+  test('no selector depends on where an element sits, and the old "unique" option is gone', () => {
+    const page = watchPage();
+    const all = page.doc.querySelectorAll('*');
+    assert.ok(all.length > 20);
+    let generated = 0;
+    for (const target of all) {
+      const res = core.generate(target, { unique: true }); // an option from 0.1.0: ignored now
+      if (!res.ok) continue;
+      generated++;
+      assert.ok(!/:nth-|:first-|:last-|:only-/.test(res.selector), res.selector);
+      assert.equal('unique' in res, false);
+    }
+    assert.ok(generated > 5, 'a fair number of elements could be picked');
   });
 
-  test('prefers a plain selector when one is already unique', () => {
-    const { merch } = watchPage();
-    const res = ok(core.generate(merch, { unique: true }));
-    assert.equal(res.selector, 'ytd-merch-shelf-renderer');
-    assert.equal(res.unique, false);
+  test('several alike with nothing to tell them apart: the rule hides them all, it never singles one out by position', () => {
+    const { share, like, doc } = watchPage();
+    const res = ok(core.generate(share));
+    assert.ok(doc.querySelectorAll(res.selector).includes(share));
+    assert.ok(!/:nth-/.test(res.selector), res.selector);
+    assert.ok(doc.querySelectorAll(res.selector).includes(like) || res.count === 1);
+  });
+
+  test('the only refusals left are protected, too-big and no-hook', () => {
+    const { doc } = watchPage();
+    const reasons = new Set();
+    for (const target of doc.querySelectorAll('*')) {
+      const res = core.generate(target);
+      if (!res.ok) reasons.add(res.reason);
+    }
+    assert.deepEqual([...reasons].filter((r) => !['protected', 'too-big', 'no-hook'].includes(r)), []);
   });
 });
 

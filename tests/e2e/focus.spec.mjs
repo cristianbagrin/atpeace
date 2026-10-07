@@ -44,9 +44,11 @@ test('a focus block redirects YouTube to the blocked page, with a live countdown
   assert.equal(page.url(), `${BLOCKED}?reason=focus#${WATCH}`);
   await waitState(page, 'blocked');
   assert.equal(await page.locator('#title').textContent(), 'YouTube is closed for now.');
+  assert.equal(await page.locator('#kicker').textContent(), 'Focus');
   assert.match(await page.locator('#clock').textContent(), /^2[45]:\d\d$/);
   assert.match(await page.locator('#until').textContent(), /^Back at /);
-  assert.equal(await page.locator('#target').textContent(), WATCH);
+  assert.equal(await page.locator('#target').count(), 0, 'the blocked page does not show the address');
+  assert.equal(await page.locator('footer').count(), 0, 'and has no footer: Esc does nothing there');
   assert.equal(await page.locator('h1').textContent(), 'At Peace');
   // Hollow: an outline, no fill.
   assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.ring')).backgroundColor), 'rgba(0, 0, 0, 0)');
@@ -108,7 +110,8 @@ test('friction "wait": a 30 second wait, then the button; ending frees the site 
   assert.equal(await confirmButton.isEnabled(), true);
   await confirmButton.click();
   await waitState(page, 'free');
-  assert.equal(await page.locator('#title').textContent(), 'You’re free to go.');
+  assert.equal(await page.locator('#title').textContent(), 'YouTube is open again.');
+  assert.equal(await page.locator('#sub').count(), 0, 'no second sentence');
   assert.deepEqual(await dnrRules(), []);
   assert.equal((await readState()).state.block, null);
   await page.locator('#cta a').click();
@@ -160,7 +163,7 @@ test('strict: nothing on the page ends the block, and neither does the backgroun
   await send('FOCUS_START', { minutes: 25 });
   const page = await blockedTab();
   assert.equal(await page.getByRole('button').count(), 0, 'no button on the page');
-  assert.match(await page.locator('#unlock').textContent(), /cannot be ended early/);
+  assert.equal((await page.locator('#unlock').textContent()).trim(), 'No early exit.');
   assert.deepEqual(await send('FOCUS_END', { frictionDone: true }), { ok: false, error: 'strict' });
   assert.equal((await readState()).state.block.reason, 'focus');
   assert.equal((await dnrRules()).length, 1);
@@ -213,8 +216,9 @@ test('a schedule that is active now closes YouTube and names itself; one on anot
   await configure({ 'focus.schedules': [schedule([day])] });
   const page = await blockedTab(YT);
   assert.ok(page.url().startsWith(`${BLOCKED}?reason=schedule#`));
-  assert.equal(await page.locator('#title').textContent(), 'Closed by your schedule.');
-  assert.match(await page.locator('#sub').textContent(), /“Work hours” keeps YouTube closed/);
+  assert.equal(await page.locator('#title').textContent(), 'YouTube is closed for now.');
+  assert.equal(await page.locator('#kicker').textContent(), 'Schedule · Work hours');
+  assert.equal((await page.locator('#unlock').textContent()).trim(), 'Edit schedules');
   assert.equal(await page.locator('#unlock button').count(), 1, 'only a link to the settings, no way to end it here');
   await shot(page, 'blocked-schedule');
   await page.close();
@@ -253,8 +257,8 @@ test('the daily limit: reached → blocked until midnight; "5 more minutes" once
   await page.goto('https://www.youtube.com/feed/subscriptions', { waitUntil: 'domcontentloaded' });
   await waitState(page, 'blocked');
   assert.ok(page.url().startsWith(`${BLOCKED}?reason=limit#`));
-  assert.equal(await page.locator('#title').textContent(), 'That’s your time for today.');
-  assert.equal(await page.locator('#sub').textContent(), 'You reached today’s limit of 1 minute.');
+  assert.equal(await page.locator('#title').textContent(), 'YouTube is closed for today.');
+  assert.equal(await page.locator('#kicker').textContent(), 'Daily limit');
   assert.equal(await page.locator('#until').textContent(), 'Back tomorrow');
   assert.equal(await page.locator('#unlock .hint').textContent(), 'One left today.');
   await shot(page, 'blocked-limit');
@@ -298,12 +302,14 @@ test('GET_STATUS has the shape the popup relies on (Contract C3)', async () => {
   assert.equal(typeof status.today.youtube.activeSec, 'number');
 });
 
-test('shorts: the blocked page has a calm line and a link to the normal watch page', async () => {
+test('shorts: the blocked page says so in one line and links to the normal watch page', async () => {
   const page = await newTab();
   await page.goto(`${BLOCKED}?reason=shorts#https://www.youtube.com/shorts/abcdefghijk`);
   await waitState(page, 'shorts');
   assert.equal(await page.locator('#title').textContent(), 'Shorts are off.');
   assert.equal(await page.locator('#cta a').getAttribute('href'), 'https://www.youtube.com/watch?v=abcdefghijk');
+  assert.equal(await page.locator('#cta a').textContent(), 'Watch normally');
+  assert.equal(await page.locator('#kicker').isHidden(), true);
   assert.equal(await page.locator('#clock').isVisible(), false);
   await shot(page, 'blocked-shorts');
   await page.close();

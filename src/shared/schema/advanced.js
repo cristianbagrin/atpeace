@@ -1,4 +1,4 @@
-// Advanced settings (PLAN §6.3): custom hide rules, custom CSS, debug logs and the settings lock.
+// Advanced settings (PLAN §6.3): the elements picked to hide, debug logs and the settings lock.
 // Never part of presets. The lock is also kept out of export/import, otherwise importing a
 // crafted file would be a way around it.
 (() => {
@@ -70,14 +70,14 @@
     site: null,
     title: 'Advanced',
     order: 990,
-    description: 'For the tinkerers: your own rules and styles, and a lock for these settings.',
+    description: 'Hidden elements, logs and the settings lock.',
   });
 
   AP.schema.define('advanced', [
     {
       id: 'advanced.customRules',
       label: 'Elements I chose to hide',
-      description: 'The things you picked with "Hide an element". Remove one to bring it back.',
+      description: 'Remove one to bring it back.',
       type: 'list',
       default: [],
       item: customRule,
@@ -87,20 +87,9 @@
       feature: 'engine',
     },
     {
-      id: 'advanced.customCss',
-      label: 'Custom CSS',
-      description: 'Extra styles applied to the page. Imports and links to other sites are removed.',
-      type: 'textarea',
-      default: '',
-      maxLength: 20_000,
-      advanced: true,
-      preset: false,
-      feature: 'engine',
-    },
-    {
       id: 'advanced.debug',
       label: 'Debug logs',
-      description: 'Writes detailed notes to the browser console, for troubleshooting.',
+      description: 'Writes to the browser console.',
       type: 'toggle',
       default: false,
       advanced: true,
@@ -110,7 +99,7 @@
     {
       id: 'advanced.lock',
       label: 'Lock these settings',
-      description: 'Asks for a password, or a moment of waiting, before anything can be shown again. Making YouTube quieter always works.',
+      description: 'Showing more again takes an unlock.',
       type: 'object',
       default: { mode: 'none' },
       normalize: lock,

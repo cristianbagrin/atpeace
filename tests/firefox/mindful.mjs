@@ -148,7 +148,7 @@ afterEach(async (t) => {
 
 test('pause: a youtube.com load is redirected before any request; breath; choice', async () => {
   await reset();
-  await configure({ 'pause.enabled': true, 'pause.breathSeconds': 3, 'pause.askIntention': true });
+  await configure({ 'pause.enabled': true, 'pause.breathSeconds': 3 });
   const rules = await dnrRules();
   assert.equal(rules.length, 1);
   assert.equal(rules[0].id, 200);
@@ -157,7 +157,8 @@ test('pause: a youtube.com load is redirected before any request; breath; choice
   await waitUrl((u) => u.startsWith(extUrl('src/pages/pause/pause.html')), 15_000, 'pause redirect');
   assert.equal(await driver.getCurrentUrl(), `${extUrl('src/pages/pause/pause.html')}#${WATCH}`);
   await waitBodyState('breathing');
-  assert.equal(await driver.findElement(By.id('target')).getText(), WATCH);
+  assert.equal((await driver.findElements(By.id('target'))).length, 0, 'the address is not shown');
+  assert.equal(await textOf('foot-hint'), 'Press Esc to close');
   assert.equal(await driver.findElement(By.id('continue')).isEnabled(), false);
   assert.equal(await textOf('guidance'), 'Breathe in…');
   await sleep(900);
@@ -165,7 +166,8 @@ test('pause: a youtube.com load is redirected before any request; breath; choice
   // the sun is animated by the Web Animations API
   assert.equal(await driver.executeScript(() => document.getAnimations().filter((a) => a.effect?.target?.id === 'sun' && a.playState === 'running').length), 1);
   await waitBodyState('choosing');
-  assert.equal(await textOf('count-line'), 'This is your first time opening YouTube today.');
+  assert.equal(await textOf('kicker'), 'FIRST TIME TODAY'); // Selenium returns the rendered (uppercased) text
+  assert.equal(await textOf('question'), 'Open YouTube?');
   assert.equal(await textOf('close'), 'Close YouTube');
   assert.equal(await driver.findElement(By.id('continue')).isEnabled(), true);
   await sleep(700); // the choice fades in
@@ -174,7 +176,7 @@ test('pause: a youtube.com load is redirected before any request; breath; choice
 
 test('pause: Continue starts the session and the real site loads (a second navigation is not paused)', async (t) => {
   const from = await mark();
-  await driver.findElement(By.id('intention')).sendKeys('a talk about calm');
+  assert.equal((await driver.findElements(By.css('input[type=text]'))).length, 0, 'nothing to type on the pause page');
   await driver.findElement(By.id('continue')).click();
   await waitUrl((u) => !u.startsWith('moz-extension:'), 20_000, 'leaving the pause page after Continue');
   await driver.wait(async () => new URL(await driver.getCurrentUrl()).hostname !== '', 20_000);
@@ -190,7 +192,7 @@ test('pause: Continue starts the session and the real site loads (a second navig
   assert.equal(state.sessionMinutes.youtube, 15);
   const day = Object.keys(stats)[0];
   assert.equal(stats[day].youtube.continued, 1);
-  assert.deepEqual(stats[day].youtube.intentions.map((i) => i.text), ['a talk about calm']);
+  assert.equal('intentions' in stats[day].youtube, false, 'no intention is stored');
   assert.deepEqual(await dnrRules(), [], 'no pause rule while the session runs');
   assert.deepEqual(await ourErrors(from), []);
 });
@@ -245,7 +247,8 @@ test('focus: a full youtube.com load is redirected by the block rule; wait frict
   await waitUrl((u) => u.startsWith(extUrl('src/pages/blocked/blocked.html')), 15_000, 'block redirect');
   assert.equal(await driver.getCurrentUrl(), `${extUrl('src/pages/blocked/blocked.html')}?reason=focus#https://www.youtube.com/feed/subscriptions`);
   await waitBodyState('blocked');
-  assert.equal(await textOf('target'), 'https://www.youtube.com/feed/subscriptions');
+  assert.equal((await driver.findElements(By.id('target'))).length, 0, 'the blocked page does not show the address');
+  assert.equal((await driver.findElements(By.css('footer'))).length, 0, 'and has no footer: Esc does nothing there');
 
   assert.deepEqual(await send('FOCUS_END', {}), { ok: false, error: 'friction-required' });
   const early = await driver.findElement(By.xpath("//button[normalize-space()='End focus early…']"));
@@ -255,7 +258,7 @@ test('focus: a full youtube.com load is redirected by the block rule; wait frict
   await shot('firefox-blocked-wait');
   assert.deepEqual(await send('FOCUS_END', { frictionDone: true }), { ok: true }); // (what the button sends after 30 s)
   await waitBodyState('free', 8000);
-  assert.equal(await textOf('title'), 'You’re free to go.');
+  assert.equal(await textOf('title'), 'YouTube is open again.');
   assert.deepEqual((await dnrRules()).map((r) => r.id), [200]);
   assert.deepEqual(await ourErrors(from), []);
 });
@@ -274,7 +277,8 @@ test('focus: strict leaves no way out; a schedule closes the site; the daily lim
   await configure({ 'focus.schedules': [{ id: 's1', name: 'Work hours', days: [day], start: '00:00', end: '23:59', action: 'block', siteKeys: ['youtube'], enabled: true }] });
   await driver.get('https://www.youtube.com/');
   await waitBodyState('blocked');
-  assert.equal(await textOf('title'), 'Closed by your schedule.');
+  assert.equal(await textOf('title'), 'YouTube is closed for now.');
+  assert.equal(await textOf('kicker'), 'SCHEDULE · WORK HOURS');
   await shot('firefox-blocked-schedule');
 
   await reset();
@@ -284,7 +288,8 @@ test('focus: strict leaves no way out; a schedule closes the site; the daily lim
   assert.equal((await send('HEARTBEAT', { siteKey: 'youtube' })).counted, true);
   await driver.get('https://www.youtube.com/');
   await waitBodyState('blocked');
-  assert.equal(await textOf('title'), 'That’s your time for today.');
+  assert.equal(await textOf('title'), 'YouTube is closed for today.');
+  assert.equal(await textOf('kicker'), 'DAILY LIMIT');
   await driver.findElement(By.xpath("//button[normalize-space()='5 more minutes']"));
   await shot('firefox-blocked-limit');
   assert.equal((await send('LIMIT_GRACE')).ok, true);
@@ -366,7 +371,7 @@ test('user site: pause redirect → breath → Continue → the page loads; the 
   assert.equal(await driver.getCurrentUrl(), `${extUrl('src/pages/pause/pause.html')}#${siteUrl}`);
   await waitBodyState('choosing');
   assert.equal(await textOf('close'), 'Close guard.test');
-  assert.match(await textOf('count-line'), /first time opening guard\.test today/);
+  assert.equal(await textOf('kicker'), 'FIRST TIME TODAY');
   await shot('firefox-pause-user-site');
   await driver.findElement(By.id('continue')).click();
   await waitUrl((u) => u.startsWith('http://guard.test:'), 15_000, 'the user site after Continue');

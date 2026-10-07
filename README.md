@@ -16,7 +16,7 @@ videos, the sidebar, buttons under a video, view counts, upload dates, duration 
 promos, AI summaries, end screens, hover previews, and more. Thumbnails can be shown, blurred until you
 hover, grayscale until you hover, or hidden. The whole site can go grayscale. Filters hide videos by
 word or channel (plain text or `/regex/`) and comments by word. An element picker lets you click
-anything the settings missed and keeps it hidden. Custom CSS is available for the rest.
+anything the settings missed and keeps it hidden.
 
 **Redirect.** Home can show a calm empty page or send you to Subscriptions, Watch later, your
 playlists or a page of your own. Shorts can open in the normal player or be blocked. Channels can open on
@@ -82,7 +82,7 @@ could only be verified in a signed-in browser.
 - The toolbar button opens the popup: master switch, quick toggles, bulk chips (Shorts,
   Recommendations, Comments, ...), presets, a focus block, today's numbers and **Hide an element**.
 - **Settings** has every switch, grouped like YouTube's own layout, with search. Turn on **Show advanced**
-  for the rest. **Mindful Pause**, **Focus & limits**, **Advanced** (your hidden elements, custom CSS,
+  for the rest. **Mindful Pause**, **Focus & limits**, **Advanced** (your hidden elements,
   debug logs, the lock) and **Backup & reset** are sections too.
 - Settings apply to open YouTube tabs at once; no reload.
 

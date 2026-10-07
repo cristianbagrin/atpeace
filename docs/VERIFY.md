@@ -176,12 +176,13 @@ Shorts" and "Hide Subscribe on Shorts" there.
 1. Settings, **Mindful Pause**: turn on "Pause before opening". In a new tab open `youtube.com`.
    Expect: a dark indigo page with a dial of fine tick marks and a mint circle that slowly swells and
    shrinks, the small line "Before YouTube" above it and the words "Breathe in…". After the breath the
-   line above reads like "4th time today" (the exact sentence, "This is your 4th time opening YouTube
-   today.", is there for screen readers), the question "Open YouTube?" appears, and two choices: the main
-   button **Close YouTube** and **Continue for** with a row of minute choices (5, 10, 15 ...). Press
-   Continue: YouTube opens. Open another YouTube tab: no second pause while the session lasts. (Set
-   "Default time when I continue" to 5 minutes and wait if you want to see the "time is up" note and the
-   video pausing.)
+   line above reads like "4th time today", the question "Open YouTube?" appears, and two choices: the
+   main button **Close YouTube** and **Continue for** with a row of minute choices (5, 10, 15 ...). The
+   bottom right says "Press Esc to close" (Esc is the same as Close), and nothing else is on the page:
+   no address, no question to answer. Press Continue: YouTube opens. Open another YouTube tab: no
+   second pause while the session lasts. (Set "Default time when I continue" to 5 minutes and wait if you
+   want to see "Your 5 minutes are up." with **Leave YouTube** and **Take a breath**, and the video
+   pausing. It always appears; there is no setting for it.)
 2. Press **Close YouTube** on a fresh pause: the tab goes back or closes.
 3. Popup, under **Block YouTube for**, press **25 min**. Expect: open YouTube tabs turn into the same
    indigo page, now saying "YouTube is closed for now." with a large countdown and the time it ends, and a

@@ -32,11 +32,6 @@
 
           <section class="layer choice" id="choice" aria-labelledby="question" inert>
             <h2 class="question headline" id="question">Open YouTube?</h2>
-            <p class="count-line visually-hidden" id="count-line" hidden></p>
-            <div class="intention" id="intention-wrap" hidden>
-              <label for="intention" id="intention-label">What did you come for? (optional)</label>
-              <input type="text" id="intention" maxlength="140" autocomplete="off" spellcheck="false" placeholder="A few words, just for you">
-            </div>
             <div class="actions">
               <button type="button" class="btn btn-primary big" id="close" disabled>Close</button>
               <button type="button" class="btn big" id="continue" disabled>Continue for</button>
@@ -50,7 +45,6 @@
 
           <section class="layer session" id="session" aria-labelledby="session-line" inert>
             <h2 class="question headline" id="session-line"></h2>
-            <p class="lede" id="session-sub">A session is already running.</p>
             <div class="actions">
               <button type="button" class="btn btn-primary big" id="session-go">Continue</button>
               <button type="button" class="btn big" id="session-close">Close</button>
@@ -58,8 +52,7 @@
           </section>
 
           <section class="layer invalid" id="invalid" aria-labelledby="invalid-line" inert>
-            <h2 class="question headline" id="invalid-line">There is nothing to open here.</h2>
-            <p class="lede">This page appears when a site you chose to pause is about to open.</p>
+            <h2 class="question headline" id="invalid-line">Nothing to open.</h2>
             <div class="actions">
               <button type="button" class="btn btn-primary big" id="invalid-close">Close this tab</button>
             </div>
@@ -71,8 +64,7 @@
     </main>
 
     <footer class="foot">
-      <p class="target" id="target"></p>
-      <p class="foot-hint" id="foot-hint">Esc closes it</p>
+      <p class="foot-hint" id="foot-hint">Press Esc to close</p>
     </footer>
   </div>
 

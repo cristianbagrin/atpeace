@@ -63,14 +63,6 @@
   text-wrap: balance;
 }
 
-.lede {
-  margin-top: 12px;
-  max-width: 34ch;
-  color: var(--ix-text-2);
-  font-size: 16px;
-  line-height: 1.55;
-}
-
 /* ------------------------------------------------------------------ the choices */
 
 .column {
@@ -191,11 +183,6 @@
   cursor: pointer;
 }
 
-.row-desc {
-  font-size: 13px;
-  color: var(--text-2);
-}
-
 .row-error {
   margin-top: 4px;
   font-size: 12.5px;
@@ -209,7 +196,6 @@
 }
 
 .row.is-disabled .row-label,
-.row.is-disabled .row-desc,
 .row.is-disabled .row-control {
   opacity: 0.55;
 }
@@ -292,12 +278,6 @@ kbd {
 
 .done-title {
   font-size: 24px;
-}
-
-.finish .lede {
-  max-width: 46ch;
-  color: var(--text-2);
-  font-size: 15px;
 }
 
 .done-actions {

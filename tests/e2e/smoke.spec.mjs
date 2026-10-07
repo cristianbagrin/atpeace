@@ -77,8 +77,8 @@ test('R1: DNR regexSubstitution redirect to an extension page keeps the full ori
   try {
     await page.goto(probe, { waitUntil: 'domcontentloaded' });
     assert.ok(page.url().startsWith(pausePage), `expected redirect to the pause page, got ${page.url()}`);
-    await page.waitForFunction(() => document.getElementById('target')?.textContent !== '');
-    assert.equal(await page.locator('#target').textContent(), probe);
+    assert.equal(page.url().slice(page.url().indexOf('#') + 1), probe, 'the original address travels in the hash');
+    await page.waitForFunction(() => document.body.dataset.state !== 'loading');
     assert.deepEqual(page.errors, []);
     await screenshot(page, 'smoke-dnr-redirect');
   } finally {

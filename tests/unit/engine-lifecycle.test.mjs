@@ -123,7 +123,7 @@ describe('styles and attributes', () => {
 
   test('master switch off: tokens are empty (attribute present), the dynamic sheet is empty', async () => {
     const rules = [{ id: 'r1', selector: '#x', page: null, note: '', createdAt: 1 }];
-    const w = await boot({ stored: { 'general.enabled': false, 'yt.general.hideAds': true, 'advanced.customRules': rules, 'advanced.customCss': 'a { color: red }' } });
+    const w = await boot({ stored: { 'general.enabled': false, 'yt.general.hideAds': true, 'advanced.customRules': rules } });
     assert.equal(w.attr('data-at-peace'), '');
     assert.equal(w.doc.getElementById('at-peace-dynamic').textContent, '');
     assert.deepEqual(w.inspect().tokens, []);
@@ -155,9 +155,8 @@ describe('styles and attributes', () => {
       w.doc.getElementById('at-peace-dynamic').textContent,
       'html[data-at-peace~="general.enabled"]:is([data-at-peace-page="home"],[data-at-peace-next="home"]) ytd-masthead #logo { display: none !important; }',
     );
-    await change(w, { 'advanced.customCss': '@import url(https://evil.example/x.css);\nytd-app { opacity: 0.9 }' });
-    assert.ok(w.doc.getElementById('at-peace-dynamic').textContent.endsWith('\nytd-app { opacity: 0.9 }'));
-    assert.ok(!w.doc.getElementById('at-peace-dynamic').textContent.includes('@import'));
+    await change(w, { 'advanced.customRules': [] });
+    assert.equal(w.doc.getElementById('at-peace-dynamic').textContent, '', 'removing the last rule empties the sheet');
   });
 
   test('AP.debug follows advanced.debug as settings arrive', async () => {

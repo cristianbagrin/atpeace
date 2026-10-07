@@ -25,8 +25,8 @@
 //     same kind of container: a `ytd-button-renderer` is everywhere), up to two meaningful ancestors
 //     are put in front of it (`#sponsor-button ytd-button-renderer`). A compound that is weak by
 //     itself (a generic id such as #items) always gets an ancestor.
-//   * `:nth-child()` exists only behind the explicit "Only this one" choice, and only when nothing
-//     else tells the element apart.
+//   * Never `:nth-child()` or any other position: YouTube reorders things, so a rule that depends on
+//     where an element sits would stop working. An element nothing tells apart is refused.
 //   * Refused, with a calm sentence: html, body, ytd-app, ytd-page-manager, #content, and any
 //     selector that matches something covering more than 60% of the viewport (each side of the box
 //     counts at most as much as the viewport's: see viewportShare).
@@ -283,17 +283,15 @@
    * @property {number} count          every match on this page, hidden ones included
    * @property {number} visible        matches that are on screen now
    * @property {boolean} similar       the selector matches more than the picked element
-   * @property {boolean} unique        built with :nth-child to match only the picked element
    * @property {Element[]} matches     the matched elements (at most MAX_INSPECT)
    * @property {string} label          what to call it ("ytd-merch-shelf-renderer")
    */
-  /** @typedef {{ ok: false, reason: 'protected'|'too-big'|'no-hook'|'unstable', message: string }} Refused */
+  /** @typedef {{ ok: false, reason: 'protected'|'too-big'|'no-hook', message: string }} Refused */
 
   const REFUSALS = {
-    protected: 'That is the page itself, not something on it. Try pointing at something smaller.',
-    'too-big': 'That is most of the page, so hiding it would leave nothing. Try something smaller.',
-    'no-hook': 'I cannot find a steady way to pick that one. Try a bigger or smaller piece.',
-    unstable: 'There is no steady way to tell that one apart from its neighbours.',
+    protected: 'That is the page itself. Try something smaller.',
+    'too-big': 'That is most of the page. Try something smaller.',
+    'no-hook': 'Cannot pick that one. Try Bigger or Smaller.',
   };
   const refuse = (reason) => ({ ok: false, reason, message: REFUSALS[reason] });
 
@@ -373,19 +371,10 @@
     return out;
   }
 
-  /** Index of `el` among its parent's element children (1-based), for :nth-child. */
-  function childIndex(el) {
-    const parent = el.parentElement;
-    if (!parent) return 0;
-    const kids = Array.from(parent.children);
-    return kids.indexOf(el) + 1;
-  }
-
   /**
    * A selector for the picked element.
    * @param {Element} target
-   * @param {{ doc?: Document, viewport?: { width: number, height: number }, unique?: boolean }} [options]
-   *   `unique`: match only this element (position-based when nothing else tells it apart)
+   * @param {{ doc?: Document, viewport?: { width: number, height: number } }} [options]
    * @returns {Generated | Refused}
    */
   function generate(target, options = {}) {
@@ -405,44 +394,20 @@
     if (anchors[1]) candidates.push(`${anchors[1]} ${anchors[0]} ${own.text}`);
     if (candidates.length === 0) return refuse('no-hook');
 
+    const tried = [];
     let chosen = null;
-    let unique = false;
-    if (options.unique) {
-      for (const cand of candidates) {
-        if (queryAll(doc, cand).length === 1) {
-          chosen = { selector: cand, matches: queryAll(doc, cand) };
-          break;
-        }
+    for (const cand of candidates) {
+      const matches = queryAll(doc, cand);
+      if (!matches.includes(target)) continue;
+      tried.push({ selector: cand, matches });
+      if (matches.length === 1 || areAlike(matches, target)) {
+        chosen = tried[tried.length - 1];
+        break;
       }
-      if (!chosen) {
-        const nth = childIndex(target);
-        for (const cand of candidates) {
-          if (nth === 0) break;
-          const selector = `${cand}:nth-child(${nth})`;
-          const matches = queryAll(doc, selector);
-          if (matches.length === 1 && matches[0] === target) {
-            chosen = { selector, matches };
-            unique = true;
-            break;
-          }
-        }
-      }
-      if (!chosen) return refuse('unstable');
-    } else {
-      const tried = [];
-      for (const cand of candidates) {
-        const matches = queryAll(doc, cand);
-        if (!matches.includes(target)) continue;
-        tried.push({ selector: cand, matches });
-        if (matches.length === 1 || areAlike(matches, target)) {
-          chosen = tried[tried.length - 1];
-          break;
-        }
-      }
-      // Nothing was alike even with two ancestors: take the tightest.
-      chosen ??= tried.sort((a, b) => a.matches.length - b.matches.length || a.selector.length - b.selector.length)[0];
-      if (!chosen) return refuse('no-hook');
     }
+    // Nothing was alike even with two ancestors: take the tightest.
+    chosen ??= tried.sort((a, b) => a.matches.length - b.matches.length || a.selector.length - b.selector.length)[0];
+    if (!chosen) return refuse('no-hook');
 
     // Size and protection: every match, not only the picked one.
     const view = viewportOf(doc, options.viewport);
@@ -460,7 +425,6 @@
       count: chosen.matches.length,
       visible,
       similar: chosen.matches.length > 1,
-      unique,
       matches: chosen.matches,
       label: own.primary,
     };
@@ -543,6 +507,8 @@
 
   const HOST_ATTR = 'data-at-peace-picker';
   const UNDO_MS = 6000;
+  /** The undo shortcut as this person's keyboard writes it (the handler accepts both Ctrl and Cmd). */
+  const UNDO_KEY = /Mac|iPhone|iPad/i.test(globalThis.navigator?.platform ?? '') ? '⌘Z' : 'Ctrl+Z';
   const MAX_SIMILAR_BOXES = 80;
   const MAX_RULES = 500;
 
@@ -586,7 +552,7 @@ button {
   font: inherit; font-size: 13px; font-weight: 600; min-height: 32px; padding: 0 12px; border-radius: 8px;
   border: 1px solid var(--panel-line); background: var(--panel); color: var(--text);
 }
-button, .choice, label.check { cursor: pointer !important; }
+button, .choice { cursor: pointer !important; }
 button:disabled { cursor: default !important; }
 button:hover:not(:disabled) { background: var(--ground); border-color: var(--field-line); }
 button.primary { background: var(--act); border-color: var(--act); color: var(--on-act); }
@@ -600,8 +566,6 @@ button.primary .key { color: inherit; opacity: 0.75; }
 .choice[aria-checked="true"] .radio { border-color: var(--act); }
 .choice[aria-checked="true"] .radio::after { content: ""; display: block; width: 6px; height: 6px; margin: 2.5px; border-radius: 50%; background: var(--act); }
 .choice:focus-visible { outline: 2px solid var(--act); outline-offset: 2px; }
-label.check { display: flex; gap: 8px; align-items: center; margin-top: 10px; cursor: pointer; }
-label.check input { accent-color: var(--act); }
 .bar { height: 2px; margin-top: 10px; background: var(--row-line); }
 .bar > i { display: block; height: 100%; width: 100%; background: var(--act); transform-origin: left; }
 [hidden] { display: none !important; }
@@ -718,7 +682,6 @@ label.check input { accent-color: var(--act); }
       chain: [],
       stoppedAtFrame: false,
       index: 0,
-      only: false,
       scope: 'page',
       page: currentPage(),
       message: '', // calm problem text for the review phase
@@ -752,9 +715,8 @@ label.check input { accent-color: var(--act); }
     function evaluate(index = state.index) {
       const e = state.chain[index];
       if (!e) return null;
-      const key = `${index}:${state.only ? 1 : 0}`;
-      if (!state.cache.has(key)) state.cache.set(key, generate(e.el, { doc, viewport: viewport(), unique: state.only }));
-      return state.cache.get(key);
+      if (!state.cache.has(index)) state.cache.set(index, generate(e.el, { doc, viewport: viewport() }));
+      return state.cache.get(index);
     }
 
     // --- layout ----------------------------------------------------------------------------
@@ -837,7 +799,7 @@ label.check input { accent-color: var(--act); }
     const pageName = () => state.page;
 
     function renderPick() {
-      const hint = el('p', 'hint', 'Point at something and click it.');
+      const hint = el('p', 'hint', 'Click what to hide.');
       hint.setAttribute('role', 'status');
       const row = el('div', 'row');
       row.append(button('Cancel', { key: 'Esc', onClick: stop }));
@@ -852,15 +814,14 @@ label.check input { accent-color: var(--act); }
       live.setAttribute('aria-live', 'polite');
 
       if (!res || res.ok === false) {
-        const text = res?.message ?? (state.stoppedAtFrame ? 'That is the page itself, not something on it. Try pointing at something smaller.' : 'I cannot find a steady way to pick that one. Try pointing at something else.');
+        const text = res?.message ?? (state.stoppedAtFrame ? REFUSALS.protected : 'Cannot pick that one. Try something else.');
         live.append(el('p', 'note is-problem', text));
         frag.push(live);
       } else {
-        live.append(el('p', 'count', res.unique ? 'Just this one.' : res.similar ? `${res.visible || res.count} similar items on this page` : 'Just this one on this page'));
+        live.append(el('p', 'count', res.similar ? `${res.visible || res.count} similar items` : 'Just this one'));
         const sel = el('code', 'sel', res.selector);
         sel.title = res.selector;
         frag.push(live, sel);
-        if (res.unique) frag.push(el('p', 'fine', 'This uses its position, so it can stop working if YouTube reorders things.'));
       }
       if (state.message) {
         const p = el('p', 'note', state.message);
@@ -871,28 +832,10 @@ label.check input { accent-color: var(--act); }
       const canBigger = Boolean(nextRes?.ok);
       const steps = el('div', 'row');
       steps.append(
-        button('Smaller', { key: '↓', disabled: state.index === 0, onClick: () => step(-1), title: 'A smaller piece (arrow down)' }),
-        button('Bigger', { key: '↑', disabled: !canBigger, onClick: () => step(1), title: 'A bigger piece (arrow up)' }),
+        button('Smaller', { key: '↓', disabled: state.index === 0, onClick: () => step(-1), title: 'Smaller (arrow down)' }),
+        button('Bigger', { key: '↑', disabled: !canBigger, onClick: () => step(1), title: 'Bigger (arrow up)' }),
       );
       frag.push(steps);
-
-      if (res?.ok && (res.similar || state.only)) {
-        const label = el('label', 'check');
-        const box = el('input');
-        box.type = 'checkbox';
-        box.checked = state.only;
-        box.addEventListener('change', () => {
-          state.only = box.checked;
-          state.message = '';
-          if (state.only && evaluate()?.ok === false) {
-            state.only = false;
-            state.message = REFUSALS.unstable;
-          }
-          render();
-        });
-        label.append(box, el('span', '', 'Only this one'));
-        frag.push(label);
-      }
 
       const scope = el('fieldset');
       scope.setAttribute('role', 'radiogroup');
@@ -935,7 +878,7 @@ label.check input { accent-color: var(--act); }
       const frag = [live];
       if (state.saved?.note) frag.push(el('p', 'fine', state.saved.note));
       const row = el('div', 'row');
-      if (state.saved?.rule) row.append(button('Undo', { key: 'Ctrl+Z', onClick: undo, disabled: state.busy }));
+      if (state.saved?.rule) row.append(button('Undo', { key: UNDO_KEY, onClick: undo, disabled: state.busy }));
       row.append(button('Done', { onClick: stop }));
       frag.push(row);
       const bar = el('div', 'bar');
@@ -964,7 +907,6 @@ label.check input { accent-color: var(--act); }
       state.chain = chain;
       state.stoppedAtFrame = stoppedAtFrame;
       state.index = 0;
-      state.only = false;
       state.message = '';
       state.cache = new Map();
       state.phase = 'review';
@@ -982,13 +924,12 @@ label.check input { accent-color: var(--act); }
       const next = state.index + delta;
       if (next < 0 || next >= state.chain.length) return;
       if (delta > 0 && evaluate(next)?.ok === false) {
-        state.message = 'Bigger than that would be most of the page, so this is as big as it goes.';
+        state.message = 'That is as big as it goes.';
         render();
         return;
       }
       state.index = next;
       state.message = '';
-      if (state.only && evaluate()?.ok === false) state.only = false;
       render();
     }
 
@@ -1009,7 +950,7 @@ label.check input { accent-color: var(--act); }
           return;
         }
         if (rules.length >= MAX_RULES) {
-          state.message = `You already hide ${MAX_RULES} things. Remove some in Settings first.`;
+          state.message = `You already hide ${MAX_RULES} things. Remove some in Settings.`;
           return;
         }
         const rule = {
@@ -1021,20 +962,20 @@ label.check input { accent-color: var(--act); }
         };
         const report = await AP.settings.save({ 'advanced.customRules': [...rules, rule] });
         if (!report.changed.includes('advanced.customRules')) {
-          state.message = 'That could not be saved. Try a different piece.';
+          state.message = 'Could not save that. Try another piece.';
           return;
         }
         const n = res.visible || res.count;
         state.saved = {
           rule,
-          note: settings['general.enabled'] === false ? 'At Peace is turned off right now, so it will stay visible until you turn it back on.' : '',
+          note: settings['general.enabled'] === false ? 'At Peace is off, so it stays visible.' : '',
         };
         state.doneText = n > 1 ? `Hidden: ${n} items${page ? ` on ${PAGE_FOR_NOTE[page] ?? `${page} pages`}` : ''}.` : `Hidden${page ? ` on ${PAGE_FOR_NOTE[page] ?? `${page} pages`}` : ''}.`;
         state.busy = false; // before the confirmation draws, or its Undo would start disabled
         enterDone();
       } catch (err) {
         AP.warn('picker could not save the rule', err);
-        state.message = 'That could not be saved. Try again in a moment.';
+        state.message = 'Could not save. Try again.';
       } finally {
         state.busy = false;
         if (state.phase === 'review') render();
@@ -1136,7 +1077,7 @@ label.check input { accent-color: var(--act); }
 
     function panelButtonFocused() {
       const active = shadow.activeElement;
-      return Boolean(active && active.matches?.(':focus-visible') && (active.tagName === 'BUTTON' || active.getAttribute('role') === 'radio' || active.tagName === 'INPUT'));
+      return Boolean(active && active.matches?.(':focus-visible') && (active.tagName === 'BUTTON' || active.getAttribute('role') === 'radio'));
     }
 
     function onKey(event) {
@@ -1261,7 +1202,6 @@ label.check input { accent-color: var(--act); }
         page: state.page,
         index: state.index,
         steps: state.chain.length,
-        only: state.only,
         savedRuleId: state.saved?.rule?.id ?? null,
       }),
     };

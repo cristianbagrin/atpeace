@@ -163,15 +163,14 @@ export const SCENARIOS = [
   },
 
   {
-    name: 'custom CSS applies live and its @import / remote url() are stripped',
+    name: 'custom CSS is gone: a stored value of the removed setting changes nothing on the page',
     async run(b) {
       await open(b);
-      const css = '@import url(https://evil.example/x.css);\nytd-masthead { outline: 3px solid red !important; background: url(https://evil.example/x.png) }';
-      await b.setStorage({ settings: { 'advanced.customCss': css } });
-      await waitFor(b, (sel) => getComputedStyle(document.querySelector(sel)).outlineStyle === 'solid', 'ytd-masthead', { what: 'the outline' });
-      const dynamic = (await state(b)).dynamic;
-      assert.ok(!dynamic.includes('@import'), dynamic);
-      assert.ok(!dynamic.includes('evil.example'), dynamic);
+      await b.setStorage({ settings: { 'advanced.customCss': 'ytd-masthead { outline: 3px solid red !important }' } });
+      await sleep(400);
+      assert.notEqual((await b.evaluate(elementInfo, 'ytd-masthead')).display, 'none');
+      assert.equal(await b.evaluate((sel) => getComputedStyle(document.querySelector(sel)).outlineStyle, 'ytd-masthead'), 'none');
+      assert.equal((await state(b)).dynamic, '');
     },
   },
 

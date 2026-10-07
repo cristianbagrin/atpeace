@@ -18,7 +18,6 @@
         <div class="dial" id="dial" aria-hidden="true"><div class="sun"></div></div>
         <section class="intro" aria-labelledby="welcome-title">
           <h2 class="title" id="welcome-title">YouTube, on your terms.</h2>
-          <p class="lede">Three choices and you are set. Everything stays in this browser and can be changed later.</p>
         </section>
       </div>
     </aside>
@@ -29,7 +28,7 @@
           <span class="num mono" aria-hidden="true">01</span>
           <div class="step-main">
             <h3 class="step-title" id="step-1-title">How much do you want to see?</h3>
-            <p class="step-intro" id="step-1-intro">Pick a starting point. Every single thing can be tuned afterwards.</p>
+            <p class="step-intro" id="step-1-intro" hidden>Your own mix right now.</p>
             <div id="presets" class="choices panel" role="radiogroup" aria-labelledby="step-1-title"></div>
           </div>
         </li>
@@ -38,7 +37,6 @@
           <span class="num mono" aria-hidden="true">02</span>
           <div class="step-main">
             <h3 class="step-title" id="step-2-title">A breath before YouTube?</h3>
-            <p class="step-intro">A short breathing screen appears before YouTube opens, so opening it is a choice and not a reflex.</p>
             <div id="pause" class="ledger panel"></div>
           </div>
         </li>
@@ -49,10 +47,10 @@
             <h3 class="step-title" id="step-3-title">Keep it in reach</h3>
             <div id="access"></div>
             <div class="keys-panel panel">
-              <p class="pin">Pin At Peace so it is one click away: open the extensions menu in the toolbar (the puzzle-piece button), find At Peace, and choose “Pin to Toolbar” from the menu beside it.</p>
+              <p class="pin">Pin At Peace: open the extensions menu and choose “Pin to Toolbar”.</p>
               <dl class="keys" id="keys"></dl>
             </div>
-            <p class="step-note">You can change these shortcuts in the browser: open <span class="mono">about:addons</span>, press the gear, and choose “Manage Extension Shortcuts”.</p>
+            <p class="step-note" id="keys-help"></p>
           </div>
         </li>
       </ol>

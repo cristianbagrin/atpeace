@@ -136,12 +136,18 @@
       let undoTimer = null;
 
       const list = h('ul', { class: 'rule-list', 'aria-label': def.label });
+      const pickerKeys = h('span', { class: 'picker-keys' });
       const empty = h(
         'div',
         { class: 'empty' },
-        h('p', null, 'Nothing hidden by hand yet.'),
-        h('p', null, 'On YouTube, open the At Peace popup and choose “Hide an element” (or press Alt+Shift+H; you can change the shortcut in your browser’s add-on settings). Point at what you want gone and click it. It shows up here.'),
+        h('p', null, 'Nothing hidden by hand.'),
+        h('p', null, 'On YouTube, choose “Hide an element” in the popup', pickerKeys, '.'),
       );
+      // The shortcut as it is assigned in this browser, written for this platform.
+      ctx.ui?.loadShortcuts?.().then((shortcuts) => {
+        const text = shortcuts.text('open-picker');
+        pickerKeys.textContent = text ? `, or press ${text}` : '';
+      }, () => {});
       const undoBar = h('div', { class: 'undo', role: 'status', hidden: true });
       const problem = h('p', { class: 'field-error', role: 'alert', hidden: true });
       const showProblem = (message) => {

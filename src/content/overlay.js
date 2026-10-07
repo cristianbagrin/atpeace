@@ -1,4 +1,4 @@
-// A full-page note drawn over a site we do not own (PLAN §8.3: "Your 15 minutes are up").
+// A full-page note drawn over a site we do not own (PLAN §8.3: "Your 15 minutes are up.").
 //
 //   AP.overlay.show({ title, body, actions: [{ label, primary?, onClick }], theme? })   → { hide }
 //   AP.overlay.hide()
@@ -12,7 +12,8 @@
 // the page's own shortcuts (Space must not start the video), and Escape deliberately does nothing
 // — the only ways out are the actions the caller offers. If the page removes the host, it comes
 // back. The look is the indigo world of the pause page: the page dimmed, one indigo card with a
-// small dial (an amber ring, a mint dot), a title, a line and two buttons. It looks the same in
+// small dial (an amber ring, a mint dot), a title and two buttons (a `body` line is possible; the
+// session-expiry overlay uses none). It looks the same in
 // both themes, so `theme` is accepted (callers pass it) and not needed.
 (() => {
   'use strict';

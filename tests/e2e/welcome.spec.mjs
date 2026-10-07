@@ -57,7 +57,7 @@ test('the page: three numbered steps, four preset rows, the pause rows, the shor
   assert.deepEqual(await page.locator('.step-title').allTextContents(), ['How much do you want to see?', 'A breath before YouTube?', 'Keep it in reach']);
   assert.deepEqual(await page.locator('.step .num').allTextContents(), ['01', '02', '03']);
   assert.deepEqual(await page.locator('.choice-name').allTextContents(), ['Gentle', 'Focused', 'Deep work', 'Untouched']);
-  for (const desc of await page.locator('.choice-desc').allTextContents()) assert.ok(desc.length > 20 && desc.length < 100, desc);
+  for (const desc of await page.locator('.choice-desc').allTextContents()) assert.ok(desc.length > 10 && desc.length < 70, desc);
   assert.deepEqual(await page.locator('#pause .row-label').allTextContents(), ['Pause before opening YouTube', 'Length of the breath', 'When I continue, keep it open for']);
   assert.deepEqual(await page.locator('.key-row dd').allTextContents(), ['Turn At Peace on or off', 'Block YouTube for 25 minutes', 'Hide an element on the page']);
   assert.match(await page.locator('.step').nth(2).textContent(), /Pin to Toolbar/);

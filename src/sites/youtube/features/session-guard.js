@@ -27,7 +27,7 @@
 
   AP.yt.features.push({
     id: 'session-guard',
-    settings: ['pause.enabled', 'pause.expiryOverlay'],
+    settings: ['pause.enabled'],
     ignoresMaster: true,
     isActive: () => true,
 

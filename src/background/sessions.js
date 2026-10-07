@@ -26,7 +26,6 @@
   const GRACE_MINUTES = 5;
   const MAX_FOCUS_MINUTES = 1440;
   const MAX_SESSION_MINUTES = 240;
-  const MAX_BREATH_SECONDS = 30;
   /** Alarms fire at-or-after their time; a little padding makes sure "now >= until" when they do. */
   const ALARM_PAD_MS = 150;
   const REASON_PRIORITY = Object.freeze({ focus: 3, limit: 2, schedule: 1 });
@@ -208,19 +207,6 @@
   // ---------------------------------------------------------------------------------------
 
   /**
-   * How long the breath lasts. With `pause.escalate` each visit beyond the first one within the
-   * last hour adds `pause.escalateStep` seconds, never more than 30 in total.
-   * @param {Record<string, any>} settings
-   * @param {number} recent pause pages opened in the last hour, this one included
-   */
-  function breathSeconds(settings, recent) {
-    const base = Number(settings?.['pause.breathSeconds']) || 6;
-    if (settings?.['pause.escalate'] !== true) return base;
-    const step = Number(settings['pause.escalateStep']) || 0;
-    return Math.min(MAX_BREATH_SECONDS, Math.max(base, base + step * Math.max(0, recent - 1)));
-  }
-
-  /**
    * Drops sessions that ended, and sessions of sites that no longer have a pause (pause switched
    * off, site removed or disabled): a session only exists to suppress a pause, and the page guards
    * rely on "a session in state means the pause is on".
@@ -345,7 +331,7 @@
   /** @param {unknown} v */
   const validSiteKey = (v) => typeof v === 'string' && store().isSiteKey(v);
 
-  /** PAUSE_OPENED { siteKey, repeat? } → counts the visit and tells the page how long to breathe. */
+  /** PAUSE_OPENED { siteKey, repeat? } → counts the visit; the page learns today's count and how long to breathe. */
   async function onPauseOpened(payload) {
     const siteKey = payload?.siteKey;
     if (!validSiteKey(siteKey)) return { ok: false, error: 'bad-site' };
@@ -353,18 +339,17 @@
     const { settings, state } = await reconcile();
     if (!sitesOf(settings).get(siteKey)?.listed) return { ok: false, error: 'unknown-site' };
     const sessionUntil = state.sessions[siteKey] > at ? state.sessions[siteKey] : null;
-    let counts;
+    let opens;
     if (payload.repeat === true || sessionUntil) {
       // A reload of the same pause page, or a stale tab while a session runs: no new visit.
-      const today = await stats().today(at);
-      counts = { opens: today[siteKey]?.opens ?? 0, recent: Math.max(1, await stats().recentOpens(siteKey, at)) };
+      opens = (await stats().today(at))[siteKey]?.opens ?? 0;
     } else {
-      counts = await stats().recordOpen(siteKey, at);
+      opens = await stats().recordOpen(siteKey, at);
     }
-    return { ok: true, opens: counts.opens, recent: counts.recent, breathSeconds: breathSeconds(settings, counts.recent), sessionUntil };
+    return { ok: true, opens, breathSeconds: Number(settings['pause.breathSeconds']) || 6, sessionUntil };
   }
 
-  /** PAUSE_CONTINUE { siteKey, minutes, intention } → a session, the pause rule removed. */
+  /** PAUSE_CONTINUE { siteKey, minutes } → a session, the pause rule removed. */
   async function onPauseContinue(payload) {
     const siteKey = payload?.siteKey;
     if (!validSiteKey(siteKey)) return { ok: false, error: 'bad-site' };
@@ -384,7 +369,6 @@
       }
     });
     await stats().recordCount(siteKey, 'continued', at);
-    await stats().addIntention(siteKey, payload.intention, at);
     await reconcile(); // the pause rule must be gone before the page navigates on
     return { ok: true, until: Math.max(until, state.sessions[siteKey] ?? 0) };
   }
@@ -522,7 +506,6 @@
     computeBlocks,
     primaryBlock,
     blockForSite,
-    breathSeconds,
     pruneSessions,
     effectiveFor,
     lockOf,

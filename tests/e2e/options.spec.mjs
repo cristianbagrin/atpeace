@@ -40,13 +40,6 @@ async function openOptions({ hash = '', seed, width = 1280, height = 860, init }
 const settings = async () => (await getStorage('settings')).settings ?? {};
 const row = (page, id) => page.locator(`.row[data-id="${id}"]`);
 const confirmDialog = (page) => page.locator('dialog[open] button[value="confirm"]');
-/** The Apply / Rename / Delete buttons of one preset in the open presets dialog. */
-const presetButton = (page, name, button) =>
-  page
-    .locator('dialog[open] .preset')
-    .filter({ has: page.locator('.preset-name', { hasText: new RegExp(`^${name}`) }) })
-    .getByRole('button', { name: button });
-
 /** Reads the registry from inside the page, so tests follow whatever catalog is shipped. */
 const registry = (page) =>
   page.evaluate(() => {
@@ -62,7 +55,7 @@ test('the page opens without errors and builds one section per registry section,
   const { sections } = await registry(page);
   assert.ok(sections.length >= 5);
   const toc = await page.locator('#toc a').allTextContents();
-  assert.equal(toc.length, sections.length + 2); // + Your week, Backup & reset
+  assert.equal(toc.length, sections.length + 3); // + Presets, Your week, Backup & reset
   assert.match(toc[0], /^General/);
   assert.match(toc.at(-1), /Backup & reset$/);
   assert.equal(await page.locator('h1').textContent(), 'At Peace');
@@ -155,11 +148,6 @@ test('a setting that needs another is switched off, with a hint, until that one 
   await page.waitForFunction(() => !document.querySelector('.row[data-id="pause.breathSeconds"]').classList.contains('is-disabled'));
   assert.equal(await breath.locator('input').isDisabled(), false);
   assert.equal(await breath.locator('.row-hint').isVisible(), false);
-
-  // the chain: "extra time per visit" needs "breathe longer", which needs the pause
-  const step = row(page, 'pause.escalateStep');
-  assert.equal(await step.evaluate((el) => el.classList.contains('is-disabled')), true);
-  assert.match(await step.locator('.row-hint').textContent(), /Breathe longer/);
   await page.close();
 });
 
@@ -222,7 +210,7 @@ test('a text setting the schema refuses is explained and not saved; a valid one 
   await input.fill('https://example.com/elsewhere'); // another site: not allowed
   await input.blur();
   await page.waitForSelector(`.row[data-id="${def.id}"] .row-error:not([hidden])`);
-  assert.match(await row(page, def.id).locator('.row-error').textContent(), /not allowed/);
+  assert.match(await row(page, def.id).locator('.row-error').textContent(), /not allowed/i);
   assert.equal((await settings())[def.id], undefined);
 
   await input.fill('/feed/subscriptions');
@@ -253,7 +241,7 @@ test('search filters rows across sections, groups them under their section, and 
   await page.keyboard.type('shorts');
   await page.waitForSelector('#results-note:not([hidden])');
   const note = await page.locator('#results-note').textContent();
-  assert.match(note, /settings? match “shorts”/);
+  assert.match(note, /^\d+ matches?$/);
 
   const hits = await page.evaluate(() =>
     [...document.querySelectorAll('.row')].filter((r) => !r.hidden && r.offsetParent !== null).map((r) => ({ id: r.dataset.id, text: r.textContent.toLowerCase(), section: r.closest('.section').dataset.section })),
@@ -332,67 +320,145 @@ test('bulk chips show all / partly / off and set every tagged setting', async ()
   await page.close();
 });
 
-test('presets: apply (with confirmation), save current, rename, delete', async () => {
+const presetRow = (page, name) => page.locator('#sec-presets .preset').filter({ has: page.locator('.preset-name', { hasText: new RegExp(`^${name}`) }) });
+const customPresets = async () => (await getStorage('customPresets')).customPresets ?? [];
+
+test('presets: a section of its own in the navigation, built-ins and "Yours", the one in use is marked', async () => {
   const page = await openOptions();
-  const expected = await page.evaluate(() => {
-    const AP = globalThis.AtPeace;
-    const values = AP.presets.valuesFor('focused');
-    return { values, ids: Object.keys(values) };
-  });
-
-  // Apply Focused: cancelling changes nothing, confirming applies the preset's values.
+  const toc = await page.locator('#toc a').allTextContents();
+  assert.match(toc[1], /^Presets/, 'right after General');
+  assert.equal(await page.locator('#presets-btn, #topbar button', { hasText: 'Presets' }).count() >= 1, true);
+  const names = (list) => list.locator('.preset-name').evaluateAll((els) => els.map((el) => el.firstChild.textContent));
+  assert.deepEqual(await names(page.locator('#sec-presets .preset-list').first()), ['Gentle', 'Focused', 'Deep work', 'Untouched']);
+  assert.equal(await page.locator('#sec-presets .section-intro').count(), 0);
+  // nothing set: the defaults are "Untouched"
+  assert.match(await presetRow(page, 'Untouched').locator('.preset-current').textContent(), /In use/);
+  assert.match(await page.locator('#sec-presets .section-count').textContent(), /Untouched/);
+  // a hand-made mix matches none
+  await setStorage({ settings: { 'yt.general.grayscale': true } });
+  await page.waitForFunction(() => document.querySelectorAll('#sec-presets .preset-current').length === 0);
+  assert.equal(await page.locator('#sec-presets .section-count').isHidden(), true);
+  // the toolbar button goes to the section
   await page.locator('#topbar button', { hasText: 'Presets' }).click();
-  const dialog = page.locator('dialog[open]');
-  await dialog.waitFor();
-  assert.match(await dialog.textContent(), /sets all your YouTube settings in one go/);
-  await presetButton(page, 'Focused', 'Apply').click();
-  await page.locator('dialog[open]:has-text("Apply Focused?")').waitFor();
-  assert.match(await page.locator('dialog[open]').textContent(), /replaces your current YouTube settings/);
-  await page.locator('dialog[open] button[value="cancel"]').click();
-  await page.locator('dialog[open]:has-text("Presets")').waitFor(); // back to the presets list
-  assert.deepEqual(await settings(), {});
-  await presetButton(page, 'Focused', 'Apply').click();
-  await confirmDialog(page).click();
-  await pageUntil(page, async (id) => (await chrome.storage.local.get('settings')).settings?.[id] !== undefined, expected.ids[0]);
-  const applied = await settings();
-  for (const [id, v] of Object.entries(expected.values)) assert.deepEqual(applied[id], v, id);
-  await page.waitForFunction(() => document.querySelector('.preset-now')?.textContent.includes('Focused'));
-
-  // Save the current settings as a preset.
-  await page.locator('#topbar button', { hasText: 'Presets' }).click();
-  await page.getByRole('button', { name: /Save my current settings as a preset/ }).click();
-  await page.locator('dialog[open] input[type="text"]').fill('Evening');
-  await confirmDialog(page).click();
-  await pageUntil(page, async () => (await chrome.storage.local.get('customPresets')).customPresets?.length === 1);
-  const custom = (await getStorage('customPresets')).customPresets;
-  assert.equal(custom[0].name, 'Evening');
-  for (const [id, v] of Object.entries(expected.values)) assert.deepEqual(custom[0].values[id], v, `custom preset keeps ${id}`);
-
-  // The dialog reopens listing it; rename it.
-  await presetButton(page, 'Evening', 'Rename').click();
-  const field = page.locator('dialog[open] input[type="text"]');
-  assert.equal(await field.inputValue(), 'Evening');
-  await field.fill('Wind-down');
-  await confirmDialog(page).click();
-  await pageUntil(page, async () => (await chrome.storage.local.get('customPresets')).customPresets?.[0]?.name === 'Wind-down');
-
-  // Delete it (asks first).
-  await presetButton(page, 'Wind-down', 'Delete').click();
-  assert.match(await page.locator('dialog[open]').textContent(), /will be removed/);
-  await confirmDialog(page).click();
-  await pageUntil(page, async () => ((await chrome.storage.local.get('customPresets')).customPresets ?? []).length === 0);
-  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => location.hash === '#section=presets');
   assert.deepEqual(page.errors, []);
   await page.close();
 });
 
-test('presets dialog screenshot', async () => {
-  const page = await openOptions();
+test('presets: apply asks only when it would replace a hand-made mix; locked loosening needs the unlock', async () => {
+  const page = await openOptions({ seed: { settings: { 'yt.general.grayscale': true } } });
+  const expected = await page.evaluate(() => {
+    const values = globalThis.AtPeace.presets.valuesFor('focused');
+    return { values, ids: Object.keys(values) };
+  });
+
+  // A hand-made mix: the question comes first, cancelling changes nothing.
+  await presetRow(page, 'Focused').getByRole('button', { name: 'Apply Focused' }).click();
+  await page.locator('dialog[open]:has-text("Apply Focused?")').waitFor();
+  assert.match(await page.locator('dialog[open]').textContent(), /Replaces your YouTube settings/);
+  await page.locator('dialog[open] button[value="cancel"]').click();
+  assert.deepEqual(await settings(), { 'yt.general.grayscale': true });
+  await presetRow(page, 'Focused').getByRole('button', { name: 'Apply Focused' }).click();
+  await confirmDialog(page).click();
+  await pageUntil(page, async (id) => (await chrome.storage.local.get('settings')).settings?.[id] !== undefined, expected.ids[0]);
+  const applied = await settings();
+  for (const [id, v] of Object.entries(expected.values)) assert.deepEqual(applied[id], v, id);
+  assert.equal(applied['yt.general.grayscale'], undefined, 'a preset replaces everything it may touch');
+  await page.waitForFunction(() => document.querySelector('#sec-presets .preset.is-current .preset-name')?.textContent.startsWith('Focused'));
+  assert.match(await page.locator('.preset-now').textContent(), /Focused/);
+
+  // Moving from one preset to another loses nothing: no question.
+  await presetRow(page, 'Gentle').getByRole('button', { name: 'Apply Gentle' }).click();
+  await page.locator('.toast.is-visible', { hasText: 'Gentle applied' }).waitFor();
+  assert.equal(await page.locator('dialog[open]').count(), 0);
+  await page.waitForFunction(() => document.querySelector('#sec-presets .preset.is-current .preset-name')?.textContent.startsWith('Gentle'));
+  assert.deepEqual(page.errors, []);
+  await page.close();
+});
+
+test('presets: new from current settings, update, rename, delete with undo', async () => {
+  const page = await openOptions({ seed: { settings: { 'yt.general.grayscale': true, 'yt.shorts.mode': 'block' } } });
+
+  // New preset: an inline name field, no dialog.
+  await page.getByRole('button', { name: 'New preset from current settings' }).click();
+  const field = page.locator('#sec-presets .preset-form input[type="text"]');
+  assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Preset name', 'the field has the focus');
+  await field.press('Escape');
+  assert.equal(await field.count(), 0, 'Escape cancels');
+  assert.deepEqual(await customPresets(), []);
+  await page.getByRole('button', { name: 'New preset from current settings' }).click();
+  await field.fill('   ');
+  await field.press('Enter');
+  assert.deepEqual(await customPresets(), [], 'a blank name saves nothing');
+  await field.fill('Evening');
+  await field.press('Enter');
+  await pageUntil(page, async () => (await chrome.storage.local.get('customPresets')).customPresets?.length === 1);
+  const [saved] = await customPresets();
+  assert.equal(saved.name, 'Evening');
+  assert.deepEqual(saved.values, { 'yt.general.grayscale': true, 'yt.shorts.mode': 'block' });
+  await page.waitForFunction(() => document.querySelector('#sec-presets .preset.is-current .preset-name')?.textContent.startsWith('Evening'));
+  assert.equal(await presetRow(page, 'Evening').getByRole('button', { name: /Update Evening/ }).isDisabled(), true, 'nothing to update while it is in use');
+  assert.match(await presetRow(page, 'Evening').locator('.preset-desc').textContent(), /2 settings/);
+
+  // Change something, then update the preset from the current settings.
+  await setStorage({ settings: { 'yt.general.grayscale': true, 'yt.shorts.mode': 'block', 'yt.comments.hideAll': true } });
+  await page.waitForFunction(() => !document.querySelector('#sec-presets .preset.is-current'));
+  await presetRow(page, 'Evening').getByRole('button', { name: /Update Evening/ }).click();
+  await pageUntil(page, async () => (await chrome.storage.local.get('customPresets')).customPresets?.[0]?.values?.['yt.comments.hideAll'] === true);
+  assert.equal((await customPresets())[0].id, saved.id, 'same preset');
+  await page.waitForFunction(() => document.querySelector('#sec-presets .preset.is-current .preset-name')?.textContent.startsWith('Evening'));
+
+  // Rename in place.
+  await presetRow(page, 'Evening').getByRole('button', { name: 'Rename Evening' }).click();
+  const rename = page.locator('#sec-presets .preset-form input[type="text"]');
+  assert.equal(await rename.inputValue(), 'Evening');
+  await rename.fill('Wind-down');
+  await page.locator('#sec-presets .preset-form').getByRole('button', { name: 'Save' }).click();
+  await pageUntil(page, async () => (await chrome.storage.local.get('customPresets')).customPresets?.[0]?.name === 'Wind-down');
+  assert.equal(await presetRow(page, 'Wind-down').count(), 1);
+
+  // Delete: gone at once, with an Undo that brings it back with the same id.
+  await presetRow(page, 'Wind-down').getByRole('button', { name: 'Delete Wind-down' }).click();
+  await pageUntil(page, async () => ((await chrome.storage.local.get('customPresets')).customPresets ?? []).length === 0);
+  assert.equal(await page.locator('dialog[open]').count(), 0, 'no confirmation: there is an undo');
+  await page.locator('#sec-presets .undo').getByText('Deleted “Wind-down”.').waitFor();
+  await page.screenshot({ path: join(SHOTS, 'options-presets-undo-light.png') });
+  await page.locator('#sec-presets .undo').getByRole('button', { name: 'Undo' }).click();
+  await pageUntil(page, async () => (await chrome.storage.local.get('customPresets')).customPresets?.length === 1);
+  assert.equal((await customPresets())[0].id, saved.id);
+  assert.equal((await customPresets())[0].name, 'Wind-down');
+  assert.equal(await page.locator('#sec-presets .undo').isHidden(), true);
+  assert.deepEqual(page.errors, []);
+  await page.close();
+});
+
+test('presets: while locked, a preset that would show something again asks for the unlock; one that only hides more does not', async () => {
+  const lock = { mode: 'friction', waitSeconds: 10 };
+  const page = await openOptions({ seed: { settings: { 'advanced.lock': lock, 'yt.general.hideAds': true, 'yt.comments.hideAll': true, 'yt.home.feedMode': 'hide' } } });
+  // "Untouched" shows everything again: refused with the unlock dialog; cancelling leaves things as they are.
+  await presetRow(page, 'Untouched').getByRole('button', { name: 'Apply Untouched' }).click();
+  await confirmDialog(page).click(); // the settings are a hand-made mix: the question first
+  await page.locator('dialog[open]:has-text("Unlock settings")').waitFor();
+  await page.locator('dialog[open]').getByRole('button', { name: 'Cancel' }).click();
+  await page.locator('.toast.is-visible', { hasText: 'Locked.' }).waitFor();
+  assert.equal((await settings())['yt.home.feedMode'], 'hide');
+  await page.close();
+
+  // Nothing hidden yet: a preset that only hides more goes through while locked, with no question.
+  const quiet = await openOptions({ seed: { settings: { 'advanced.lock': lock } } });
+  await presetRow(quiet, 'Focused').getByRole('button', { name: 'Apply Focused' }).click();
+  await quiet.locator('.toast.is-visible', { hasText: 'Focused applied' }).waitFor();
+  assert.equal(await quiet.locator('dialog[open]').count(), 0);
+  assert.equal((await settings())['yt.home.feedMode'], 'hide');
+  assert.deepEqual(quiet.errors, []);
+  await quiet.close();
+});
+
+test('presets section screenshot', async () => {
+  const page = await openOptions({ hash: '#section=presets' });
   await page.evaluate(() => globalThis.AtPeace.settings.saveCustomPreset('Evening wind-down', { 'yt.general.grayscale': true }));
-  await page.locator('#topbar button', { hasText: 'Presets' }).click();
-  await page.locator('dialog[open] .preset-list').first().waitFor();
+  await page.locator('#sec-presets .preset-add, #sec-presets .preset').nth(5).waitFor();
   await page.screenshot({ path: join(SHOTS, 'options-presets-light.png') });
-  await page.keyboard.press('Escape');
   await page.close();
 });
 
@@ -546,7 +612,7 @@ test('a schedule that applies a preset is mentioned, so the values on screen are
     },
   });
   await page.waitForSelector('p.banner:not([hidden])');
-  assert.match(await page.locator('#notices').textContent(), /A schedule is applying the “Focused” preset/);
+  assert.match(await page.locator('#notices').textContent(), /A schedule is applying “Focused”/);
   await page.close();
 });
 

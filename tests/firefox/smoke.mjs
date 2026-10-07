@@ -319,12 +319,10 @@ test('R1: DNR regexSubstitution redirect to a moz-extension page keeps the full 
     findings.R1 = finalUrl.startsWith(pausePage);
     assert.ok(finalUrl.startsWith(pausePage), `expected redirect to the pause page, got ${finalUrl}`);
 
-    const shown = await driver.wait(async () => {
-      const text = await driver.executeScript(() => document.getElementById('target')?.textContent ?? '');
-      return text || false;
-    }, 5_000);
-    t.diagnostic(`R1 #target shows ${shown}`);
-    assert.equal(shown, probe);
+    const shown = finalUrl.slice(finalUrl.indexOf('#') + 1);
+    t.diagnostic(`R1 the hash carries ${shown}`);
+    assert.equal(shown, probe, 'the original address travels in the hash');
+    await driver.wait(async () => (await driver.executeScript(() => document.body.dataset.state)) !== 'loading', 5_000);
     assert.deepEqual((await ourScriptErrors()).slice(before), []);
   } finally {
     await driver.get(extUrl('src/pages/popup/popup.html'));

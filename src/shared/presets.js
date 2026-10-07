@@ -33,7 +33,7 @@
     {
       id: 'gentle',
       name: 'Gentle',
-      description: 'Hides ads, Shorts and AI extras, and tidies the top bar and sidebar. Your feeds stay.',
+      description: 'Ads, Shorts and AI extras go. Your feeds stay.',
       tags: ['ads', 'shorts', 'ai'],
       set: {
         // Shorts everywhere is hidden, but a shared Shorts link still opens in the normal player.
@@ -53,7 +53,7 @@
     {
       id: 'focused',
       name: 'Focused',
-      description: 'Gentle, plus no home feed, no related videos, no end screens, no comments and no autoplay.',
+      description: 'Also no home feed, related videos, comments or autoplay.',
       extends: 'gentle',
       tags: ['comments'],
       set: {
@@ -70,7 +70,7 @@
     {
       id: 'deep-work',
       name: 'Deep work',
-      description: 'Focused, plus the home page opens your subscriptions, in grey, with blurred thumbnails, no counts and a pause before opening.',
+      description: 'Your subscriptions only, grey and blurred, with a pause.',
       extends: 'focused',
       tags: ['metrics'],
       set: {
@@ -86,7 +86,7 @@
     {
       id: 'untouched',
       name: 'Untouched',
-      description: 'Nothing hidden. YouTube as it ships.',
+      description: 'Nothing hidden.',
       tags: [],
       set: {},
     },

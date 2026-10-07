@@ -21,7 +21,7 @@ after(async () => {
 beforeEach(async () => {
   stub.hits.length = 0;
   await resetStorage();
-  await configure({ 'pause.enabled': true, 'pause.breathSeconds': 3, 'pause.askIntention': true });
+  await configure({ 'pause.enabled': true, 'pause.breathSeconds': 3 });
 });
 
 test('a youtube.com load is redirected to the pause page with the original URL, and a pause rule exists', async () => {
@@ -33,7 +33,9 @@ test('a youtube.com load is redirected to the pause page with the original URL, 
   await page.goto(WATCH, { waitUntil: 'domcontentloaded' });
   assert.equal(page.url(), `${extUrl('src/pages/pause/pause.html')}#${WATCH}`);
   await waitPauseState(page, 'breathing');
-  assert.equal(await page.locator('#target').textContent(), WATCH);
+  assert.equal(await page.locator('#target').count(), 0, 'the address is not shown');
+  assert.equal(await page.locator('#foot-hint').textContent(), 'Press Esc to close');
+  assert.equal(await page.evaluate((url) => document.body.innerText.includes(url), WATCH), false, 'the address appears nowhere on the page');
   assert.equal(await page.locator('h1').textContent(), 'At Peace');
   assert.equal(stub.hits.length, 0, 'nothing reached youtube.com');
   assert.deepEqual(ourErrors(page), []);
@@ -60,14 +62,16 @@ test('the breath: guidance changes, the sun is animated, Continue stays disabled
   await page.close();
 });
 
-test('the choice: count line, intention field, defaults, screenshot', async () => {
+test('the choice: the count above the question, defaults, no intention field, screenshot', async () => {
   const page = await newTab();
   await page.goto(WATCH, { waitUntil: 'domcontentloaded' });
   await waitPauseState(page, 'choosing');
-  assert.equal(await page.locator('#count-line').textContent(), 'This is your first time opening YouTube today.');
+  assert.equal(await page.locator('#kicker').textContent(), 'first time today');
+  assert.equal(await page.locator('#count-line').count(), 0, 'no second, hidden sentence for the same fact');
+  assert.equal(await page.locator('#question').textContent(), 'Open YouTube?');
   assert.equal(await page.locator('#close').textContent(), 'Close YouTube');
   assert.equal(await page.locator('#minutes').inputValue(), '15');
-  assert.equal(await page.locator('#intention-wrap').isVisible(), true);
+  assert.equal(await page.locator('#intention, #intention-wrap, input[type=text]').count(), 0, 'nothing to type on the pause page');
   assert.equal(await page.locator('#continue').textContent(), 'Continue for');
   await shot(page, 'pause-choice');
   await page.close();
@@ -79,14 +83,10 @@ test('the open counter increments with every visit (first, 2nd, 3rd)', async () 
     const page = await newTab();
     await page.goto(YT, { waitUntil: 'domcontentloaded' });
     await waitPauseState(page, 'choosing');
-    words.push(await page.locator('#count-line').textContent());
+    words.push(await page.locator('#kicker').textContent());
     await page.close();
   }
-  assert.deepEqual(words, [
-    'This is your first time opening YouTube today.',
-    'This is your 2nd time opening YouTube today.',
-    'This is your 3rd time opening YouTube today.',
-  ]);
+  assert.deepEqual(words, ['first time today', '2nd time today', '3rd time today']);
   const { stats } = await readState();
   assert.equal(stats[today()].youtube.opens, 3);
 });
@@ -97,21 +97,23 @@ test('a reload of the pause page is not another visit', async () => {
   await waitPauseState(page, 'choosing');
   await page.reload();
   await waitPauseState(page, 'choosing');
-  assert.equal(await page.locator('#count-line').textContent(), 'This is your first time opening YouTube today.');
+  assert.equal(await page.locator('#kicker').textContent(), 'first time today');
   await page.close();
 });
 
-test('pause.showCount off hides the count; the escalation lengthens the next breath within the hour', async () => {
+test('the count and a second visit within the hour: nothing is switched off, the breath is always the same length', async () => {
+  // Leftovers from 0.1.0 in storage ("show count" off, escalation on) change nothing: those settings are gone.
   await configure({ 'pause.enabled': true, 'pause.breathSeconds': 3, 'pause.showCount': false, 'pause.escalate': true, 'pause.escalateStep': 2 });
   const first = await newTab();
   await first.goto(YT, { waitUntil: 'domcontentloaded' });
   await waitPauseState(first, 'breathing');
   assert.equal(await first.evaluate(() => document.body.dataset.breath), '3');
-  assert.equal(await first.locator('#count-line').isHidden(), true);
   const second = await newTab();
   await second.goto(YT, { waitUntil: 'domcontentloaded' });
   await waitPauseState(second, 'breathing');
-  assert.equal(await second.evaluate(() => document.body.dataset.breath), '5');
+  assert.equal(await second.evaluate(() => document.body.dataset.breath), '3', 'no escalation');
+  await waitPauseState(second, 'choosing');
+  assert.equal(await second.locator('#kicker').textContent(), '2nd time today');
   await first.close();
   await second.close();
 });
@@ -120,7 +122,6 @@ test('Continue: the session starts, the site loads, a second navigation in the s
   const page = await newTab();
   await page.goto(WATCH, { waitUntil: 'domcontentloaded' });
   await waitPauseState(page, 'choosing');
-  await page.fill('#intention', '  a talk about   bread ');
   await page.selectOption('#minutes', '5');
   await page.click('#continue');
   await page.waitForURL(WATCH, { timeout: 10_000 });
@@ -132,7 +133,7 @@ test('Continue: the session starts, the site loads, a second navigation in the s
   assert.ok(Math.abs(state.sessions.youtube - (Date.now() + 5 * 60_000)) < 15_000);
   assert.equal(state.sessionMinutes.youtube, 5);
   assert.equal(stats[today()].youtube.continued, 1);
-  assert.deepEqual(stats[today()].youtube.intentions.map((i) => i.text), ['a talk about bread']);
+  assert.equal('intentions' in stats[today()].youtube, false, 'no intention is stored');
   assert.deepEqual(await dnrRules(), [], 'the pause rule is gone while the session runs');
   assert.ok(await page.evaluate(() => performance.getEntriesByType('navigation')[0].name.startsWith('https://www.youtube.com/')));
 
@@ -145,12 +146,12 @@ test('Continue: the session starts, the site loads, a second navigation in the s
   await page.close();
 });
 
-test('Continue also works with the keyboard: Enter in the intention field', async () => {
+test('Continue also works with the keyboard: Enter on the focused button', async () => {
   const page = await newTab();
   await page.goto(YT, { waitUntil: 'domcontentloaded' });
   await waitPauseState(page, 'choosing');
-  await page.fill('#intention', 'music');
-  await page.press('#intention', 'Enter');
+  await page.focus('#continue');
+  await page.keyboard.press('Enter');
   await page.waitForURL(YT, { timeout: 10_000 });
   await page.close();
 });
@@ -250,7 +251,9 @@ test('a session started in another tab turns this pause page into "continue" at 
 
   await waitPauseState(waiting, 'session', 6000);
   assert.match(await waiting.locator('#session-line').textContent(), /^YouTube is open for (9|10) more minutes\.$/);
-  assert.equal(await waiting.locator('#session-go').textContent(), 'Continue to YouTube');
+  assert.equal(await waiting.locator('#session-go').textContent(), 'Continue');
+  assert.equal(await waiting.locator('#session-sub').count(), 0, 'no second sentence');
+  assert.equal(await waiting.locator('#kicker').isHidden(), true, 'the headline says it already');
   await shot(waiting, 'pause-session-running');
   await waiting.click('#session-go');
   await waiting.waitForURL(WATCH, { timeout: 10_000 });
@@ -264,7 +267,10 @@ test('a pause page that names a site that is not paused shows "nothing to open" 
     await page.goto(extUrl('src/pages/pause/pause.html') + hash);
     await waitPauseState(page, 'invalid');
     assert.equal(await page.locator('#invalid-close').isVisible(), true, hash);
+    assert.equal(await page.locator('#invalid-line').textContent(), 'Nothing to open.');
+    assert.equal(await page.locator('#invalid .lede').count(), 0, 'no explanation');
     assert.equal(await page.locator('#continue').isDisabled(), true);
+    assert.equal(await page.locator('#foot-hint').isHidden(), true, 'Esc does nothing here, so the hint is not shown');
     assert.deepEqual(ourErrors(page), [], hash);
     if (hash === '') await shot(page, 'pause-invalid');
     await page.close();
@@ -322,7 +328,7 @@ test('a pause for a user-added site: rule, page, label and its own session', asy
   await page.goto(`${extUrl('src/pages/pause/pause.html')}#https://sub.example.org/some/page?x=1`);
   await waitPauseState(page, 'choosing');
   assert.equal(await page.locator('#close').textContent(), 'Close example.org');
-  assert.match(await page.locator('#count-line').textContent(), /first time opening example\.org today/);
+  assert.equal(await page.locator('#kicker').textContent(), 'first time today');
   assert.equal((await send('PAUSE_CONTINUE', { siteKey: 'example.org', minutes: 5 })).ok, true);
   assert.equal((await dnrRules()).length, 1, 'only the YouTube pause is left');
   await page.close();
@@ -381,7 +387,7 @@ test('expiry: "Take a breath" opens the pause page with this page in the hash', 
   await page.close();
 });
 
-test('expiry overlay can be switched off (pause.expiryOverlay): nothing appears, the pause still returns', async () => {
+test('the expiry overlay is always on: a leftover pause.expiryOverlay = false from 0.1.0 does not hide it', async () => {
   await configure({ 'pause.enabled': true, 'pause.breathSeconds': 3, 'pause.expiryOverlay': false });
   const page = await newTab();
   await page.goto(YT, { waitUntil: 'domcontentloaded' });
@@ -389,8 +395,7 @@ test('expiry overlay can be switched off (pause.expiryOverlay): nothing appears,
   await page.click('#continue');
   await page.waitForURL(YT, { timeout: 10_000 });
   await configureSession(Date.now() + 2000);
-  await page.waitForTimeout(3500);
-  assert.equal(await page.locator('[data-at-peace-overlay]').count(), 0);
+  await page.waitForSelector('[data-at-peace-overlay]', { state: 'attached', timeout: 10_000 });
   await settle();
   assert.equal((await dnrRules()).length, 1);
   await page.close();

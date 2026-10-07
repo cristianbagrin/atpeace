@@ -68,7 +68,6 @@
    */
   const NUMBER_DIRECTION = Object.freeze({
     'pause.breathSeconds': 'higher',
-    'pause.escalateStep': 'higher',
     'focus.dailyMinutes': 'limit',
     'focus.limitGrace': 'lower',
   });
@@ -109,7 +108,7 @@
    *   list     an old item removed or changed (hidden elements, filters; for pause sites and schedules:
    *            removed, disabled, or no longer doing what it did). Adding is never loosening.
    *   object   the lock itself: any change once a lock is set (setting the first one is not loosening)
-   *   text     any change (a redirect target, custom CSS: no direction)
+   *   text     any change (a redirect target: no direction)
    *   anything without an obvious direction, and anything unknown: loosening.
    * An unchanged value is not a loosening.
    * @param {import('./schema-core.js').SettingDef|null|undefined} def

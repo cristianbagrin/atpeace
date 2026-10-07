@@ -349,7 +349,7 @@ test('blocked page: "End early" says it is locked and offers the unlock; the bac
   const lock = { mode: 'friction', waitSeconds: 10 };
   const state = { blocks: [{ reason: 'focus', until, siteKeys: ['youtube'] }], block: { reason: 'focus', until, siteKeys: ['youtube'] }, sessions: {}, extraTime: {}, scheduleOverride: null };
   const page = await openPage(BLOCKED, { seed: { settings: { 'advanced.lock': lock, 'focus.unlockFriction': 'none' }, state }, hash: '#https://www.youtube.com/watch?v=x', width: 1000, height: 700 });
-  await page.locator('.unlock').getByText(/settings are locked/).waitFor();
+  await page.locator('.unlock').getByText(/^Locked\./).waitFor();
   assert.equal(await page.getByRole('button', { name: /End focus/ }).count(), 0, 'no way to end it while locked');
   const refused = await evalInExtension(() => chrome.runtime.sendMessage({ type: 'FOCUS_END', payload: { frictionDone: true } }));
   assert.deepEqual(refused, { ok: false, error: 'locked' });

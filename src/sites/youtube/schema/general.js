@@ -65,8 +65,30 @@
   ];
 
   // --- Metrics inside video cards -------------------------------------------------------------
-  // New lockups: the "views • date" row is the metadata row that has a delimiter span.
-  const LOCKUP_STATS_ROW = 'yt-lockup-view-model .ytContentMetadataViewModelMetadataRow:has(> .ytContentMetadataViewModelDelimiter)';
+  // A lockup's metadata is `yt-content-metadata-view-model`: rows of parts (`MetadataText`), a
+  // `Delimiter` span between two parts of a row, a `LeadingIcon` in front of the view count (the little
+  // play arrow that replaced the word "views"), and a trailing `Icon` (verified tick) behind a channel.
+  // The layout is not the same everywhere: the channel can sit in a row of its own
+  //     [channel ✓] / [▷ views | date]                   (feeds on channel pages, the watch sidebar)
+  // or in the same row as the numbers
+  //     [channel ✓ | ▷ views | date]                      (reported by a signed-in home feed)
+  // A rule keyed on "the first text of the row that has a delimiter" therefore hid the channel name and
+  // left the number. These rules never count parts from the front and never read words: the view count is
+  // the part behind the play-arrow icon, or (no icon) the part right before "delimiter + last part"; the
+  // date is the last part after a delimiter. The delimiter that goes with a part is the one that
+  // follows the views / precedes the date, so a channel that stays keeps the separator before what is left.
+  const LOCKUP = 'yt-lockup-view-model';
+  const ROW = '.ytContentMetadataViewModelMetadataRow';
+  const TEXT = '.ytContentMetadataViewModelMetadataText';
+  const DELIM = '.ytContentMetadataViewModelDelimiter';
+  const LEAD = '.ytContentMetadataViewModelLeadingIcon';
+  const LAST_TEXT = `${TEXT}:nth-last-child(1 of ${TEXT})`; // the last part of its row
+  const BADGE_ROW = '.ytContentMetadataViewModelBadge';
+  const IS_LIVE = ':has(badge-shape.ytBadgeShapeThumbnailLive)';
+  // Playlist, mix and station cards have other things in their rows; only videos are touched.
+  const VIDEO = `${LOCKUP}:not(:has(yt-collection-thumbnail-view-model))`;
+  /** A part that is followed by "delimiter, last part": the view count when the row is [views | date]. */
+  const BEFORE_DATE = `${TEXT}:has(+ ${DELIM} + ${LAST_TEXT})`;
 
   // --- Progress (resume) markers --------------------------------------------------------------
   // Three generations of the same marker: new view model, `ytw-` renderer, old `ytd-` renderer.
@@ -153,12 +175,18 @@
       default: false,
       tags: ['metrics'],
       hide: [
-        // New lockups: the first text of the "views • date" row, its bullet and the play icon.
-        `${LOCKUP_STATS_ROW} > :nth-child(1 of .ytContentMetadataViewModelMetadataText)`,
-        `${LOCKUP_STATS_ROW} > .ytContentMetadataViewModelDelimiter`,
-        'yt-lockup-view-model .ytContentMetadataViewModelLeadingIcon',
-        // Live streams show "764 watching" alone in the row after the channel name (no bullet to key on).
-        'yt-lockup-view-model:has(badge-shape.ytBadgeShapeThumbnailLive) .ytContentMetadataViewModelMetadataRow:nth-child(2 of .ytContentMetadataViewModelMetadataRow):not(:has(.ytContentMetadataViewModelBadge))',
+        // New lockups, with the play-arrow icon: the icon, the part behind it and the delimiter after it.
+        `${VIDEO} ${LEAD}`,
+        `${VIDEO} ${LEAD} + ${TEXT}`,
+        `${VIDEO} ${LEAD} + ${TEXT} + ${DELIM}`,
+        // Without the icon: the part before "delimiter + last part" (and that delimiter), never the channel.
+        `${VIDEO}:not(${IS_LIVE}):not(:has(${LEAD})) ${BEFORE_DATE}`,
+        `${VIDEO}:not(${IS_LIVE}):not(:has(${LEAD})) ${BEFORE_DATE} + ${DELIM}`,
+        // Live streams show "764 watching" instead: alone in the second row (no delimiter to key on) …
+        `${LOCKUP}${IS_LIVE} ${ROW}:nth-child(2 of ${ROW}):not(:has(${BADGE_ROW}))`,
+        // … or as the last part of a row that also holds the channel.
+        `${LOCKUP}${IS_LIVE} ${ROW}:has(> ${DELIM}) > ${LAST_TEXT}`,
+        `${LOCKUP}${IS_LIVE} ${ROW} > ${DELIM}:has(+ ${LAST_TEXT})`,
         // Shorts cards: the sub-heading is only the view count.
         '.shortsLockupViewModelHostOutsideMetadataSubhead',
         // Legacy renderers (search results, hashtag pages, old grids): first span = views.
@@ -181,12 +209,20 @@
       default: false,
       tags: ['metrics'],
       hide: [
-        `${LOCKUP_STATS_ROW} > .ytContentMetadataViewModelMetadataText.ytContentMetadataViewModelMetadataTextLastPart`,
-        `${LOCKUP_STATS_ROW} > .ytContentMetadataViewModelDelimiter`,
+        // New lockups: the last part of a row, when a delimiter comes before it, and that delimiter. A live
+        // stream's last part is its "watching" count, which belongs to the view-count setting.
+        `${VIDEO}:not(${IS_LIVE}) ${ROW} > ${DELIM} + ${LAST_TEXT}`,
+        `${VIDEO}:not(${IS_LIVE}) ${ROW} > ${DELIM}:has(+ ${LAST_TEXT})`,
         'ytd-video-meta-block #metadata-line > span.inline-metadata-item:nth-of-type(2)',
         'ytd-rich-grid-media #metadata-line > span.inline-metadata-item:nth-of-type(2)',
         'ytd-grid-video-renderer #metadata-line > span.inline-metadata-item:nth-of-type(2)',
         'ytd-compact-video-renderer #metadata-line > span.inline-metadata-item:nth-of-type(2)',
+      ],
+      // With the view counts gone too nothing is left to separate: no stray bullet after the channel name
+      // (new lockups) or between the channel and an empty "views • date" (search results).
+      rules: [
+        `:scope-on[data-at-peace~="yt.general.hideViewCounts"] ${VIDEO} ${ROW} > ${DELIM} { display: none !important; }`,
+        ':scope-on[data-at-peace~="yt.general.hideViewCounts"] ytd-video-meta-block #byline-container > #separator { display: none !important; }',
       ],
       since: '0.1.0',
     },

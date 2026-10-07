@@ -4,7 +4,7 @@
 // site we do not own we want to be small) and:
 //
 //   * when the pause SESSION for this site ends, pauses the media and shows the overlay
-//     "Your 15 minutes are up" → Leave (close the tab) / Take a breath (the pause page);
+//     "Your 15 minutes are up." → Leave (close the tab) / Take a breath (the pause page);
 //   * when a focus / schedule / limit BLOCK covers this site, sends the tab to the blocked page
 //     (full page loads are caught by the DNR rules; this covers tabs that are already open and
 //     in-page navigation);
@@ -62,7 +62,6 @@
       sessionMinutes,
       blocks,
       sites,
-      expiryOverlay: settings['pause.expiryOverlay'] !== false,
       theme: theme === 'dark' || theme === 'system' ? theme : 'light',
     };
   }
@@ -240,7 +239,6 @@
       env.keepPaused(true);
       env.showOverlay({
         title: expiryTitle(minutes),
-        body: 'Close it, or take a breath first and choose again.',
         theme: snapshot?.theme ?? 'light',
         actions: [
           { label: `Leave ${options.siteName ?? 'this site'}`, primary: true, onClick: leave },
@@ -285,7 +283,7 @@
           break;
         case 'expired':
           clearTimer();
-          if (overlayFor !== decision.until && snapshot.expiryOverlay) {
+          if (overlayFor !== decision.until) {
             overlayFor = decision.until;
             showExpiry(decision.minutes ?? memory.knownMinutes);
           }

@@ -1,6 +1,6 @@
 // Home feed (yt.home.feedMode, yt.home.redirectUrl): what the home page does instead of showing the feed.
 //
-//   hide                                  a calm placeholder takes the feed's place (this file)
+//   hide                                  a placeholder takes the feed's place: a glyph and "Your home is hidden." (this file)
 //   subscriptions | watchLater | playlists | custom
 //                                         the home page redirects. Full page loads are redirected by DNR
 //                                         (src/background/rules.js ← AP.yt.redirects.dnrRules); this file
@@ -34,34 +34,24 @@
 
   // The tools' Dial tokens, light and dark. Which one is used follows YouTube's own theme (<html dark>),
   // not the extension's setting: the card sits on YouTube's page, so it has to look right there.
-  const PALETTE_LIGHT = '--panel:#FFFFFF;--line:#DCE1EA;--field-line:#8088A0;--text:#10123F;--text-2:#5B6078;--act:#0D3CCC;--on-act:#FFFFFF;--mint:#0CE3A1;';
-  const PALETTE_DARK = '--panel:#171A45;--line:#262A5C;--field-line:#646DAA;--text:#E8EAF6;--text-2:#9EA3C7;--act:#7C95FF;--on-act:#0E1033;--mint:#3FF1C0;';
+  const PALETTE_LIGHT = '--panel:#FFFFFF;--line:#DCE1EA;--text:#10123F;--mint:#0CE3A1;';
+  const PALETTE_DARK = '--panel:#171A45;--line:#262A5C;--text:#E8EAF6;--mint:#3FF1C0;';
   const CSS = `
 :host { all: initial; display: block; }
 .page {
   ${PALETTE_LIGHT}
   box-sizing: border-box; display: flex; align-items: center; justify-content: center;
-  min-height: calc(100vh - 56px - 96px); padding: 24px; cursor: text;
+  min-height: calc(100vh - 56px - 96px); padding: 24px;
   font: 14px/1.5 system-ui, -apple-system, "Segoe UI", "Noto Sans", sans-serif; -webkit-font-smoothing: antialiased;
 }
 .page[data-theme="dark"] { ${PALETTE_DARK} }
 .card { box-sizing: border-box; width: min(400px, 100%); padding: 28px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); }
 .glyph { position: relative; display: block; box-sizing: border-box; width: 28px; height: 28px; margin: 0 0 16px; border: 2px solid var(--text); border-radius: 50%; }
 .glyph::after { content: ""; position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--mint); }
-h2 { margin: 0 0 6px; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.015em; }
-p { margin: 0; color: var(--text-2); max-width: 36ch; }
-button {
-  margin-top: 20px; font: inherit; font-size: 14px; font-weight: 600; min-height: 36px; padding: 0 16px; border-radius: 8px; cursor: pointer;
-  border: 1px solid var(--act); background: var(--act); color: var(--on-act);
-  transition: opacity 160ms cubic-bezier(0.2, 0.7, 0.2, 1);
-}
-button:hover { opacity: 0.9; }
-button:focus-visible { outline: 2px solid var(--act); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+h2 { margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.015em; }
 `;
 
-  const TITLE = 'Your home feed is hidden.';
-  const BODY = 'Nothing here is asking for your attention. Search for what you came to find.';
+  const TITLE = 'Your home is hidden.';
 
   const el = (tag, className, text) => {
     const node = document.createElement(tag);
@@ -69,12 +59,6 @@ button:focus-visible { outline: 2px solid var(--act); outline-offset: 2px; }
     if (text !== undefined) node.textContent = text;
     return node;
   };
-
-  /** Puts the cursor in YouTube's search box (the one a user would use), if there is one. */
-  function focusSearch() {
-    const box = document.querySelector('ytd-masthead input[name="search_query"], yt-searchbox input[name="search_query"], input[name="search_query"]');
-    box?.focus();
-  }
 
   const isYouTubeDark = () => document.documentElement.hasAttribute('dark');
 
@@ -105,12 +89,9 @@ button:focus-visible { outline: 2px solid var(--act); outline-offset: 2px; }
     themeWatch?.observe(document.documentElement, { attributes: true, attributeFilter: ['dark'] });
     const glyph = el('span', 'glyph');
     glyph.setAttribute('aria-hidden', 'true');
-    const button = el('button', '', 'Search YouTube');
-    button.type = 'button';
     const card = el('div', 'card');
-    card.append(glyph, el('h2', '', TITLE), el('p', '', BODY), button);
+    card.append(glyph, el('h2', '', TITLE));
     page.append(card);
-    page.addEventListener('click', focusSearch);
     root.append(page);
     return host;
   }

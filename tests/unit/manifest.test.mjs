@@ -30,7 +30,10 @@ describe('manifest.json', () => {
 
   test('keyboard commands (PLAN §8.5)', () => {
     const keys = Object.fromEntries(Object.entries(manifest.commands).map(([k, v]) => [k, v.suggested_key.default]));
+    const mac = Object.fromEntries(Object.entries(manifest.commands).map(([k, v]) => [k, v.suggested_key.mac]));
     assert.deepEqual(keys, { 'toggle-enabled': 'Alt+Shift+P', 'focus-25': 'Alt+Shift+F', 'open-picker': 'Alt+Shift+H' });
+    // Written out for the Mac too (Alt is Option there), so the key is explicit rather than inherited.
+    assert.deepEqual(mac, { 'toggle-enabled': 'Alt+Shift+P', 'focus-25': 'Alt+Shift+F', 'open-picker': 'Alt+Shift+H' });
     for (const cmd of Object.values(manifest.commands)) assert.ok(cmd.description);
   });
 

@@ -1,25 +1,28 @@
-/* Popup: 360 px of cool grey. A header with the master switch, a segmented control for the bulk
-   toggles, one white panel of quick rows, a Focus panel, three tiles of today, two links. */
+/* Popup: 380 px of cool grey, at most 600 px tall (Firefox's cap). A header with the master switch and
+   the three tabs stay in place at the top, the preset menu and two links at the bottom; the body in
+   between scrolls. Grouped white panels, compact 28 px rows. */
 
 html {
-  width: 360px;
+  width: 380px;
+  max-height: 600px;
 }
 
 body {
-  width: 360px;
+  width: 380px;
+  max-height: 600px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 14px 12px;
+  overflow: hidden;
   font-size: 13px;
 }
 
 .head {
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: space-between;
   min-height: 24px;
-  padding: 2px 4px;
+  padding: 12px 18px 8px;
 }
 
 .wordmark {
@@ -41,33 +44,20 @@ body {
   color: var(--mint-text);
 }
 
-/* Notices (lock, host access) sit between the header and the controls; none, no gap. */
-#banner {
+/* ------------------------------------------------------------------ tabs */
+
+.tabs {
   display: grid;
-  gap: 8px;
-}
-
-#banner:not(:has(> :not([hidden]))) {
-  display: none;
-}
-
-#content {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* Bulk toggles: Shorts, Recommendations, Comments as one segmented control. */
-.chips {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1.1fr);
+  flex: none;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 2px;
+  margin: 0 14px 8px;
   padding: 2px;
   border-radius: 9px;
   background: var(--panel-line);
 }
 
-.chip {
+.tab {
   min-height: 28px;
   padding: 0 4px;
   border: 0;
@@ -80,26 +70,165 @@ body {
   transition: background-color var(--t-quick) var(--ease), color var(--t-quick) var(--ease);
 }
 
-.chip:hover {
+.tab:hover {
   color: var(--text);
 }
 
-.chip[data-state="all"] {
+.tab[aria-selected="true"] {
   background: var(--panel);
   color: var(--act);
 }
 
-/* Some on, some off: a tint of the accent instead of the white tile. */
-.chip[data-state="partly"] {
-  background: var(--act-soft);
-  color: var(--act);
-}
-
-.chip:focus-visible {
+.tab:focus-visible {
   outline-offset: 0;
 }
 
-/* The quick rows: one white panel. */
+/* Notices (lock, host access) sit under the tabs; none, no gap. */
+#banner {
+  display: grid;
+  flex: none;
+  gap: 8px;
+  padding: 0 14px 8px;
+}
+
+#banner:not(:has(> :not([hidden]))) {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ body */
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 14px 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+#content {
+  min-height: 330px;
+}
+
+[data-master="off"] #content {
+  opacity: 0.5;
+}
+
+.note {
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.note.is-error {
+  color: var(--danger);
+}
+
+.view-note {
+  padding: 0 4px 8px;
+}
+
+.empty {
+  padding: 8px 4px;
+}
+
+/* Search: stays at the top while the groups scroll under it. */
+.search {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-bottom: 8px;
+  background: var(--ground);
+}
+
+.search input[type="search"] {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 9px;
+  font-size: 13px;
+}
+
+.search input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+/* ------------------------------------------------------------------ groups (a section each) */
+
+.grp {
+  overflow: hidden;
+  border: 1px solid var(--panel-line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+
+.grp + .grp {
+  margin-top: 8px;
+}
+
+.grp-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.grp-head:focus-visible {
+  outline-offset: -2px;
+}
+
+.grp-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.grp-count {
+  flex: none;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-2);
+}
+
+.grp-chev {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin: 0 3px 0 2px;
+  border-right: 1.5px solid var(--text-2);
+  border-bottom: 1.5px solid var(--text-2);
+  transform: rotate(-45deg);
+  transition: transform var(--t-quick) var(--ease);
+}
+
+.grp.is-open > .grp-head > .grp-chev {
+  margin-top: -3px;
+  transform: rotate(45deg);
+}
+
+.grp-panel {
+  border-top: 1px solid var(--row-line);
+}
+
+.grp-sub {
+  padding: 9px 12px 3px;
+  font-size: 10.5px;
+}
+
+.grp-sub:not(:first-child) {
+  border-top: 1px solid var(--row-line);
+}
+
+/* ------------------------------------------------------------------ rows */
+
 .ledger {
   overflow: hidden;
   border: 1px solid var(--panel-line);
@@ -112,18 +241,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  /* 28 px rows keep eleven quick settings, Focus and Today inside Firefox's 600 px popup. */
+  gap: 12px;
+  /* 28 px rows keep a long section short enough to scroll calmly. */
   min-height: 28px;
-  padding: 0 12px;
+  padding: 2px 12px;
 }
 
-.row + .row,
-.confirm-bar {
+.row:not([hidden]) ~ .row:not([hidden]) {
   border-top: 1px solid var(--row-line);
 }
 
 .row-label {
+  flex: 1;
   min-width: 0;
   line-height: 1.25;
 }
@@ -133,6 +262,18 @@ body {
   position: absolute;
   inset: 0;
   cursor: pointer;
+}
+
+.row.is-disabled .row-label,
+.row.is-disabled .select,
+.row.is-disabled .number-field,
+.row.is-disabled input.switch {
+  opacity: 0.55;
+}
+
+.row.is-disabled .row-label::after {
+  cursor: default;
+  pointer-events: none;
 }
 
 /* A select in a row is just its value and a chevron. */
@@ -164,12 +305,55 @@ body {
   color: var(--text);
 }
 
-[data-master="off"] .chips,
-[data-master="off"] .ledger {
-  opacity: 0.5;
+/* A number: the field, then its unit. */
+.row .number-field {
+  flex: none;
+  gap: 6px;
 }
 
-/* Focus. */
+.row input[type="number"] {
+  width: 56px;
+  min-height: 24px;
+  padding: 1px 6px;
+  font-size: 13px;
+}
+
+.row .unit {
+  min-width: 0;
+  font-size: 12px;
+}
+
+/* An "Edit" row: the label, what is in it, a link. */
+.row-summary {
+  flex: none;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.row .edit {
+  flex: none;
+  min-height: 24px; /* WCAG 2.2 target size */
+  padding: 0 2px;
+  font-size: 13px;
+}
+
+.advanced-row {
+  margin-top: 8px;
+  border: 1px solid var(--panel-line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+
+/* ------------------------------------------------------------------ Focus */
+
+.ledger-group {
+  margin-top: 10px;
+}
+
+.ledger-title {
+  padding: 0 4px 4px;
+}
+
 .focus-block {
   display: flex;
   flex-direction: column;
@@ -202,15 +386,6 @@ body {
 .focus-buttons .btn:hover:not(:disabled) {
   background: var(--act-soft);
   border-color: transparent;
-}
-
-.note {
-  font-size: 12.5px;
-  color: var(--text-2);
-}
-
-.note.is-error {
-  color: var(--danger);
 }
 
 .count {
@@ -247,13 +422,11 @@ body {
   gap: 14px;
 }
 
-.confirm-bar {
-  display: grid;
-  gap: 8px;
-  padding: 10px 12px;
+/* Today: three tiles. */
+.today-block {
+  margin-top: 10px;
 }
 
-/* Today: three tiles. */
 .stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -288,30 +461,81 @@ body {
   padding: 0 4px;
 }
 
-/* Footer. */
+/* ------------------------------------------------------------------ preset form, footer */
+
+/* A question or a name field, right above the footer. */
+.sheet {
+  display: grid;
+  flex: none;
+  gap: 6px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--panel-line);
+  background: var(--panel);
+}
+
+.sheet-actions,
+.sheet-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sheet-form input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
+
 .foot {
   display: flex;
-  justify-content: space-between;
+  flex: none;
+  align-items: center;
   gap: 14px;
-  padding: 0 4px;
+  padding: 8px 14px 10px;
+  border-top: 1px solid var(--panel-line);
 }
 
 .foot .btn-quiet {
   display: inline-flex;
   align-items: center;
+  flex: none;
   min-height: 24px; /* WCAG 2.2 target size */
   font-size: 13px;
 }
 
+.foot .btn-quiet:last-of-type {
+  margin-left: auto;
+}
+
+.preset-menu {
+  flex: none;
+  max-width: 150px;
+}
+
+.preset-menu select {
+  min-height: 28px;
+  padding: 1px 22px 1px 9px;
+  font-size: 13px;
+}
+
+.preset-menu::after {
+  right: 9px;
+  width: 5px;
+  height: 5px;
+  margin-top: -4px;
+}
+
 .foot + .note {
-  padding: 0 4px;
+  padding: 0 14px 8px;
 }
 
 .foot + .note:empty {
-  margin-top: -10px; /* nothing to say: give back the gap */
+  display: none;
 }
 
-/* The settings lock: the bar sits under the header, the unlock steps open right under it. */
+/* ------------------------------------------------------------------ the settings lock
+   The bar sits under the tabs, the unlock steps open right under it. */
+
 .unlock-inline {
   padding: 12px;
   border: 1px solid var(--panel-line);
@@ -332,4 +556,20 @@ body {
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
+}
+
+.lock-bar {
+  flex-direction: row;
+  align-items: center;
+  padding: 7px 12px;
+}
+
+@keyframes lock-flash {
+  from {
+    background: var(--act-soft);
+  }
+}
+
+.lock-bar.is-flash {
+  animation: lock-flash 700ms var(--ease);
 }

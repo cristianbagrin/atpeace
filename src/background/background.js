@@ -232,6 +232,7 @@
           const patch = { meta: next };
           if (from < AP.settings.SCHEMA_VERSION) patch.settings = AP.settings.migrate(settings, from);
           await api.storage.local.set(patch);
+          if (from < 2) await bg.stats.dropLegacyIntentions(); // 0.1.0 kept "what did you come for" lines in the stats
         });
       }
     } catch (err) {

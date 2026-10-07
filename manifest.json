@@ -152,15 +152,15 @@
   ],
   "commands": {
     "toggle-enabled": {
-      "suggested_key": { "default": "Alt+Shift+P" },
+      "suggested_key": { "default": "Alt+Shift+P", "mac": "Alt+Shift+P" },
       "description": "Turn At Peace on or off"
     },
     "focus-25": {
-      "suggested_key": { "default": "Alt+Shift+F" },
+      "suggested_key": { "default": "Alt+Shift+F", "mac": "Alt+Shift+F" },
       "description": "Block YouTube for 25 minutes"
     },
     "open-picker": {
-      "suggested_key": { "default": "Alt+Shift+H" },
+      "suggested_key": { "default": "Alt+Shift+H", "mac": "Alt+Shift+H" },
       "description": "Pick an element to hide"
     }
   }

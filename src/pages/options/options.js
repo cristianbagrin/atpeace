@@ -4,7 +4,7 @@
 import { buildRow, slug } from './rows.js';
 import { buildWeek } from './week.js';
 import { buildBackup } from './backup.js';
-import { managePresets } from './presets-ui.js';
+import { buildPresets } from './presets-section.js';
 
 const AP = globalThis.AtPeace;
 const { h } = AP.ui;
@@ -13,7 +13,7 @@ const ADVANCED_KEY = 'at-peace-show-advanced';
 
 /** The navigation's groups, in order; a section lands in the first group that claims it. */
 const NAV_GROUPS = [
-  { id: 'top', label: null, claims: (s) => s.id === 'general' },
+  { id: 'top', label: null, claims: (s) => s.id === 'general' || s.id === 'presets' },
   { id: 'youtube', label: 'YouTube', claims: (s) => s.site === 'youtube' },
   { id: 'calm', label: 'Calm', claims: (s) => ['pause', 'focus', 'week'].includes(s.id) },
   { id: 'more', label: 'More', claims: () => true },
@@ -21,8 +21,9 @@ const NAV_GROUPS = [
 
 /** Sections that are not settings, placed by `order` between the registry's own. */
 const EXTRA_SECTIONS = [
-  { id: 'week', title: 'Your week', order: 920, description: 'The last seven days on YouTube. Stored only in this browser.' },
-  { id: 'backup', title: 'Backup & reset', order: 1000, description: 'Keep your settings safe, or start again.' },
+  { id: 'presets', title: 'Presets', order: 20 },
+  { id: 'week', title: 'Your week', order: 920 },
+  { id: 'backup', title: 'Backup & reset', order: 1000 },
 ];
 
 const state = {
@@ -41,6 +42,10 @@ const state = {
   chips: new Map(),
   /** @type {{ refresh: () => Promise<void> }|null} */
   week: null,
+  /** @type {{ el: HTMLElement, refresh: (values: object, custom: object[]) => void }|null} */
+  presets: null,
+  /** Name of the preset the settings match right now (null: a mix of one's own). */
+  presetName: null,
   /** The settings lock as AP.lock.watch() last reported it. */
   lock: { mode: 'none', locked: false, unlockedUntil: 0, waitSeconds: 60 },
 };
@@ -73,7 +78,7 @@ async function saveSetting(def, value) {
   const result = await AP.lock.save({ [def.id]: value });
   if (!result.ok) throw Object.assign(new Error(AP.ui.lockedMessage), { code: 'locked' });
   const { report } = result;
-  if (report.invalid.includes(def.id)) throw new Error('That value is not allowed here.');
+  if (report.invalid.includes(def.id)) throw new Error('Not allowed.');
   state.values[def.id] = AP.schema.validateValue(def, value);
   afterValuesChanged([def.id]);
   if (report.changed.length > 0) flashSaved();
@@ -84,7 +89,7 @@ function afterValuesChanged(changedIds) {
   refreshRequires();
   refreshChips();
   refreshCounts();
-  refreshPresetLabel();
+  state.presets?.refresh(state.values, state.customPresets);
   if (changedIds.includes('general.theme')) AP.ui.applyTheme(state.values['general.theme']);
 }
 
@@ -109,7 +114,7 @@ async function resync(info) {
   state.values = next;
   for (const id of changed) state.rows.get(id)?.set(next[id]);
   if (info.keys.includes('customPresets')) state.customPresets = await AP.settings.listCustomPresets();
-  afterValuesChanged(changed);
+  afterValuesChanged(changed); // also redraws the presets
   if (info.keys.includes('state')) refreshNotices();
 }
 
@@ -117,20 +122,9 @@ async function resync(info) {
 // Sections and rows
 // ---------------------------------------------------------------------------------------------
 
-/** Settings of a section grouped by `group`, in order of first appearance. */
-function clusterGroups(defs) {
-  const groups = new Map();
-  for (const def of defs) {
-    const name = def.group ?? '';
-    if (!groups.has(name)) groups.set(name, []);
-    groups.get(name).push(def);
-  }
-  return [...groups].map(([name, list]) => ({ name, defs: list }));
-}
-
 function buildSettingsSection(section) {
   const defs = AP.schema.bySection(section.id);
-  const groups = clusterGroups(defs).map(({ name, defs: list }) => {
+  const groups = AP.ui.clusterGroups(defs).map(({ name, defs: list }) => {
     const rows = list.map((def) => {
       const row = buildRow(def, state.values[def.id], saveSetting, { onUnlock: () => AP.ui.requestUnlock() });
       state.rows.set(def.id, row);
@@ -149,7 +143,14 @@ function buildSections() {
   const entries = [...withSettings, ...EXTRA_SECTIONS].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   const week = buildWeek();
   const backup = buildBackup();
+  const presets = buildPresets({
+    onCurrentName: (name) => {
+      state.presetName = name;
+      refreshPresetLabel();
+    },
+  });
   state.week = week;
+  state.presets = presets;
 
   for (const section of entries) {
     const domId = `sec-${slug(section.id)}`;
@@ -157,6 +158,7 @@ function buildSections() {
     let body;
     if (section.id === 'week') body = week.el;
     else if (section.id === 'backup') body = backup.el;
+    else if (section.id === 'presets') body = presets.el;
     else {
       built = buildSettingsSection(section);
       body = built.body;
@@ -167,7 +169,6 @@ function buildSections() {
       'section',
       { class: 'section', id: domId, 'aria-labelledby': `${domId}-title`, dataset: { section: section.id } },
       h('header', { class: 'section-head' }, h('h2', { id: `${domId}-title` }, section.title), headCount),
-      section.description && h('p', { class: 'section-intro' }, section.description),
       body,
     );
 
@@ -233,7 +234,7 @@ function applyFilters() {
         any ||= groupAny;
       }
     } else {
-      any = !searching; // "Your week" and "Backup" are not searchable
+      any = !searching; // Presets, "Your week" and "Backup" are not searchable
     }
     entry.el.hidden = !any;
     entry.toc.hidden = !any;
@@ -244,7 +245,7 @@ function applyFilters() {
   els.results.hidden = !searching;
   if (searching) {
     els.results.textContent =
-      matches === 0 ? `Nothing matches “${query}”. Try a shorter word.` : `${matches === 1 ? '1 setting matches' : `${matches} settings match`} “${query}”.`;
+      matches === 0 ? `Nothing matches “${query}”.` : matches === 1 ? '1 match' : `${matches} matches`;
   }
   els.searchKey.hidden = searching;
   document.body.classList.toggle('is-searching', searching);
@@ -288,12 +289,7 @@ function buildTopbar() {
   els.search.addEventListener('input', () => setQuery(els.search.value));
   els.searchKey = h('kbd', { class: 'search-key', 'aria-hidden': 'true' }, '/');
 
-  const openPresets = () =>
-    managePresets(() => state.values).catch((err) => {
-      AP.warn('presets failed', err);
-      AP.ui.toast('That could not be saved.');
-    });
-  els.presetsBtn = h('button', { type: 'button', class: 'btn', 'aria-haspopup': 'dialog', onClick: openPresets }, 'Presets');
+  els.presetsBtn = h('button', { type: 'button', class: 'btn', onClick: () => goToSection('presets') }, 'Presets');
   els.presetName = h('span', { class: 'preset-now' });
   els.presetsBtn.append(els.presetName);
 
@@ -336,7 +332,7 @@ async function toggleBulk(tag, label) {
     await applyBulk(tag, label);
   } catch (err) {
     AP.warn('bulk change failed', err);
-    AP.ui.toast('That could not be saved.');
+    AP.ui.toast('Could not save.');
   }
 }
 
@@ -346,7 +342,7 @@ async function applyBulk(tag, label) {
   // Switching a whole kind off shows things again: ask for the unlock, then do it.
   if (!result.ok && (await AP.ui.requestUnlock())) result = await AP.lock.save(patch);
   if (!result.ok) {
-    AP.ui.toast('Locked: nothing was changed.');
+    AP.ui.toast('Locked.');
     return;
   }
   const { report } = result;
@@ -356,14 +352,18 @@ async function applyBulk(tag, label) {
   }
   afterValuesChanged(report.changed);
   if (report.changed.length > 0) flashSaved();
-  AP.ui.toast(`${label}: ${AP.ui.bulkState(tag, state.values).state === 'all' ? 'everything on' : 'everything off'}`);
+  AP.ui.toast(`${label}: ${AP.ui.bulkState(tag, state.values).state === 'all' ? 'all on' : 'all off'}`);
 }
 
-async function refreshPresetLabel() {
-  const all = [...AP.presets.builtIn(), ...state.customPresets];
-  const id = AP.ui.matchingPresetId(state.values, all);
-  const name = all.find((p) => p.id === id)?.name;
-  els.presetName.textContent = name ? ` · ${name}` : '';
+function refreshPresetLabel() {
+  els.presetName.textContent = state.presetName ? ` · ${state.presetName}` : '';
+  if (state.presets) {
+    const entry = state.entries.find((e) => e.id === 'presets');
+    if (entry) {
+      entry.headCount.hidden = !state.presetName;
+      entry.headCount.textContent = state.presetName ?? '';
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -380,7 +380,7 @@ async function refreshNotices() {
   const preset = override ? AP.presets.get(override, state.customPresets) : null;
   els.scheduleNote.hidden = !override;
   if (override) {
-    els.scheduleNote.textContent = `A schedule is applying ${preset ? `the “${preset.name}” preset` : 'a preset'} right now. What you see below is your own setting; it comes back when the schedule ends.`;
+    els.scheduleNote.textContent = `A schedule is applying ${preset ? `“${preset.name}”` : 'a preset'}. These are your own settings.`;
   }
 }
 
@@ -466,7 +466,6 @@ function installKeyboard() {
 function buildAbout() {
   els.about.replaceChildren(
     h('p', { class: 'about-version mono' }, `Version ${AP.api.runtime.getManifest().version}`),
-    h('p', null, 'Everything stays in your browser.'),
   );
 }
 
@@ -492,7 +491,7 @@ async function init() {
   refreshRequires();
   refreshChips();
   refreshCounts();
-  refreshPresetLabel();
+  state.presets.refresh(state.values, state.customPresets);
   refreshNotices();
 
   let remembered = false;
@@ -530,5 +529,5 @@ async function init() {
 
 init().catch((err) => {
   AP.warn('options page failed to start', err);
-  document.getElementById('sections').replaceChildren(h('p', { class: 'empty' }, 'Settings could not be loaded. Reload this page to try again.'));
+  document.getElementById('sections').replaceChildren(h('p', { class: 'empty' }, 'Could not load settings.'));
 });

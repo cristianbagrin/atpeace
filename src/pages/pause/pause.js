@@ -2,8 +2,7 @@
 // original URL in the hash (`pause.html#https://…`). The flow:
 //
 //   breathing  one slow breath (the mint disc in the dial grows and shrinks, a big line says in / out)
-//   choosing   how many times today, an optional "what did you come for?", then
-//              Close <site>  or  Continue for [N minutes]
+//   choosing   how many times today (the line above the question), then Close <site>  or  Continue for [N minutes]
 //   session    a session for this site is running (maybe started in another tab): just continue
 //   invalid    nothing sensible to open
 //
@@ -29,16 +28,12 @@ const els = {
   session: $('session'),
   invalid: $('invalid'),
   breath: $('breath'),
-  countLine: $('count-line'),
-  intentionWrap: $('intention-wrap'),
-  intention: $('intention'),
   close: $('close'),
   split: $('split'),
   go: $('continue'),
   minutes: $('minutes'),
   minutesSeg: $('minutes-seg'),
   note: $('note'),
-  target: $('target'),
   sessionLine: $('session-line'),
   sessionGo: $('session-go'),
   sessionClose: $('session-close'),
@@ -94,9 +89,8 @@ function setNote(text) {
 
 /** The small uppercase line above the title. */
 function setKicker() {
-  els.kicker.hidden = state === 'invalid';
-  if (state === 'session') els.kicker.textContent = 'Session running';
-  else if (state === 'choosing' && countKicker) els.kicker.textContent = countKicker;
+  els.kicker.hidden = state === 'invalid' || state === 'session'; // the headline says it all there
+  if (state === 'choosing' && countKicker) els.kicker.textContent = countKicker;
   else els.kicker.textContent = `Before ${siteLabel || 'YouTube'}`;
 }
 
@@ -242,7 +236,7 @@ async function closeTab() {
       /* not allowed for tabs we did not open */
     }
     leaving = false;
-    setNote('You can close this tab now.');
+    setNote('You can close this tab.');
   }
 }
 
@@ -300,7 +294,7 @@ async function continueToSite() {
   setNote('');
   let res;
   try {
-    res = await AP.msg.send(T.PAUSE_CONTINUE, { siteKey, minutes: Number(els.minutes.value), intention: els.intention.value });
+    res = await AP.msg.send(T.PAUSE_CONTINUE, { siteKey, minutes: Number(els.minutes.value) });
   } catch {
     res = { ok: false, error: 'failed' };
   }
@@ -318,7 +312,7 @@ async function continueToSite() {
   els.go.textContent = 'Continue for';
   syncMinutes();
   setState('choosing');
-  setNote('That did not work. Please try again.');
+  setNote('That did not work. Try again.');
 }
 
 // ---------------------------------------------------------------------------------------
@@ -331,7 +325,6 @@ function showSession(until) {
   cancelBreath();
   const left = Math.max(1, Math.ceil((until - Date.now()) / 60_000));
   els.sessionLine.textContent = `${siteLabel} is open for ${left === 1 ? 'one more minute' : `${left} more minutes`}.`;
-  els.sessionGo.textContent = `Continue to ${siteLabel}`;
   els.sessionClose.textContent = `Close ${siteLabel}`;
   setState('session');
   clearInterval(sessionTimer);
@@ -394,7 +387,6 @@ function buildMinutes(settings) {
 
 async function main() {
   els.dial.prepend(AP.ui.dial().svg);
-  els.target.textContent = RAW_TARGET;
   let settings;
   try {
     settings = await AP.settings.effective();
@@ -416,15 +408,11 @@ async function main() {
   document.getElementById('question').textContent = `Open ${siteLabel}?`;
   setKicker();
   buildMinutes(settings);
-  els.intentionWrap.hidden = settings['pause.askIntention'] !== true;
 
   els.close.addEventListener('click', turnBack);
   els.go.addEventListener('click', continueToSite);
   els.sessionGo.addEventListener('click', goOn);
   els.sessionClose.addEventListener('click', turnBack);
-  els.intention.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' && !els.go.disabled) continueToSite();
-  });
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape' || event.defaultPrevented || state === 'loading' || state === 'invalid') return;
     if (['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target?.tagName)) return;
@@ -459,9 +447,7 @@ async function main() {
     return;
   }
   breathSeconds = info?.ok && info.breathSeconds > 0 ? info.breathSeconds : settings['pause.breathSeconds'];
-  if (settings['pause.showCount'] && info?.ok && info.opens > 0) {
-    els.countLine.textContent = `This is your ${ordinal(info.opens)} time opening ${siteLabel} today.`;
-    els.countLine.hidden = false;
+  if (info?.ok && info.opens > 0) {
     countKicker = `${ordinal(info.opens)} time today`;
   }
 

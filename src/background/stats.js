@@ -1,10 +1,8 @@
-// Usage stats (PLAN §5.4): heartbeats → active seconds, pause outcomes, blocked-page hits and the
-// optional "what did you come for" lines. Only the background writes `stats`.
+// Usage stats (PLAN §5.4): heartbeats → active seconds, pause outcomes and blocked-page hits. Only
+// the background writes `stats`.
 //
-//   stats = { [YYYY-MM-DD local]: { [siteKey]: { activeSec, opens, turnedBack, continued, blockedHits,
-//                                                intentions?: [{ at, text }] } } }
+//   stats = { [YYYY-MM-DD local]: { [siteKey]: { activeSec, opens, turnedBack, continued, blockedHits } } }
 //
-// `intentions` is a background-private extension (AP.state readers only look at the five counters).
 // Every write is a read-modify-write on the raw map through AP.bg.store's per-key queue, so two
 // overlapping events (a heartbeat and a pause outcome) never lose each other's update.
 (() => {
@@ -20,12 +18,8 @@
   const MAX_CREDIT_SEC = 35;
   /** What the very first beat of a stretch is worth (the tracker sends it after 30 s of presence). */
   const FIRST_BEAT_SEC = 30;
-  const MAX_INTENTIONS = 20;
-  const INTENTION_MAX_LENGTH = 140;
-  const HOUR_MS = 3_600_000;
-  const MAX_RECENT = 40;
 
-  const SESSION_KEYS = Object.freeze({ lastBeat: 'lastBeat', recentOpens: 'recentOpens' });
+  const SESSION_KEYS = Object.freeze({ lastBeat: 'lastBeat' });
 
   /** The counters object of `siteKey` on `day`, created on demand. */
   function entry(draft, day, siteKey) {
@@ -74,30 +68,16 @@
   }
 
   /**
-   * A pause page was opened: opens++ and remember the time (for "visits in the last hour").
-   * @returns {Promise<{ opens: number, recent: number }>}
+   * A pause page was opened: opens++.
+   * @returns {Promise<number>} today's count for the site, this visit included
    */
-  async function recordOpen(siteKey, now = bg.clock.now()) {
+  function recordOpen(siteKey, now = bg.clock.now()) {
     const day = AP.util.dayKey(now);
-    const opens = await store().updateStats((draft) => {
+    return store().updateStats((draft) => {
       const counters = entry(draft, day, siteKey);
       bump(counters, 'opens');
       return counters.opens;
     }, now);
-    const recent = await store().queue('recent', async () => {
-      const all = (await store().sessionGet(SESSION_KEYS.recentOpens)) ?? {};
-      const list = [...(Array.isArray(all[siteKey]) ? all[siteKey] : []).filter((t) => typeof t === 'number' && now - t < HOUR_MS), now].slice(-MAX_RECENT);
-      await store().sessionSet(SESSION_KEYS.recentOpens, { ...all, [siteKey]: list });
-      return list.length;
-    });
-    return { opens, recent };
-  }
-
-  /** How many pause pages were opened for `siteKey` in the last hour. */
-  async function recentOpens(siteKey, now = bg.clock.now()) {
-    const all = (await store().sessionGet(SESSION_KEYS.recentOpens)) ?? {};
-    const list = Array.isArray(all[siteKey]) ? all[siteKey] : [];
-    return list.filter((t) => typeof t === 'number' && now - t < HOUR_MS).length;
   }
 
   /**
@@ -114,32 +94,6 @@
   }
 
   /**
-   * Cleans an intention line: collapsed whitespace, trimmed, at most 140 characters; '' when there
-   * is nothing worth keeping.
-   * @param {unknown} text
-   */
-  function cleanIntention(text) {
-    if (typeof text !== 'string') return '';
-    return text.replace(/\s+/g, ' ').trim().slice(0, INTENTION_MAX_LENGTH).trim();
-  }
-
-  /**
-   * Keeps "what I came for" in today's stats for the site: newest last, at most 20 (oldest dropped).
-   * @returns {Promise<boolean>} whether something was stored
-   */
-  async function addIntention(siteKey, text, now = bg.clock.now()) {
-    const clean = cleanIntention(text);
-    if (clean === '') return false;
-    const day = AP.util.dayKey(now);
-    await store().updateStats((draft) => {
-      const counters = entry(draft, day, siteKey);
-      const list = Array.isArray(counters.intentions) ? counters.intentions : [];
-      counters.intentions = [...list, { at: now, text: clean }].slice(-MAX_INTENTIONS);
-    }, now);
-    return true;
-  }
-
-  /**
    * Forgets every day of usage ("Clear usage history"). The last-heartbeat bookkeeping stays: it
    * only prevents double counting and holds no history.
    * @returns {Promise<number>} how many days were removed
@@ -152,6 +106,27 @@
     });
   }
 
+  /**
+   * 0.1.0 could keep the one-line "what did you come for" answers inside the stats. That feature is
+   * gone; after an update the old lines are removed rather than left behind where nothing shows them.
+   * @returns {Promise<number>} how many entries had lines
+   */
+  function dropLegacyIntentions() {
+    return store().updateStats((draft) => {
+      let found = 0;
+      for (const sites of Object.values(draft)) {
+        if (!isPlainObject(sites)) continue;
+        for (const counters of Object.values(sites)) {
+          if (isPlainObject(counters) && 'intentions' in counters) {
+            delete counters.intentions;
+            found++;
+          }
+        }
+      }
+      return found;
+    });
+  }
+
   /** Today's counters for every site that has any, normalized to the five public numbers. */
   async function today(now = bg.clock.now()) {
     return AP.state.getStats(AP.util.dayKey(now));
@@ -161,16 +136,12 @@
     MIN_GAP_MS,
     MAX_CREDIT_SEC,
     FIRST_BEAT_SEC,
-    MAX_INTENTIONS,
-    INTENTION_MAX_LENGTH,
     creditFor,
-    cleanIntention,
     heartbeat,
     recordOpen,
-    recentOpens,
     recordCount,
-    addIntention,
     clear,
+    dropLegacyIntentions,
     today,
   };
 })();

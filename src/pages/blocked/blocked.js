@@ -5,10 +5,10 @@
 //              nothing (strict) · "End focus" · a 30 second wait · typing a sentence.
 //   schedule   a weekly schedule is closing the site. No way out here; settings are one click away.
 //   limit      today's daily limit. "5 more minutes" while the day's allowance lasts.
-//   shorts     Shorts are switched off (no timer): a calm line and a link to the normal watch page.
+//   shorts     Shorts are switched off (no timer): a short line and a link to the normal watch page.
 //
 // The remaining time is read from the background (GET_STATUS) and counts down live. When it ends
-// the page says "You're free to go" and offers the original address. What the page shows always
+// the page says "YouTube is open again." and offers the original address. What the page shows always
 // follows the background's truth, not the `reason` in the URL: a block that has ended, or been
 // ended in another tab, turns this page into the "free" state.
 
@@ -21,14 +21,12 @@ const els = {
   dial: $('dial'),
   kicker: $('kicker'),
   title: $('title'),
-  sub: $('sub'),
   time: $('time'),
   clock: $('clock'),
   until: $('until'),
   cta: $('cta'),
   unlock: $('unlock'),
   note: $('note'),
-  target: $('target'),
 };
 
 const REASONS = ['focus', 'schedule', 'limit', 'shorts'];
@@ -208,18 +206,8 @@ function renderBlocked() {
   setState('blocked');
   els.time.hidden = false;
   blockTotal = totalFor(block);
-  setKicker(reason === 'focus' ? 'Focus · you set this' : reason === 'schedule' ? (block.name ? `Schedule · ${block.name}` : 'Schedule') : 'Daily limit reached');
-  if (reason === 'focus') {
-    els.title.textContent = `${siteLabel} is closed for now.`;
-    els.sub.textContent = 'You asked for a quiet stretch.';
-  } else if (reason === 'schedule') {
-    els.title.textContent = 'Closed by your schedule.';
-    els.sub.textContent = block.name ? `“${block.name}” keeps ${siteLabel} closed until then.` : `Your schedule keeps ${siteLabel} closed until then.`;
-  } else {
-    const minutes = status.limit?.dailyMinutes;
-    els.title.textContent = 'That’s your time for today.';
-    els.sub.textContent = minutes ? `You reached today’s limit of ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}.` : 'You reached today’s limit.';
-  }
+  setKicker(reason === 'focus' ? 'Focus' : reason === 'schedule' ? (block.name ? `Schedule · ${block.name}` : 'Schedule') : 'Daily limit');
+  els.title.textContent = reason === 'limit' ? `${siteLabel} is closed for today.` : `${siteLabel} is closed for now.`;
   els.until.textContent = describeEnd(block.until);
   tick();
   ticker = setInterval(tick, 250);
@@ -248,19 +236,17 @@ function renderFree() {
   setState('free');
   setKicker('');
   els.time.hidden = true;
-  els.title.textContent = 'You’re free to go.';
-  els.sub.textContent = `Nothing is holding ${siteLabel} closed now.`;
+  els.title.textContent = `${siteLabel} is open again.`;
   if (target) els.cta.append(linkButton(`Open ${siteLabel}`, target.href));
 }
 
 function renderShorts() {
   setState('shorts');
-  setKicker('Shorts · you chose this');
+  setKicker('');
   els.time.hidden = true;
   els.title.textContent = 'Shorts are off.';
-  els.sub.textContent = 'You chose not to see them, and that is fine.';
   const watch = watchUrlFor(target);
-  if (watch) els.cta.append(linkButton('Watch this video normally', watch));
+  if (watch) els.cta.append(linkButton('Watch normally', watch));
 }
 
 /** /shorts/<id> → the same video in the normal player. */
@@ -279,7 +265,7 @@ function renderUnlock() {
   if (!block) return;
   if (block.reason === 'focus') {
     if (settings['focus.strict'] === true) {
-      els.unlock.append(h('p', null, 'This block cannot be ended early. You chose it that way.'));
+      els.unlock.append(h('p', null, 'No early exit.'));
       return;
     }
     if (lock.locked) {
@@ -288,7 +274,7 @@ function renderUnlock() {
         h(
           'p',
           null,
-          'Your settings are locked, so this cannot be ended early yet. ',
+          'Locked. ',
           quietButton('Unlock…', async () => {
             if (await AP.ui.requestUnlock(lock)) await refresh();
           }),
@@ -314,9 +300,7 @@ function renderUnlock() {
     );
     return;
   }
-  els.unlock.append(
-    h('p', null, block.reason === 'schedule' ? 'To change this, edit your schedules in ' : 'To change this, open ', quietButton('settings', () => AP.msg.send(T.OPEN_OPTIONS, { section: 'focus' })), '.'),
-  );
+  els.unlock.append(h('p', null, quietButton(block.reason === 'schedule' ? 'Edit schedules' : 'Open settings', () => AP.msg.send(T.OPEN_OPTIONS, { section: 'focus' }))));
 }
 
 /** "wait" friction: a countdown of 30 seconds, then the button. */
@@ -326,7 +310,7 @@ function showWait() {
   const hint = h('span', { class: 'hint' }, `${left} s`);
   const confirmButton = h('button', { type: 'button', class: 'btn', disabled: true, onClick: () => endFocus(true) }, 'End focus now');
   const cancel = quietButton('Keep going', renderUnlock);
-  els.unlock.append(h('p', null, 'Take a moment. You can end this in ', hint, '.'), h('div', { class: 'row' }, confirmButton, cancel));
+  els.unlock.append(h('p', null, 'You can end this in ', hint, '.'), h('div', { class: 'row' }, confirmButton, cancel));
   const timer = setInterval(() => {
     left -= 1;
     hint.textContent = `${left} s`;
@@ -344,7 +328,7 @@ function showWait() {
 function showPhrase() {
   clearUnlock();
   const phrase = AP.ui.FOCUS_PHRASE;
-  const input = h('input', { type: 'text', id: 'phrase', autocomplete: 'off', spellcheck: false, 'aria-describedby': 'phrase-text', placeholder: 'Type it here' });
+  const input = h('input', { type: 'text', id: 'phrase', autocomplete: 'off', spellcheck: false, 'aria-describedby': 'phrase-text' });
   const confirmButton = h('button', { type: 'button', class: 'btn', disabled: true, onClick: () => endFocus(true) }, 'End focus');
   input.addEventListener('input', () => {
     confirmButton.disabled = !AP.ui.phraseMatches(input.value, phrase);
@@ -353,7 +337,7 @@ function showPhrase() {
     if (event.key === 'Enter' && !confirmButton.disabled) endFocus(true);
   });
   els.unlock.append(
-    h('label', { for: 'phrase' }, 'To end this early, type:'),
+    h('label', { for: 'phrase' }, 'Type this to end it:'),
     h('p', { class: 'phrase', id: 'phrase-text' }, phrase),
     input,
     h('div', { class: 'row' }, confirmButton, quietButton('Keep going', renderUnlock)),
@@ -371,10 +355,10 @@ async function endFocus(frictionDone) {
       await refresh(); // maybe another block still holds the site: the page shows what is true
       return;
     }
-    if (res?.error === 'strict') setNote('This block cannot be ended early.');
-    else if (res?.error === 'locked') setNote('Your settings are locked again. Unlock them to end this early.');
-    else if (res?.error === 'friction-required') setNote('Your settings changed: please follow the steps again.');
-    else setNote('That did not work. Please try again.');
+    if (res?.error === 'strict') setNote('No early exit.');
+    else if (res?.error === 'locked') setNote('Locked again.');
+    else if (res?.error === 'friction-required') setNote('Settings changed. Start again.');
+    else setNote('That did not work. Try again.');
     await refresh();
   } finally {
     ending = false;
@@ -391,7 +375,7 @@ async function askGrace() {
     else await refresh();
     return;
   }
-  setNote(res?.error === 'no-grace' ? 'There is no extra time left today.' : 'That did not work. Please try again.');
+  setNote(res?.error === 'no-grace' ? 'No extra time left today.' : 'That did not work. Try again.');
   await refresh();
 }
 
@@ -402,7 +386,6 @@ async function askGrace() {
 async function main() {
   dial = AP.ui.dial({ arc: true });
   els.dial.append(dial.svg);
-  els.target.textContent = RAW_TARGET;
   try {
     settings = await AP.settings.effective();
   } catch {

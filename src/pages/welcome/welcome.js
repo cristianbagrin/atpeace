@@ -1,5 +1,5 @@
-// Welcome page (Phase 4b): opened once by the background after the first install. Three short
-// steps on one calm page, no carousel:
+// Welcome page: opened once by the background after the first install. Three short steps on one
+// calm page, no carousel:
 //   01  how much to see      the four built-in presets as rows in a panel (Gentle is already applied)
 //   02  a breath before YouTube   Mindful Pause on/off, the length of the breath, the session length
 //   03  keep it in reach     pinning the extension, the keyboard shortcuts, the host-access notice
@@ -10,26 +10,19 @@ const { h } = AP.ui;
 const T = AP.msg.TYPES;
 
 const PRESET_ORDER = ['gentle', 'focused', 'deep-work', 'untouched'];
-/** One short line each, in the words of this page. */
-const PRESET_LINES = {
-  gentle: 'Ads, Shorts and AI extras go. Your feeds stay.',
-  focused: 'Also no home feed, related videos, comments or autoplay.',
-  'deep-work': 'Also your subscriptions only, grey and blurred, no counts, and a pause before opening.',
-  untouched: 'Nothing hidden. YouTube exactly as it comes.',
-};
 
 /** The pause settings of step 02, with the page's own wording. */
 const PAUSE_ROWS = [
-  { id: 'pause.enabled', label: 'Pause before opening YouTube', text: 'A breathing screen first, then you decide.' },
-  { id: 'pause.breathSeconds', label: 'Length of the breath', text: 'Six seconds is a good start.' },
-  { id: 'pause.sessionMinutes', label: 'When I continue, keep it open for', text: 'After that, the breath comes back.' },
+  { id: 'pause.enabled', label: 'Pause before opening YouTube' },
+  { id: 'pause.breathSeconds', label: 'Length of the breath' },
+  { id: 'pause.sessionMinutes', label: 'When I continue, keep it open for' },
 ];
 
 /** The shortcuts of step 03: manifest command → what it does, in plain words. */
 const SHORTCUTS = [
   { name: 'toggle-enabled', text: 'Turn At Peace on or off' },
   { name: 'focus-25', text: 'Block YouTube for 25 minutes' },
-  { name: 'open-picker', text: 'Hide an element on the page' },
+  { name: 'open-picker', text: 'Hide an element' },
 ];
 
 const state = {
@@ -64,23 +57,21 @@ function currentPresetId() {
 function refreshPresets() {
   const current = currentPresetId();
   for (const [id, radio] of state.radios) radio.checked = id === current;
-  $('step-1-intro').textContent =
-    current === null && state.radios.size > 0
-      ? 'Your settings are your own mix right now. Choosing one of these replaces it.'
-      : 'Pick a starting point. Every single thing can be tuned afterwards.';
+  // Nothing is chosen while the settings are a hand-made mix; say so, once, only then.
+  $('step-1-intro').hidden = !(current === null && state.radios.size > 0);
 }
 
 async function choosePreset(id) {
   const preset = allPresets().find((p) => p.id === id);
   if (!preset) return;
   const current = currentPresetId();
-  if (current === null && !(await AP.ui.confirm(`This replaces your current YouTube settings with “${preset.name}”.`, { title: `Apply ${preset.name}?`, confirmLabel: 'Apply' }))) {
+  if (current === null && !(await AP.ui.confirm('Replaces your YouTube settings.', { title: `Apply ${preset.name}?`, confirmLabel: 'Apply' }))) {
     refreshPresets();
     return;
   }
   const result = await AP.lock.applyPreset(id);
-  if (result.error === 'locked') AP.ui.toast('Locked: unlock your settings to choose this.');
-  else if (!result.ok) AP.ui.toast('That preset is no longer available.');
+  if (result.error === 'locked') AP.ui.toast('Locked.');
+  else if (!result.ok) AP.ui.toast('Preset not found.');
   state.values = await readValues();
   refreshPresets();
   refreshPause();
@@ -97,7 +88,7 @@ function buildPresets() {
         'label',
         { class: 'choice' },
         radio,
-        h('span', { class: 'choice-text' }, h('span', { class: 'choice-name' }, preset.name), h('span', { class: 'choice-desc' }, PRESET_LINES[preset.id] ?? preset.description)),
+        h('span', { class: 'choice-text' }, h('span', { class: 'choice-name' }, preset.name), h('span', { class: 'choice-desc' }, preset.description)),
       );
     }),
   );
@@ -111,11 +102,11 @@ function buildPresets() {
 async function savePause(def, value) {
   const result = await AP.lock.save({ [def.id]: value });
   if (!result.ok) {
-    AP.ui.toast('Locked: unlock your settings to change this.');
+    AP.ui.toast('Locked.');
     state.controls.get(def.id)?.set(state.values[def.id]);
     return;
   }
-  if (result.report.invalid.includes(def.id)) throw new Error('That value is not allowed here.');
+  if (result.report.invalid.includes(def.id)) throw new Error('Not allowed.');
   state.values[def.id] = AP.schema.validateValue(def, value);
   refreshPause();
 }
@@ -133,13 +124,12 @@ function refreshPause() {
 }
 
 function buildPause() {
-  const rows = PAUSE_ROWS.map(({ id, label, text }) => {
+  const rows = PAUSE_ROWS.filter(({ id }) => AP.schema.get(id)).map(({ id, label }) => {
     const def = AP.schema.get(id);
     const inputId = `w-${id.replace(/[^A-Za-z0-9_-]/g, '-')}`;
     const error = h('p', { class: 'row-error', role: 'alert', hidden: true });
     const control = AP.ui.settingControl(def, state.values[id], (v) => savePause(def, v), {
       id: inputId,
-      describedBy: `${inputId}-desc`,
       onError: (message) => {
         error.textContent = message ?? '';
         error.hidden = !message;
@@ -149,7 +139,7 @@ function buildPause() {
     const row = h(
       'div',
       { class: ['row', def.type === 'toggle' && 'is-toggle'], dataset: { id } },
-      h('div', { class: 'row-text' }, h('label', { class: 'row-label', for: inputId }, label), h('p', { class: 'row-desc', id: `${inputId}-desc` }, text), error),
+      h('div', { class: 'row-text' }, h('label', { class: 'row-label', for: inputId }, label), error),
       h('div', { class: 'row-control' }, control.el),
     );
     state.rows.set(id, row);
@@ -163,32 +153,19 @@ function buildPause() {
 // 03  pinning and shortcuts
 // ---------------------------------------------------------------------------------------------
 
-/** The shortcut each command has right now (the person may have changed it), else the manifest's suggestion. */
-async function shortcutsByCommand() {
-  const manifest = AP.api.runtime.getManifest().commands ?? {};
-  const out = {};
-  for (const [name, spec] of Object.entries(manifest)) out[name] = spec?.suggested_key?.default ?? '';
-  try {
-    for (const command of (await AP.api.commands?.getAll?.()) ?? []) if (command.name in out) out[command.name] = command.shortcut ?? '';
-  } catch {
-    /* the suggestions will do */
-  }
-  return out;
-}
-
 async function buildKeys() {
-  const shortcuts = await shortcutsByCommand();
+  const shortcuts = await AP.ui.loadShortcuts();
   $('keys').replaceChildren(
     ...SHORTCUTS.map(({ name, text }) => {
-      const combo = shortcuts[name];
-      const keys = combo
-        ? combo
-            .split('+')
-            .flatMap((key, i) => [i > 0 ? h('span', { class: 'plus', 'aria-hidden': 'true' }, '+') : null, h('kbd', null, key.trim())])
+      const keys = shortcuts.keys(name);
+      // A Mac writes ⌥⇧P as three adjacent keys; elsewhere they are joined with plus signs.
+      const cells = keys.length > 0
+        ? keys.flatMap((key, i) => [i > 0 && shortcuts.os !== 'mac' ? h('span', { class: 'plus', 'aria-hidden': 'true' }, '+') : null, h('kbd', null, key)])
         : [h('span', { class: 'unset' }, 'not assigned')];
-      return h('div', { class: 'key-row' }, h('dt', null, keys), h('dd', null, text));
+      return h('div', { class: 'key-row' }, h('dt', { 'aria-label': keys.length > 0 ? shortcuts.text(name) : null }, cells), h('dd', null, text));
     }),
   );
+  $('keys-help').textContent = AP.ui.SHORTCUTS_HELP;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -200,7 +177,6 @@ function renderFinish(done) {
   if (done) {
     finish.replaceChildren(
       h('h3', { class: 'done-title' }, 'You are all set.'),
-      h('p', { class: 'lede' }, 'At Peace is on. Open YouTube to see how it feels, or look through all the settings first.'),
       h(
         'div',
         { class: 'done-actions' },
@@ -215,14 +191,14 @@ function renderFinish(done) {
               AP.api.runtime.openOptionsPage();
             },
           },
-          'See all settings',
+          'Settings',
         ),
       ),
     );
     document.getElementById('open-youtube')?.focus();
     return;
   }
-  const note = h('p', { class: 'step-note', role: 'status' }, 'Nothing here is final: the settings are always one click away.');
+  const note = h('p', { class: 'step-note', role: 'status' });
   const button = h('button', { type: 'button', class: 'btn btn-primary big', id: 'finish-button' }, 'Finish');
   button.addEventListener('click', async () => {
     button.disabled = true;
@@ -232,7 +208,7 @@ function renderFinish(done) {
       return;
     }
     button.disabled = false;
-    note.textContent = 'That did not save. Please try once more.';
+    note.textContent = 'Could not save. Try again.';
   });
   finish.replaceChildren(button, note);
 }
@@ -266,5 +242,5 @@ async function init() {
 
 init().catch((err) => {
   AP.warn('welcome page failed to start', err);
-  $('steps').replaceChildren(h('p', { class: 'step-note' }, 'This page could not be loaded. Close it and open At Peace’s settings from the toolbar.'));
+  $('steps').replaceChildren(h('p', { class: 'step-note' }, 'Could not load this page.'));
 });

@@ -97,12 +97,13 @@ describe('heartbeat', () => {
   });
 });
 
-describe('pause outcomes, hits and intentions', () => {
-  test('recordOpen counts opens and remembers the last hour of visits', async () => {
-    assert.deepEqual(await stats.recordOpen('youtube', w.now()), { opens: 1, recent: 1 });
-    assert.deepEqual(await stats.recordOpen('youtube', w.now() + 10 * 60_000), { opens: 2, recent: 2 });
-    assert.equal(await stats.recentOpens('youtube', w.now() + 65 * 60_000), 1, 'the first one is over an hour old');
-    assert.deepEqual(await stats.recordOpen('youtube', w.now() + 69 * 60_000), { opens: 3, recent: 2 });
+describe('pause outcomes and hits', () => {
+  test('recordOpen counts today\'s opens (nothing else is remembered about a visit)', async () => {
+    assert.equal(await stats.recordOpen('youtube', w.now()), 1);
+    assert.equal(await stats.recordOpen('youtube', w.now() + 10 * 60_000), 2);
+    assert.equal(await stats.recordOpen('reddit.com', w.now() + 11 * 60_000), 1);
+    assert.equal(stats.recentOpens, undefined);
+    assert.equal((await fake.storage.session.get('recentOpens')).recentOpens, undefined);
   });
 
   test('recordCount increments turnedBack / continued / blockedHits independently', async () => {
@@ -113,24 +114,18 @@ describe('pause outcomes, hits and intentions', () => {
     assert.deepEqual(await todayYt(), { activeSec: 0, opens: 0, turnedBack: 2, continued: 1, blockedHits: 1 });
   });
 
-  test('intentions: cleaned, capped at 140 characters, newest 20 kept, empty ones dropped', async () => {
-    assert.equal(await stats.addIntention('youtube', '   ', w.now()), false);
-    assert.equal(await stats.addIntention('youtube', 42, w.now()), false);
-    assert.equal(await stats.addIntention('youtube', `  one\n\ttwo   ${'x'.repeat(300)}`, w.now()), true);
-    const [first] = (await raw())[day()].youtube.intentions;
-    assert.equal(first.text.length, 140);
-    assert.ok(first.text.startsWith('one two xxx'));
-    assert.equal(first.at, w.now());
-    for (let i = 0; i < 25; i++) await stats.addIntention('youtube', `line ${i}`, w.now() + i);
-    const list = (await raw())[day()].youtube.intentions;
-    assert.equal(list.length, 20);
-    assert.equal(list.at(-1).text, 'line 24');
-    assert.equal(list[0].text, 'line 5', 'the oldest were dropped');
-  });
-
-  test('intentions never leak into the public counters', async () => {
-    await stats.addIntention('youtube', 'hello', w.now());
-    assert.deepEqual(await todayYt(), AP.state.emptyCounters());
+  test('a continued session stores no intention lines, and the old ones can be dropped', async () => {
+    assert.equal(stats.addIntention, undefined);
+    const dayKey = day();
+    await fake.storage.local.set({
+      stats: {
+        [dayKey]: { youtube: { ...AP.state.emptyCounters(), intentions: [{ at: 1, text: 'hello' }] }, 'reddit.com': AP.state.emptyCounters() },
+        '2026-01-01': 'junk',
+      },
+    });
+    assert.equal(await stats.dropLegacyIntentions(), 1);
+    assert.deepEqual((await raw())[dayKey], { youtube: AP.state.emptyCounters(), 'reddit.com': AP.state.emptyCounters() });
+    assert.equal(await stats.dropLegacyIntentions(), 0, 'nothing left to drop');
     const status = await AP.background.handleMessage({ type: 'GET_STATUS' }, {});
     assert.deepEqual(Object.keys(status.today.youtube).sort(), ['activeSec', 'blockedHits', 'continued', 'opens', 'turnedBack']);
   });

@@ -8,7 +8,7 @@
 
   /** @readonly */
   const TYPES = Object.freeze({
-    PAUSE_CONTINUE: 'PAUSE_CONTINUE', // { siteKey, minutes, intention }
+    PAUSE_CONTINUE: 'PAUSE_CONTINUE', // { siteKey, minutes }
     PAUSE_TURN_BACK: 'PAUSE_TURN_BACK', // { siteKey }
     PAUSE_OPENED: 'PAUSE_OPENED', // { siteKey }
     FOCUS_START: 'FOCUS_START', // { minutes | untilEndOfDay, siteKeys }

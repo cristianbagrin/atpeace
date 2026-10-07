@@ -19,12 +19,8 @@ body[data-state="free"] .dial {
   --dial-ticks: var(--ix-mint);
 }
 
-.sub {
-  max-width: 44ch;
-}
-
 .time {
-  margin-top: 4px;
+  margin-top: 12px;
 }
 
 .clock {

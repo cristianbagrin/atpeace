@@ -16,9 +16,9 @@
 //   lockUnlockedUntil  ms                    the settings lock is open until then (src/shared/lock.js);
 //                                            0 / past = locked. Pages read it straight from storage.
 //
-// Short-lived bookkeeping (last heartbeat per site, recent pause opens) lives in storage.session,
-// which survives event-page unloads but not a browser restart; where storage.session is missing
-// the fallback is an in-memory map (good enough: it only affects dedupe and the "last hour" count).
+// Short-lived bookkeeping (the last heartbeat per site) lives in storage.session, which survives
+// event-page unloads but not a browser restart; where storage.session is missing the fallback is an
+// in-memory map (good enough: it only affects de-duplicating beats).
 (() => {
   'use strict';
   const AP = globalThis.AtPeace;
@@ -153,7 +153,7 @@
   // stats
   // ---------------------------------------------------------------------------------------
 
-  /** Raw stats map (not normalized: it may carry `intentions` lists that AP.state does not know). */
+  /** Raw stats map (not normalized: read-modify-write keeps whatever fields a day carries). */
   async function readStatsRaw() {
     const { stats } = await AP.settings.readStorage('stats');
     return isPlainObject(stats) ? stats : {};

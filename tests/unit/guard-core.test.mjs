@@ -25,24 +25,24 @@ describe('parseSnapshot', () => {
   test('garbage in, a safe empty snapshot out', () => {
     for (const junk of [undefined, null, 'x', { state: 'x', settings: [] }, {}]) {
       const s = G.parseSnapshot(junk);
-      assert.deepEqual([s.sessions, s.blocks, s.sites, s.expiryOverlay, s.theme], [{}, [], [], true, 'light']);
+      assert.deepEqual([s.sessions, s.blocks, s.sites, s.theme], [{}, [], [], 'light']);
     }
   });
 
-  test('reads sessions, minutes, blocks (list or the single PLAN block), sites and the two settings it needs', () => {
+  test('reads sessions, minutes, blocks (list or the single PLAN block), sites and the theme', () => {
     const s = G.parseSnapshot({
       state: {
         sessions: { youtube: 5, bad: 'x' },
         sessionMinutes: { youtube: 15, zero: 0 },
         blocks: [{ reason: 'focus', until: 9, siteKeys: ['youtube', 3] }, { until: 'x', siteKeys: [] }, 'x'],
       },
-      settings: { 'pause.sites': [{ siteKey: 'a.com', domain: 'a.com' }, { siteKey: 1 }], 'pause.expiryOverlay': false, 'general.theme': 'dark' },
+      settings: { 'pause.sites': [{ siteKey: 'a.com', domain: 'a.com' }, { siteKey: 1 }], 'general.theme': 'dark' },
     });
     assert.deepEqual(s.sessions, { youtube: 5 });
     assert.deepEqual(s.sessionMinutes, { youtube: 15 });
     assert.deepEqual(s.blocks, [{ reason: 'focus', until: 9, siteKeys: ['youtube'] }]);
     assert.deepEqual(s.sites, [{ siteKey: 'a.com', domain: 'a.com' }]);
-    assert.equal(s.expiryOverlay, false);
+    assert.equal('expiryOverlay' in s, false, 'the overlay is always on: nothing to read');
     assert.equal(s.theme, 'dark');
     const legacy = G.parseSnapshot({ state: { block: { until: 7, reason: 'limit', siteKeys: ['youtube'] } } });
     assert.deepEqual(legacy.blocks, [{ reason: 'limit', until: 7, siteKeys: ['youtube'] }]);
@@ -182,6 +182,7 @@ describe('guard controller: session expiry', () => {
     assert.equal(h.log.overlays.length, 1);
     const [overlay] = h.log.overlays;
     assert.equal(overlay.title, 'Your 5 minutes are up.');
+    assert.equal(overlay.body, undefined, 'a title and two buttons: no explanation underneath');
     assert.deepEqual(overlay.actions.map((a) => a.label), ['Leave YouTube', 'Take a breath']);
     assert.equal(overlay.actions[0].primary, true);
     assert.equal(h.log.paused, 1);
@@ -253,11 +254,11 @@ describe('guard controller: session expiry', () => {
     assert.equal(h.log.overlays.length, 0);
   });
 
-  test('the overlay is switched off by pause.expiryOverlay = false (the pause itself still comes back on the next load)', async () => {
+  test('the overlay is always on: a leftover pause.expiryOverlay = false from 0.1.0 is ignored', async () => {
     const h = harness({ state: { sessions: { youtube: T0 - 1 } }, settings: { 'pause.expiryOverlay': false } });
     await h.guard.start();
-    assert.equal(h.log.overlays.length, 0);
-    assert.equal(h.log.paused, 0);
+    assert.equal(h.log.overlays.length, 1);
+    assert.equal(h.log.paused, 1);
   });
 
   test('a new session started elsewhere removes the overlay and re-arms the timer', async () => {

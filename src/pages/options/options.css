@@ -245,10 +245,6 @@
   font-size: 18px;
 }
 
-.is-searching .section-intro {
-  display: none;
-}
-
 .is-searching .group {
   margin-top: 10px;
 }
@@ -273,13 +269,6 @@
 
 .section-count {
   flex: none;
-  font-size: 13px;
-  color: var(--text-2);
-}
-
-.section-intro {
-  margin-top: 4px;
-  max-width: 62ch;
   font-size: 13px;
   color: var(--text-2);
 }
@@ -689,17 +678,10 @@
   overflow-wrap: anywhere;
 }
 
-/* ------------------------------------------------------------------ presets dialog */
+/* ------------------------------------------------------------------ presets */
 
-dialog.dialog.is-wide {
-  width: min(600px, calc(100vw - 28px));
-}
-
-.preset-list {
-  margin-top: 14px;
-  overflow: hidden;
-  border: 1px solid var(--panel-line);
-  border-radius: 10px;
+.presets .group:first-child {
+  margin-top: 16px;
 }
 
 .preset {
@@ -707,15 +689,21 @@ dialog.dialog.is-wide {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 10px 12px;
+  min-height: 52px;
+  padding: 10px 14px;
 }
 
 .preset + .preset {
   border-top: 1px solid var(--row-line);
 }
 
+.preset-main {
+  min-width: 0;
+}
+
 .preset-name {
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .preset-current {
@@ -730,17 +718,47 @@ dialog.dialog.is-wide {
 
 .preset-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
+  justify-content: flex-end;
+  gap: 4px 14px;
   flex: none;
 }
 
-.preset-heading {
-  margin-top: 20px;
+.preset-actions .btn:not(.btn-quiet) {
+  min-height: 30px;
 }
 
-.preset-save {
-  margin-top: 14px;
+.preset-form {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.preset-form input[type="text"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+}
+
+.preset-add {
+  min-height: 0;
+  justify-content: flex-start;
+}
+
+.presets > .undo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 0;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.presets > .field-error {
+  margin-top: 8px;
 }
 
 /* ------------------------------------------------------------------ custom editors (renderers/*.js) */

@@ -18,15 +18,33 @@
   const { isPlainObject, deepEqual } = AP.util;
 
   /** Version of the stored settings layout. Bump it and append a migration when ids change. */
-  const SCHEMA_VERSION = 1;
+  const SCHEMA_VERSION = 2;
+
+  /** Settings that existed in version 1 and were removed in version 2 (feedback round 1). */
+  const REMOVED_IN_V2 = Object.freeze([
+    'pause.askIntention', // the "what did you come for" prompt
+    'pause.escalate', // longer breath for repeat visits
+    'pause.escalateStep',
+    'pause.showCount', // always on now
+    'pause.expiryOverlay', // always on now
+    'advanced.customCss',
+    'yt.general.calmTitles',
+  ]);
 
   /**
    * Migration pipeline: `MIGRATIONS[i]` turns stored settings of version i+1 into version i+2.
    * Pure functions `(storedMap) => storedMap`. Renaming an id after release lives here, never in
-   * the schema (PLAN §4.1). Empty while the schema is at version 1.
+   * the schema (PLAN §4.1).
+   *   v1 → v2  drops the stored values of settings that were removed.
    * @type {Array<(stored: Record<string, any>) => Record<string, any>>}
    */
-  const MIGRATIONS = [];
+  const MIGRATIONS = [
+    (stored) => {
+      const next = { ...stored };
+      for (const id of REMOVED_IN_V2) delete next[id];
+      return next;
+    },
+  ];
 
   const KEYS = Object.freeze({
     settings: 'settings',
@@ -304,6 +322,25 @@
     });
   }
 
+  /**
+   * "Update from current": a custom preset takes the in-scope settings as they are now (or `values`).
+   * Its name, id and date stay, so schedules that point at it keep working.
+   * @param {string} id
+   * @param {Record<string, any>} [values]
+   * @returns {Promise<{ ok: boolean, preset?: object, error?: string }>}
+   */
+  function updateCustomPreset(id, values) {
+    return enqueue(async () => {
+      const got = await readStorage([KEYS.settings, KEYS.customPresets]);
+      const list = AP.presets.sanitizeCustom(got.customPresets);
+      const target = list.find((p) => p.id === id);
+      if (!target) return { ok: false, error: 'unknown-preset' };
+      target.values = AP.presets.sanitize(values ?? AP.presets.capture(isPlainObject(got.settings) ? got.settings : {})).values;
+      await area().set({ [KEYS.customPresets]: list.map(storable) });
+      return { ok: true, preset: target };
+    });
+  }
+
   /** @returns {Promise<{ ok: boolean, error?: string }>} */
   function deleteCustomPreset(id) {
     return enqueue(async () => {
@@ -312,6 +349,27 @@
       const rest = list.filter((p) => p.id !== id);
       if (rest.length === list.length) return { ok: false, error: 'unknown-preset' };
       await area().set({ [KEYS.customPresets]: rest.map(storable) });
+      return { ok: true };
+    });
+  }
+
+  /**
+   * Puts a deleted custom preset back (Undo): same id, name, values and date, at its old place in
+   * the list, so a schedule that points at it works again.
+   * @param {object} preset what listCustomPresets() returned before it was deleted
+   * @param {number} [index] where it was
+   * @returns {Promise<{ ok: boolean, error?: string }>}
+   */
+  function restoreCustomPreset(preset, index = Infinity) {
+    return enqueue(async () => {
+      const { customPresets } = await readStorage(KEYS.customPresets);
+      const list = AP.presets.sanitizeCustom(customPresets);
+      const [back] = AP.presets.sanitizeCustom([preset]);
+      if (!back) return { ok: false, error: 'invalid-preset' };
+      if (list.some((p) => p.id === back.id)) return { ok: false, error: 'exists' };
+      if (list.length >= AP.presets.MAX_CUSTOM_PRESETS) return { ok: false, error: 'too-many-presets' };
+      list.splice(Math.max(0, Math.min(list.length, Number.isFinite(index) ? index : list.length)), 0, back);
+      await area().set({ [KEYS.customPresets]: list.map(storable) });
       return { ok: true };
     });
   }
@@ -501,7 +559,9 @@
     listCustomPresets,
     saveCustomPreset,
     renameCustomPreset,
+    updateCustomPreset,
     deleteCustomPreset,
+    restoreCustomPreset,
     subscribe,
     exportAll,
     importAll,

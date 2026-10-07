@@ -374,6 +374,39 @@ describe('custom presets', () => {
     assert.deepEqual(await AP.settings.listCustomPresets(), []);
   });
 
+  test('update from current replaces the values and keeps id, name and date', async () => {
+    await store({ settings: { 'yt.general.hideAds': true } });
+    const { preset } = await AP.settings.saveCustomPreset('Mine');
+    await store({ settings: { 'yt.general.hideAds': false, 'yt.shorts.mode': 'block', 'general.theme': 'dark' } });
+    const res = await AP.settings.updateCustomPreset(preset.id);
+    assert.equal(res.ok, true);
+    const [after] = await AP.settings.listCustomPresets();
+    assert.deepEqual(after.values, { 'yt.shorts.mode': 'block' }, 'what is set now, in scope, off default');
+    assert.equal(after.id, preset.id);
+    assert.equal(after.name, 'Mine');
+    assert.equal(after.createdAt, preset.createdAt);
+    assert.deepEqual((await AP.settings.updateCustomPreset(preset.id, { 'yt.general.hideAds': true, nope: 1 })).preset.values, { 'yt.general.hideAds': true });
+    assert.deepEqual(await AP.settings.updateCustomPreset('ghost'), { ok: false, error: 'unknown-preset' });
+  });
+
+  test('restore puts a deleted preset back where it was, with its id (a schedule may point at it)', async () => {
+    const a = (await AP.settings.saveCustomPreset('A', { 'yt.general.hideAds': true })).preset;
+    const b = (await AP.settings.saveCustomPreset('B', { 'yt.shorts.mode': 'block' })).preset;
+    const c = (await AP.settings.saveCustomPreset('C', {})).preset;
+    await AP.settings.deleteCustomPreset(b.id);
+    assert.deepEqual((await AP.settings.listCustomPresets()).map((p) => p.name), ['A', 'C']);
+    assert.deepEqual(await AP.settings.restoreCustomPreset(b, 1), { ok: true });
+    const list = await AP.settings.listCustomPresets();
+    assert.deepEqual(list.map((p) => p.name), ['A', 'B', 'C']);
+    assert.deepEqual(list[1], { ...b, builtIn: false }, 'same id, values and date');
+    assert.deepEqual(await AP.settings.restoreCustomPreset(b, 0), { ok: false, error: 'exists' });
+    assert.deepEqual(await AP.settings.restoreCustomPreset({ id: 'bad id', name: 'x' }, 0), { ok: false, error: 'invalid-preset' });
+    assert.deepEqual(await AP.settings.restoreCustomPreset(a), { ok: false, error: 'exists' });
+    await AP.settings.deleteCustomPreset(c.id);
+    assert.deepEqual(await AP.settings.restoreCustomPreset(c, 99), { ok: true }, 'an index past the end appends');
+    assert.deepEqual((await AP.settings.listCustomPresets()).map((p) => p.name), ['A', 'B', 'C']);
+  });
+
   test('a custom preset can be applied', async () => {
     await store({ settings: { 'yt.general.hideAds': true } });
     const { preset } = await AP.settings.saveCustomPreset('Ads on');
@@ -469,13 +502,51 @@ describe('subscribe()', () => {
 });
 
 describe('migrate()', () => {
-  test('is a no-op copy at the current version (nothing to migrate yet)', () => {
-    assert.equal(AP.settings.SCHEMA_VERSION, 1);
-    const input = { 'yt.general.hideAds': true };
-    const out = AP.settings.migrate(input, 1);
+  test('is a no-op copy at the current version', () => {
+    const input = { 'yt.general.hideAds': true, 'pause.askIntention': true };
+    const out = AP.settings.migrate(input, AP.settings.SCHEMA_VERSION);
     assert.deepEqual(out, input);
     assert.notEqual(out, input);
-    assert.deepEqual(AP.settings.MIGRATIONS, []);
+    assert.equal(AP.settings.MIGRATIONS.length, AP.settings.SCHEMA_VERSION - 1);
+  });
+
+  test('v1 → v2 drops the removed settings and leaves everything else intact', () => {
+    assert.equal(AP.settings.SCHEMA_VERSION, 2);
+    const removed = ['pause.askIntention', 'pause.escalate', 'pause.escalateStep', 'pause.showCount', 'pause.expiryOverlay', 'advanced.customCss', 'yt.general.calmTitles'];
+    const kept = {
+      'pause.enabled': true,
+      'pause.breathSeconds': 12,
+      'pause.sites': [{ siteKey: 'youtube', domain: 'youtube.com', enabled: true }],
+      'yt.general.hideAds': true,
+      'advanced.customRules': [{ id: 'r1', selector: '.x', page: null, note: '', createdAt: 1 }],
+      'advanced.lock': { mode: 'none' },
+      'general.theme': 'dark',
+      'a.setting.from.a.newer.version': 7, // not this migration's business: it is kept (merge() ignores unknown ids anyway)
+    };
+    const stored = { ...kept, ...Object.fromEntries(removed.map((id) => [id, id === 'advanced.customCss' ? 'a { color: red }' : true])) };
+    const input = structuredClone(stored);
+    const out = AP.settings.migrate(input, 1);
+    assert.deepEqual(input, stored, 'the input is not mutated');
+    assert.deepEqual(out, kept);
+    for (const id of removed) assert.equal(Object.hasOwn(out, id), false, id);
+    assert.deepEqual(AP.settings.migrate(out, 2), out, 'running it again changes nothing');
+    assert.deepEqual(AP.settings.migrate({}, 1), {});
+    assert.deepEqual(AP.settings.migrate({ 'pause.showCount': false }, 1), {}, 'a stored "off" no longer matters: the behaviour is always on');
+  });
+
+  test('effective() migrates an old stored layout in memory, whatever meta says', async () => {
+    await store({ settings: { 'pause.askIntention': true, 'pause.breathSeconds': 11 }, meta: { schemaVersion: 1 } });
+    const eff = await AP.settings.effective();
+    assert.equal(eff['pause.breathSeconds'], 11);
+    assert.equal('pause.askIntention' in eff, false);
+  });
+
+  test('an old backup (schemaVersion 1) imports without the removed settings and without complaint', async () => {
+    const report = await AP.settings.importAll({ app: 'at-peace', schemaVersion: 1, settings: { 'pause.askIntention': true, 'pause.escalate': true, 'advanced.customCss': 'a{}', 'pause.breathSeconds': 8 } });
+    assert.equal(report.ok, true);
+    assert.equal(report.applied, 1);
+    assert.deepEqual(report.dropped, []);
+    assert.equal((await AP.settings.load())['pause.breathSeconds'], 8);
   });
 
   test('runs the pipeline in order from the stored version up to the target', () => {
@@ -525,7 +596,7 @@ describe('exportAll() / importAll()', () => {
   test('export: app marker, version, valid portable settings and custom presets; never state, stats, meta or the lock', async () => {
     const out = await AP.settings.exportAll();
     assert.equal(out.app, 'at-peace');
-    assert.equal(out.schemaVersion, 1);
+    assert.equal(out.schemaVersion, AP.settings.SCHEMA_VERSION);
     assert.equal(out.version, '0.0.0-test');
     assert.match(out.exportedAt, /^\d{4}-\d\d-\d\dT/);
     assert.deepEqual(out.settings, { 'yt.general.hideAds': true, 'pause.breathSeconds': 12 });

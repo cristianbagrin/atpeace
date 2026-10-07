@@ -87,12 +87,8 @@ describe('pause', () => {
     assert.equal(d['pause.enabled'], false);
     assert.deepEqual(d['pause.sites'], [{ siteKey: 'youtube', domain: 'youtube.com', enabled: true }]);
     assert.equal(d['pause.breathSeconds'], 6);
-    assert.equal(d['pause.escalate'], false);
-    assert.equal(d['pause.escalateStep'], 2);
-    assert.equal(d['pause.askIntention'], false);
     assert.equal(d['pause.sessionMinutes'], '15');
-    assert.equal(d['pause.showCount'], true);
-    assert.equal(d['pause.expiryOverlay'], true);
+    for (const id of ['pause.escalate', 'pause.escalateStep', 'pause.askIntention', 'pause.showCount', 'pause.expiryOverlay']) assert.equal(id in d, false, `${id} was removed`);
   });
 
   test('ranges and options', () => {
@@ -100,8 +96,6 @@ describe('pause', () => {
     assert.equal(v('pause.breathSeconds', 1), 3);
     assert.equal(v('pause.breathSeconds', 99), 30);
     assert.equal(v('pause.breathSeconds', 12.4), 12);
-    assert.equal(v('pause.escalateStep', 0), 1);
-    assert.equal(v('pause.escalateStep', 50), 10);
     assert.deepEqual(S.get('pause.sessionMinutes').options.map((o) => o.value), ['5', '10', '15', '30', '60']);
     assert.equal(v('pause.sessionMinutes', 30), '30');
     assert.equal(v('pause.sessionMinutes', '20'), '15');
@@ -173,7 +167,7 @@ describe('advanced', () => {
   test('defaults', () => {
     const d = S.defaults();
     assert.deepEqual(d['advanced.customRules'], []);
-    assert.equal(d['advanced.customCss'], '');
+    assert.equal('advanced.customCss' in d, false, 'custom CSS was removed');
     assert.equal(d['advanced.debug'], false);
     assert.deepEqual(d['advanced.lock'], { mode: 'none' });
   });
@@ -196,12 +190,6 @@ describe('advanced', () => {
       { id: 'r2', selector: 'a, b', page: null, note: '', createdAt: 0 },
       { id: 'r5', selector: 'a', page: null, note: 'x'.repeat(200), createdAt: 0, site: 'youtube' },
     ]);
-  });
-
-  test('customCss is limited to 20000 characters', () => {
-    const def = S.get('advanced.customCss');
-    assert.equal(S.validateValue(def, 'a'.repeat(20_000)).length, 20_000);
-    assert.equal(S.validateValue(def, 'a'.repeat(20_001)), '');
   });
 
   test('lock: mode is forced to a known value, a few flat primitive fields survive, the rest goes', () => {

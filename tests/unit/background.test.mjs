@@ -176,7 +176,7 @@ describe('install and startup', () => {
   test('first install: meta written, Gentle preset applied, welcome page skipped when absent', async () => {
     await AP.background.onInstalled({ reason: 'install' });
     const { meta, settings } = await fake.storage.local.get(['meta', 'settings']);
-    assert.deepEqual(meta, { schemaVersion: 1, installedAt: w.now(), onboarded: false, lastVersion: '1.2.3' });
+    assert.deepEqual(meta, { schemaVersion: AP.settings.SCHEMA_VERSION, installedAt: w.now(), onboarded: false, lastVersion: '1.2.3' });
     const gentle = AP.presets.get('gentle').values;
     assert.ok(Object.keys(gentle).length > 0);
     for (const [id, value] of Object.entries(gentle)) assert.deepEqual(settings[id], value, id);
@@ -196,11 +196,25 @@ describe('install and startup', () => {
   });
 
   test('an update keeps settings, refreshes meta.lastVersion and migrates old layouts', async () => {
-    await fake.storage.local.set({ settings: { 'general.theme': 'dark' }, meta: { schemaVersion: 1, installedAt: 5, onboarded: true, lastVersion: '0.0.1' } });
+    await fake.storage.local.set({
+      settings: { 'general.theme': 'dark', 'pause.askIntention': true, 'pause.breathSeconds': 9 },
+      meta: { schemaVersion: 1, installedAt: 5, onboarded: true, lastVersion: '0.0.1' },
+    });
     await AP.background.onInstalled({ reason: 'update' });
     const { meta, settings } = await fake.storage.local.get(['meta', 'settings']);
-    assert.deepEqual(meta, { schemaVersion: 1, installedAt: 5, onboarded: true, lastVersion: '1.2.3' });
-    assert.deepEqual(settings, { 'general.theme': 'dark' });
+    assert.deepEqual(meta, { schemaVersion: AP.settings.SCHEMA_VERSION, installedAt: 5, onboarded: true, lastVersion: '1.2.3' });
+    assert.deepEqual(settings, { 'general.theme': 'dark', 'pause.breathSeconds': 9 });
+  });
+
+  test('an update from 0.1.0 also removes the "what did you come for" lines from the stats', async () => {
+    const day = AP.util.dayKey(w.now());
+    await fake.storage.local.set({
+      stats: { [day]: { youtube: { activeSec: 60, opens: 2, turnedBack: 0, continued: 1, blockedHits: 0, intentions: [{ at: 1, text: 'a tutorial' }] } } },
+      meta: { schemaVersion: 1, installedAt: 5, onboarded: true, lastVersion: '0.1.0' },
+    });
+    await AP.background.onInstalled({ reason: 'update' });
+    const { stats } = await fake.storage.local.get('stats');
+    assert.deepEqual(stats[day].youtube, { activeSec: 60, opens: 2, turnedBack: 0, continued: 1, blockedHits: 0 });
   });
 
   test('install and startup bring rules, alarms and the guard registration up to date', async () => {

@@ -10,6 +10,9 @@
 //   AP.ui.prompt(text, options)           native <dialog> with one text field; resolves string|null
 //   AP.ui.settingControl(def, value, onChange, options)   generic editor for one setting
 //   AP.ui.hostAccessBanner()              "grant access to youtube.com" banner (permission risk R2)
+//   AP.ui.loadShortcuts()                 the keyboard shortcuts as assigned now, in the platform's notation
+//   AP.ui.openSettings({ setting })       the settings page, at a row (or { section }); reuses an open tab
+//   AP.ui.lastPreset.get() / .set(id)     the custom preset applied or saved last (for "Update")
 (() => {
   'use strict';
   const AP = globalThis.AtPeace;
@@ -581,5 +584,108 @@
     return banner;
   }
 
-  Object.assign(ui, { h, dial, applyTheme, watchTheme, toast, openDialog, confirm, prompt, settingControl, controlKind, hostAccessBanner });
+  // ---------------------------------------------------------------------------------------
+  // Keyboard shortcuts
+  // ---------------------------------------------------------------------------------------
+
+  /** The shortcut a manifest command suggests on this platform. */
+  function suggestedKey(spec, os) {
+    const keys = spec?.suggested_key ?? {};
+    const byOs = { mac: keys.mac, win: keys.windows, linux: keys.linux, cros: keys.chromeos, android: keys.android };
+    return byOs[os] ?? keys.default ?? '';
+  }
+
+  let shortcutsPromise = null;
+
+  /**
+   * The extension's keyboard shortcuts as they are assigned right now (commands.getAll(): the person
+   * may have changed or cleared one; the manifest's suggestion for this platform when that cannot be
+   * read), written for the platform: "⌥⇧P" on a Mac, "Alt+Shift+P" elsewhere. Read once per page.
+   * @returns {Promise<{ os: string, raw: (name: string) => string, text: (name: string) => string, keys: (name: string) => string[] }>}
+   */
+  function loadShortcuts() {
+    shortcutsPromise ??= (async () => {
+      let os = 'other';
+      try {
+        os = (await AP.api.runtime.getPlatformInfo())?.os ?? os;
+      } catch {
+        /* notation falls back to the plain one */
+      }
+      const assigned = {};
+      for (const [name, spec] of Object.entries(AP.api.runtime.getManifest().commands ?? {})) assigned[name] = suggestedKey(spec, os);
+      try {
+        for (const command of (await AP.api.commands?.getAll?.()) ?? []) if (command.name in assigned) assigned[command.name] = command.shortcut ?? '';
+      } catch {
+        /* the suggestions will do */
+      }
+      return {
+        os,
+        raw: (name) => assigned[name] ?? '',
+        text: (name) => ui.formatShortcut(assigned[name], os),
+        keys: (name) => ui.shortcutKeys(assigned[name], os),
+      };
+    })();
+    return shortcutsPromise;
+  }
+
+  /** Where the person changes shortcuts, in one line (shown wherever shortcuts are listed). */
+  const SHORTCUTS_HELP = 'Change shortcuts: about:addons → ⚙ → Manage Extension Shortcuts';
+
+  // ---------------------------------------------------------------------------------------
+  // The preset applied or saved last (so "Update" can be offered once settings drift from it)
+  // ---------------------------------------------------------------------------------------
+
+  const LAST_PRESET_KEY = 'at-peace-last-preset';
+
+  /** Remembered in this browser's page storage, which every extension page shares. A convenience only. */
+  const lastPreset = {
+    get() {
+      try {
+        return localStorage.getItem(LAST_PRESET_KEY) || null;
+      } catch {
+        return null;
+      }
+    },
+    set(id) {
+      try {
+        if (id) localStorage.setItem(LAST_PRESET_KEY, id);
+        else localStorage.removeItem(LAST_PRESET_KEY);
+      } catch {
+        /* the offer simply does not appear */
+      }
+    },
+  };
+
+  // ---------------------------------------------------------------------------------------
+  // Opening the settings page
+  // ---------------------------------------------------------------------------------------
+
+  /**
+   * Opens the settings page, at one row (`{ setting: id }`) or one section (`{ section: id }`). A
+   * settings tab that is already open is reused: its address gets the new #hash, which the page
+   * follows, and the tab and its window come forward. Without a target it is runtime.openOptionsPage().
+   * @param {{ setting?: string, section?: string }} [target]
+   */
+  async function openSettings(target = {}) {
+    const hash = target.setting ? `#setting=${encodeURIComponent(target.setting)}` : target.section ? `#section=${encodeURIComponent(target.section)}` : '';
+    if (hash === '') {
+      await AP.api.runtime.openOptionsPage();
+      return;
+    }
+    const base = AP.api.runtime.getURL(AP.api.runtime.getManifest().options_ui?.page ?? 'src/pages/options/options.html');
+    try {
+      const open = (await AP.api.tabs.query({})).find((tab) => typeof tab.url === 'string' && tab.url.split('#')[0] === base);
+      if (open) {
+        await AP.api.tabs.update(open.id, { url: base + hash, active: true });
+        await AP.api.windows?.update?.(open.windowId, { focused: true });
+      } else {
+        await AP.api.tabs.create({ url: base + hash });
+      }
+    } catch (err) {
+      AP.warn('could not open the settings at a row; opening them plainly', err);
+      await AP.api.runtime.openOptionsPage();
+    }
+  }
+
+  Object.assign(ui, { h, dial, applyTheme, watchTheme, toast, openDialog, confirm, prompt, settingControl, controlKind, hostAccessBanner, loadShortcuts, SHORTCUTS_HELP, openSettings, lastPreset });
 })();

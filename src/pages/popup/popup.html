@@ -14,8 +14,10 @@
     <h1 class="wordmark"><span class="glyph" aria-hidden="true"></span>At Peace</h1>
     <div class="master" id="master"></div>
   </header>
+  <div class="tabs" id="tabs" role="tablist" aria-label="Settings"></div>
   <div id="banner"></div>
-  <main id="content" aria-busy="true"></main>
+  <main class="body" id="body"><div id="content" role="tabpanel" aria-busy="true"></div></main>
+  <div class="sheet" id="sheet" hidden></div>
   <footer class="foot" id="foot"></footer>
 
   <!-- Shared classic scripts, in the same order as the YouTube content script (manifest.json). -->
@@ -47,6 +49,8 @@
   <script src="../common/logic.js"></script>
   <script src="../common/components.js"></script>
   <script src="../common/lock-ui.js"></script>
+  <!-- The page types, to tell which kind of YouTube page the active tab is on. -->
+  <script src="../../sites/youtube/page.js"></script>
   <script type="module" src="popup.js"></script>
 </body>
 </html>

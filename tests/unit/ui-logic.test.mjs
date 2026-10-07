@@ -87,16 +87,22 @@ describe('rows', () => {
     values['pause.enabled'] = true;
     assert.equal(ui.requiresState(AP.schema.get('pause.breathSeconds'), values).enabled, true);
 
-    // pause.escalateStep -> pause.escalate -> pause.enabled
-    const step = AP.schema.get('pause.escalateStep');
-    assert.equal(ui.requiresState(step, values).enabled, false);
-    assert.equal(ui.requiresState(step, values).needs.id, 'pause.escalate');
-    values['pause.escalate'] = true;
-    assert.equal(ui.requiresState(step, values).enabled, true);
-    values['pause.enabled'] = false; // the root is off again: still not usable, and the hint names the root
-    const blocked = ui.requiresState(step, values);
+    // a chain: leaf -> mid -> root (the shipped settings only go one step deep since the breath escalation was removed)
+    AP.schema.define('yt.chain', [
+      { id: 'yt.chain.root', label: 'Root', type: 'toggle', default: false, feature: 'x' },
+      { id: 'yt.chain.mid', label: 'Mid', type: 'toggle', default: false, requires: 'yt.chain.root', feature: 'x' },
+      { id: 'yt.chain.leaf', label: 'Leaf', type: 'number', default: 1, min: 1, max: 9, requires: 'yt.chain.mid', feature: 'x' },
+    ]);
+    const step = AP.schema.get('yt.chain.leaf');
+    const chain = { 'yt.chain.root': true, 'yt.chain.mid': false };
+    assert.equal(ui.requiresState(step, chain).enabled, false);
+    assert.equal(ui.requiresState(step, chain).needs.id, 'yt.chain.mid');
+    chain['yt.chain.mid'] = true;
+    assert.equal(ui.requiresState(step, chain).enabled, true);
+    chain['yt.chain.root'] = false; // the root is off again: still not usable, and the hint names the root
+    const blocked = ui.requiresState(step, chain);
     assert.equal(blocked.enabled, false);
-    assert.equal(blocked.needs.id, 'pause.enabled');
+    assert.equal(blocked.needs.id, 'yt.chain.root');
 
     assert.deepEqual(ui.requiresState(AP.schema.get('pause.enabled'), values), { enabled: true, needs: null });
   });
@@ -136,17 +142,6 @@ describe('rows', () => {
     assert.match(ui.requiresHint({ type: 'select', label: 'When I open YouTube' }), /change “When I open YouTube”/);
     assert.match(ui.requiresHint({ type: 'number', label: 'Daily limit' }), /“Daily limit” is set/);
     assert.equal(ui.requiresHint(null), '');
-  });
-
-  test('quickSettings: quick ones in section order, never the master switch', () => {
-    AP.schema.define('yt.fixture', [
-      { id: 'yt.fixture.quickB', label: 'B', type: 'toggle', default: false, quick: true, feature: 'x' },
-      { id: 'yt.fixture.quickA', label: 'A', type: 'toggle', default: false, quick: true, feature: 'x' },
-    ]);
-    const ids = ui.quickSettings().map((d) => d.id);
-    assert.ok(!ids.includes('general.enabled'));
-    // the YouTube section (order 200) comes before Mindful Pause (900); within a section, registration order
-    assert.deepEqual(ids, ['yt.fixture.quickB', 'yt.fixture.quickA', 'pause.enabled']);
   });
 
   test('isStringList tells word lists from object lists and multi-selects', () => {
@@ -376,5 +371,49 @@ describe('ending a focus block', () => {
     assert.equal(ui.phraseMatches('I am choosing to end my focus'), false);
     assert.equal(ui.phraseMatches(''), false);
     assert.equal(ui.phraseMatches('...'), false);
+  });
+});
+
+describe('keyboard shortcuts', () => {
+  test('on a Mac: modifier glyphs in macOS order (⌃⌥⇧⌘), then the key', () => {
+    assert.equal(ui.formatShortcut('Alt+Shift+P', 'mac'), '⌥⇧P');
+    assert.equal(ui.formatShortcut('Shift+Alt+h', 'mac'), '⌥⇧H', 'order and case are normalised');
+    assert.equal(ui.formatShortcut('MacCtrl+Alt+Shift+F', 'mac'), '⌃⌥⇧F');
+    assert.equal(ui.formatShortcut('Ctrl+Shift+Y', 'mac'), '⇧⌘Y', 'Ctrl in a manifest is the Command key on a Mac');
+    assert.equal(ui.formatShortcut('Command+Alt+Comma', 'mac'), '⌥⌘,');
+    assert.equal(ui.formatShortcut('Alt+Up', 'mac'), '⌥↑');
+    assert.equal(ui.formatShortcut('F7', 'mac'), 'F7', 'a key without a modifier stays as it is');
+  });
+
+  test('elsewhere: words joined with plus signs, Ctrl Alt Shift in that order', () => {
+    for (const os of ['win', 'linux', 'cros', 'android', undefined, 'other']) {
+      assert.equal(ui.formatShortcut('Alt+Shift+P', os), 'Alt+Shift+P');
+    }
+    assert.equal(ui.formatShortcut('Shift+Ctrl+Alt+k', 'linux'), 'Ctrl+Alt+Shift+K');
+    assert.equal(ui.formatShortcut('Ctrl+Period', 'win'), 'Ctrl+.');
+    assert.equal(ui.formatShortcut('Alt+Up', 'win'), 'Alt+Up');
+  });
+
+  test('a shortcut already written with Mac glyphs is left alone; nothing in, nothing out', () => {
+    assert.equal(ui.formatShortcut('⌥⇧P', 'mac'), '⌥⇧P');
+    assert.equal(ui.formatShortcut('⌥⇧P', 'win'), '⌥⇧P');
+    for (const empty of ['', '  ', null, undefined, 42, {}]) {
+      assert.equal(ui.formatShortcut(empty, 'mac'), '');
+      assert.equal(ui.formatShortcut(empty, 'win'), '');
+      assert.deepEqual(ui.shortcutKeys(empty, 'mac'), []);
+    }
+  });
+
+  test('shortcutKeys gives one entry per key, for the welcome page\'s key caps', () => {
+    assert.deepEqual(ui.shortcutKeys('Alt+Shift+P', 'mac'), ['⌥', '⇧', 'P']);
+    assert.deepEqual(ui.shortcutKeys('Alt+Shift+P', 'win'), ['Alt', 'Shift', 'P']);
+    assert.deepEqual(ui.shortcutKeys('⌥⇧P', 'mac'), ['⌥', '⇧', 'P']);
+  });
+
+  test('the manifest suggests Option+Shift on a Mac for every command', async () => {
+    const { readFileSync } = await import('node:fs');
+    const manifest = JSON.parse(readFileSync(new URL('../../manifest.json', import.meta.url), 'utf8'));
+    const shown = Object.fromEntries(Object.entries(manifest.commands).map(([name, c]) => [name, ui.formatShortcut(c.suggested_key.mac, 'mac')]));
+    assert.deepEqual(shown, { 'toggle-enabled': '⌥⇧P', 'focus-25': '⌥⇧F', 'open-picker': '⌥⇧H' });
   });
 });

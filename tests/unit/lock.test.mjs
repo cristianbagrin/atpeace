@@ -39,7 +39,6 @@ describe('isLoosening: toggles', () => {
     assert.equal(loosens('pause.enabled', true, false), true);
     assert.equal(loosens('pause.enabled', false, true), false);
     assert.equal(loosens('focus.strict', true, false), true);
-    assert.equal(loosens('pause.expiryOverlay', true, false), true);
   });
 
   test('purely cosmetic toggles are always allowed', () => {
@@ -106,8 +105,6 @@ describe('isLoosening: numbers', () => {
   test('a shorter breath loosens, a longer one does not', () => {
     assert.equal(loosens('pause.breathSeconds', 6, 3), true);
     assert.equal(loosens('pause.breathSeconds', 6, 12), false);
-    assert.equal(loosens('pause.escalateStep', 4, 2), true);
-    assert.equal(loosens('pause.escalateStep', 2, 4), false);
   });
 
   test('daily limit: lowering it tightens; raising it or turning it off loosens; setting one from "off" tightens', () => {
@@ -133,11 +130,9 @@ describe('isLoosening: numbers', () => {
 });
 
 describe('isLoosening: text', () => {
-  test('any change to a text setting loosens (a redirect target and custom CSS have no direction)', () => {
+  test('any change to a text setting loosens (a redirect target has no direction)', () => {
     assert.equal(loosens('yt.home.redirectUrl', '', '/playlist?list=WL'), true);
     assert.equal(loosens('yt.home.redirectUrl', '/a', ''), true);
-    assert.equal(loosens('advanced.customCss', 'a{}', 'a{}'), false);
-    assert.equal(loosens('advanced.customCss', 'a{}', 'b{}'), true);
   });
 });
 

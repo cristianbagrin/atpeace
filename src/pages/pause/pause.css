@@ -68,17 +68,6 @@ body[data-state="invalid"] .invalid {
 
 /* ------------------------------------------------------------------ the choice */
 
-.intention {
-  display: grid;
-  gap: 8px;
-  margin-top: 28px;
-}
-
-.intention label {
-  color: var(--ix-text-2);
-  font-size: 13px;
-}
-
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -94,6 +83,13 @@ body[data-state="invalid"] .invalid {
 
 .split.is-disabled {
   opacity: 0.5;
+}
+
+/* ------------------------------------------------------------------ footer */
+
+/* Only the Esc hint, bottom right (the footer is a flex row that spreads its children apart). */
+.foot-hint {
+  margin-left: auto;
 }
 
 /* ------------------------------------------------------------------ reduced motion */

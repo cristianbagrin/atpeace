@@ -139,19 +139,60 @@
   /** A list of plain strings (word list), as opposed to objects or a multi-select. */
   const isStringList = (def) => def.type === 'list' && !def.options && typeof def.item !== 'function';
 
+  // ---------------------------------------------------------------------------------------
+  // Keyboard shortcuts
+  // ---------------------------------------------------------------------------------------
+
+  /** The Mac modifier glyphs, in the order macOS writes them: ⌃ ⌥ ⇧ ⌘. */
+  const MAC_MODIFIERS = Object.freeze([
+    { glyph: '⌃', names: ['macctrl', 'control'] },
+    { glyph: '⌥', names: ['alt', 'option'] },
+    { glyph: '⇧', names: ['shift'] },
+    // In a manifest "Ctrl" is the Command key on a Mac (Firefox and Chrome alike).
+    { glyph: '⌘', names: ['command', 'cmd', 'ctrl'] },
+  ]);
+  /** Elsewhere: Ctrl, Alt, Shift. */
+  const PLAIN_MODIFIERS = Object.freeze([
+    { label: 'Ctrl', names: ['ctrl', 'control', 'command', 'cmd', 'macctrl'] },
+    { label: 'Alt', names: ['alt', 'option'] },
+    { label: 'Shift', names: ['shift'] },
+  ]);
+  const KEY_NAMES = Object.freeze({ comma: ',', period: '.' });
+  const MAC_KEY_NAMES = Object.freeze({ up: '↑', down: '↓', left: '←', right: '→' });
+  const MAC_GLYPH_RE = /[⌃⌥⇧⌘]/;
+
   /**
-   * Settings the popup offers as quick toggles: `quick: true` minus the master switch (it has its
-   * own place), ordered by section and then by registration order.
-   * @returns {import('../../shared/schema-core.js').SettingDef[]}
+   * The parts of a shortcut as the person should read them: on a Mac the modifier glyphs in macOS
+   * order and then the key (["⌥", "⇧", "P"]); elsewhere the words (["Alt", "Shift", "P"]). A shortcut
+   * already written with Mac glyphs is split as it is. Empty or unusable input gives [].
+   * @param {unknown} shortcut a manifest / commands.getAll() string such as "Alt+Shift+P"
+   * @param {string} [os] runtime.getPlatformInfo().os; only 'mac' changes anything
+   * @returns {string[]}
    */
-  function quickSettings() {
-    const order = new Map(AP.schema.sections().map((s, i) => [s.id, i]));
-    return AP.schema
-      .all()
-      .map((def, index) => ({ def, index }))
-      .filter(({ def }) => def.quick === true && def.id !== AP.schema.MASTER_ID)
-      .sort((a, b) => (order.get(a.def.section) ?? 999) - (order.get(b.def.section) ?? 999) || a.index - b.index)
-      .map(({ def }) => def);
+  function shortcutKeys(shortcut, os) {
+    const text = typeof shortcut === 'string' ? shortcut.trim() : '';
+    if (text === '') return [];
+    const mac = os === 'mac';
+    if (MAC_GLYPH_RE.test(text) && !text.includes('+')) return [...text];
+    const parts = text.split('+').map((p) => p.trim()).filter(Boolean);
+    if (parts.length === 0) return [];
+    const key = parts.at(-1);
+    const mods = parts.slice(0, -1).map((m) => m.toLowerCase());
+    const keyText = KEY_NAMES[key.toLowerCase()] ?? (mac ? MAC_KEY_NAMES[key.toLowerCase()] : undefined) ?? (key.length === 1 ? key.toUpperCase() : key);
+    if (mac) return [...MAC_MODIFIERS.filter((m) => m.names.some((n) => mods.includes(n))).map((m) => m.glyph), keyText];
+    return [...PLAIN_MODIFIERS.filter((m) => m.names.some((n) => mods.includes(n))).map((m) => m.label), keyText];
+  }
+
+  /**
+   * A shortcut for display: "⌥⇧P" on a Mac, "Alt+Shift+P" elsewhere.
+   * @param {unknown} shortcut
+   * @param {string} [os] runtime.getPlatformInfo().os
+   * @returns {string}
+   */
+  function formatShortcut(shortcut, os) {
+    const text = typeof shortcut === 'string' ? shortcut.trim() : '';
+    if (MAC_GLYPH_RE.test(text) && !text.includes('+')) return text; // already written the Mac way
+    return shortcutKeys(shortcut, os).join(os === 'mac' ? '' : '+');
   }
 
   // ---------------------------------------------------------------------------------------
@@ -191,6 +232,98 @@
     if (tokens.length === 0) return true;
     const text = haystack(def, section);
     return tokens.every((token) => text.includes(token));
+  }
+
+  // ---------------------------------------------------------------------------------------
+  // The popup: what to show for the page in the active tab, and how to search it
+  // ---------------------------------------------------------------------------------------
+
+  /** Hosts At Peace works on (the same as AP.yt.page.detect knows). */
+  const YOUTUBE_HOSTS = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com']);
+
+  /**
+   * Is this tab on YouTube, and which kind of page is it? `page` is an AP.yt.page.TYPES value
+   * ('watch', 'home'…) or null off YouTube. An unreadable or missing address counts as off YouTube.
+   * @param {unknown} url
+   * @returns {{ onYouTube: boolean, page: string|null }}
+   */
+  function youTubeTab(url) {
+    let host;
+    try {
+      host = new URL(String(url)).hostname;
+    } catch {
+      return { onYouTube: false, page: null };
+    }
+    if (!YOUTUBE_HOSTS.has(host)) return { onYouTube: false, page: null };
+    return { onYouTube: true, page: AP.yt?.page?.detect?.(String(url)) ?? 'other' };
+  }
+
+  /** Sections of the popup's "This page" tab, per page type: the page's own first, then what applies on it. */
+  const PAGE_SECTIONS = Object.freeze({
+    watch: ['yt.watch', 'yt.player', 'yt.comments', 'yt.general'],
+    home: ['yt.home', 'yt.general', 'yt.masthead', 'yt.guide'],
+    search: ['yt.search', 'yt.general', 'yt.masthead'],
+    shorts: ['yt.shorts', 'yt.comments'],
+    channel: ['yt.channel', 'yt.general'],
+    subscriptions: ['yt.subs', 'yt.general'],
+  });
+  /** Playlists, history, hashtags, "You" and anything else. */
+  const OTHER_PAGE_SECTIONS = Object.freeze(['yt.general', 'yt.masthead', 'yt.guide']);
+
+  /**
+   * The YouTube sections that matter on a page type, in the order the popup shows them. Ids the
+   * registry does not hold (a section that was renamed or removed) are left out.
+   * @param {string|null|undefined} page an AP.yt.page.TYPES value
+   * @param {{ id: string }[]} [sections] defaults to the registry's sections that have settings
+   * @returns {{ id: string }[]}
+   */
+  function pageSections(page, sections = AP.schema.sections().filter((s) => AP.schema.bySection(s.id).length > 0)) {
+    const wanted = PAGE_SECTIONS[page] ?? OTHER_PAGE_SECTIONS;
+    return wanted.map((id) => sections.find((s) => s.id === id)).filter(Boolean);
+  }
+
+  /** Does the popup edit this setting in the row itself (a switch, a choice, a number)? Everything else opens the settings page. */
+  const isInlineSetting = (def) => def.type === 'toggle' || def.type === 'select' || def.type === 'number';
+
+  /** Settings of a section grouped by `group`, in order of first appearance: `[{ name, defs }]`. */
+  function clusterGroups(defs) {
+    const groups = new Map();
+    for (const def of defs) {
+      const name = def.group ?? '';
+      if (!groups.has(name)) groups.set(name, []);
+      groups.get(name).push(def);
+    }
+    return [...groups].map(([name, list]) => ({ name, defs: list }));
+  }
+
+  /**
+   * Does a setting match what was typed in the popup's search? Every word has to appear in its label,
+   * its group's name or its section's title (the headings the person sees); an empty query matches all.
+   * @param {import('../../shared/schema-core.js').SettingDef} def
+   * @param {string} query
+   * @param {{ title?: string }} [section]
+   */
+  function popupMatches(def, query, section) {
+    const tokens = queryTokens(query);
+    if (tokens.length === 0) return true;
+    const text = fold([def.label, def.group, section?.title].filter(Boolean).join(' '));
+    return tokens.every((token) => text.includes(token));
+  }
+
+  /**
+   * The settings of each section that match a search, for the popup's All tab: sections with no
+   * match are left out. `showAdvanced` false hides advanced settings unless a search is on (a
+   * search finds everything).
+   * @param {{ section: { id: string, title: string }, defs: object[] }[]} groups
+   * @param {string} query
+   * @param {{ showAdvanced?: boolean }} [options]
+   * @returns {{ section: object, defs: object[] }[]}
+   */
+  function filterPopupGroups(groups, query, { showAdvanced = false } = {}) {
+    const searching = queryTokens(query).length > 0;
+    return groups
+      .map(({ section, defs }) => ({ section, defs: defs.filter((def) => (searching ? popupMatches(def, query, section) : showAdvanced || !def.advanced)) }))
+      .filter(({ defs }) => defs.length > 0);
   }
 
   // ---------------------------------------------------------------------------------------
@@ -283,6 +416,21 @@
       if (same) return preset.id;
     }
     return null;
+  }
+
+  /**
+   * The custom preset to offer "Update" for: the one applied or saved last (`lastId`) while the
+   * settings have since been changed so that they match no preset at all. Null otherwise.
+   * @param {Record<string, any>} values effective values
+   * @param {{ id: string, values: Record<string, any> }[]} builtIn
+   * @param {{ id: string, values: Record<string, any> }[]} custom
+   * @param {string|null} lastId
+   * @returns {{ id: string, name: string }|null}
+   */
+  function presetToUpdate(values, builtIn, custom, lastId) {
+    const preset = lastId ? custom.find((p) => p.id === lastId) : undefined;
+    if (!preset) return null;
+    return matchingPresetId(values, [...builtIn, ...custom]) === null ? preset : null;
   }
 
   // ---------------------------------------------------------------------------------------
@@ -507,12 +655,19 @@
     formatDuration,
     formatClock,
     formatTimeOfDay,
+    shortcutKeys,
+    formatShortcut,
     bulkState,
     bulkPatch,
     requiresState,
     requiresHint,
     isStringList,
-    quickSettings,
+    youTubeTab,
+    pageSections,
+    isInlineSetting,
+    clusterGroups,
+    popupMatches,
+    filterPopupGroups,
     fold,
     queryTokens,
     matchesQuery,
@@ -520,6 +675,7 @@
     parseLines,
     numberCheck,
     matchingPresetId,
+    presetToUpdate,
     weekStats,
     statusFromStorage,
     formatImportReport,
