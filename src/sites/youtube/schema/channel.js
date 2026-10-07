@@ -21,6 +21,10 @@
   // The Home tab is the first tab, and it is the selected one. Only then are the item sections
   // below shelves of the Home tab (on Posts / Playlists the same component holds the content).
   const ON_HOME_TAB = `${CHANNEL}:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"])`;
+  const HEADER_META = `${CHANNEL} .ytPageHeaderViewModelContentMetadata`;
+  const DELIM = '.ytContentMetadataViewModelDelimiter';
+  const TEXT = '.ytContentMetadataViewModelMetadataText';
+  const SUBS = `${TEXT}:has(+ ${DELIM} + ${TEXT}:nth-last-child(1 of ${TEXT}))`;
   const HOME_SHELF = ':is(ytd-shelf-renderer, ytd-channel-video-player-renderer, ytd-reel-shelf-renderer, grid-shelf-view-model)';
 
   AP.schema.define('yt.channel', [
@@ -85,10 +89,11 @@
       default: false,
       tags: ['metrics'],
       page: 'channel',
-      // The header row that has a bullet is "subscribers • videos"; the first text is the subscriber count.
+      // The header reads "@handle • 519M subscribers • 1K videos" (the handle may be a row of its own). The
+      // subscriber count is the part right before "delimiter + last part"; the handle never is, wherever it sits.
       hide: [
-        `${CHANNEL} .ytPageHeaderViewModelContentMetadata .ytContentMetadataViewModelMetadataRow:has(> .ytContentMetadataViewModelDelimiter) > :nth-child(1 of .ytContentMetadataViewModelMetadataText)`,
-        `${CHANNEL} .ytPageHeaderViewModelContentMetadata .ytContentMetadataViewModelMetadataRow:has(> .ytContentMetadataViewModelDelimiter) > .ytContentMetadataViewModelDelimiter`,
+        `${HEADER_META} ${SUBS}`,
+        `${HEADER_META} ${SUBS} + ${DELIM}`,
       ],
       since: '0.1.0',
     },

@@ -27,9 +27,9 @@ function buildGroup(ctx, { id, title, counted, defs, extra = [] }, { open, onTog
   const el = h('section', { class: 'grp', dataset: { section: id } }, head, panel);
 
   /** @type {{ def: object, el: HTMLElement }[]} */
-  let rows = [];
+  const rows = [];
   /** [{ head: HTMLElement|null, rows: HTMLElement[] }] for hiding a sub-heading whose rows are all hidden. */
-  let clusters = [];
+  const clusters = [];
   let built = false;
   let isOpen = open;
   /** A search is on: every group with a match is shown open. */

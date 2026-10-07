@@ -444,7 +444,7 @@ test('Channel pages: the banner and the subscriber count go; the name, the tabs 
   await hides(
     'subscriber count',
     { 'yt.channel.hideSubscriberCount': true },
-    [`${channel} .ytPageHeaderViewModelContentMetadata .ytContentMetadataViewModelMetadataRow:has(> .ytContentMetadataViewModelDelimiter) > :nth-child(1 of .ytContentMetadataViewModelMetadataText)`],
+    [`${channel} .ytPageHeaderViewModelContentMetadata .ytContentMetadataViewModelMetadataText:has(+ .ytContentMetadataViewModelDelimiter + .ytContentMetadataViewModelMetadataText:nth-last-child(1 of .ytContentMetadataViewModelMetadataText))`],
     [`${channel} .ytPageHeaderViewModelContentMetadata`, `${channel} h1`, `${channel} ytd-rich-item-renderer`],
   );
 });

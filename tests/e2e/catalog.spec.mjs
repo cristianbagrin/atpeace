@@ -597,7 +597,7 @@ group('channel: trailer, banner, header counts and Home rows hide; other tabs ar
   await expectShown('channel name stays', [`${channel} h1`]);
 
   await apply({ 'yt.channel.hideSubscriberCount': true });
-  await expectHidden('subscriber count', [`${channel} .ytPageHeaderViewModelContentMetadata .ytContentMetadataViewModelMetadataRow:has(> .ytContentMetadataViewModelDelimiter) > :nth-child(1 of .ytContentMetadataViewModelMetadataText)`]);
+  await expectHidden('subscriber count', [`${channel} .ytPageHeaderViewModelContentMetadata .ytContentMetadataViewModelMetadataText:has(+ .ytContentMetadataViewModelDelimiter + .ytContentMetadataViewModelMetadataText:nth-last-child(1 of .ytContentMetadataViewModelMetadataText))`]);
   await expectShown('handle stays', [`${channel} .ytPageHeaderViewModelContentMetadata`]);
 
   const primary = `${channel} #primary`;
