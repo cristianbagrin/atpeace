@@ -1,4 +1,4 @@
-// Pure logic of the Phase 3b YouTube features: calm titles, filter matching, the redirect interceptor's
+// Pure logic of the Phase 3b YouTube features: filter matching, the redirect interceptor's
 // loop guard, the decision functions of autoplay / theater / speed / still-watching / search / hover,
 // the feature registry (every setting a feature names exists), and the MAIN-world bridge (tag mapping
 // and the nonce protocol between page-bridge.js and bridge-client.js, run in a vm).
@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import { loadAtPeace, installFakeBrowser, uninstallFakeBrowser, CORE_SCRIPTS, SCHEMA_SCRIPTS, ROOT } from './_load.mjs';
 
 const FEATURE_FILES = [
-  'bridge-tags', 'home-feed', 'shorts', 'autoplay', 'theater', 'speed', 'still-watching', 'channel-tab', 'filters', 'calm-titles', 'thumbnails-hover', 'search-suggestions', 'layout-nudge',
+  'bridge-tags', 'home-feed', 'shorts', 'autoplay', 'theater', 'speed', 'still-watching', 'channel-tab', 'filters', 'thumbnails-hover', 'search-suggestions', 'layout-nudge',
 ].map((f) => `src/sites/youtube/features/${f}.js`);
 
 let AP;
@@ -28,49 +28,6 @@ before(async () => {
   ]);
 });
 after(() => uninstallFakeBrowser());
-
-describe('calmCase', () => {
-  const table = [
-    // shouting words go to sentence case, the rest is untouched
-    ['I TRIED THE WORLD\'S HOTTEST CHILI', "I tried the world's hottest chili"],
-    ['BREAKING NEWS ABOUT NASA', 'Breaking news about NASA'],
-    ['Why this is the BEST laptop EVER made', 'Why this is the best laptop ever made'],
-    ['NASA launches a NEW rocket', 'NASA launches a new rocket'],
-    ['I\'M SO DONE WITH THIS', "I'm so done with this"],
-    ['WE\'LL SEE. IT\'S OVER! REALLY?', "We'll see. It's over! Really?"],
-    ['TOP 10 GAMES OF 2026 | FULL LIST', 'Top 10 games of 2026 | full list'],
-    // allowlisted acronyms and digits are kept
-    ['The USA vs UK: NBA FINALS RECAP', 'The USA vs UK: NBA finals recap'],
-    ['4K HDR TEST: PS5 VS XBOX', '4K HDR test: PS5 vs xbox'],
-    ['AI TAKES OVER THE WORLD', 'AI takes over the world'],
-    ['DIY PC BUILD FOR TV', 'DIY PC build for TV'],
-    // short capitals (acronyms) survive in a normal title, but not in an all-caps one
-    ['Interview with ABC and the MIT team', 'Interview with ABC and the MIT team'],
-    ['WHY YOU SHOULD NEVER BUY IT', 'Why you should never buy it'],
-    // nothing to do
-    ['A perfectly calm title', 'A perfectly calm title'],
-    ['', ''],
-    ['日本語のタイトル ひらがな', '日本語のタイトル ひらがな'],
-    ['😱 OMG 😱', '😱 Omg 😱'],
-    ['Émile ZOLA ÉCRIT', 'Émile zola écrit'],
-    ['ÉCOLE DES SCIENCES', 'École des sciences'],
-    ['A B C', 'A B C'],
-    ['OK?', 'OK?'],
-    ['Mr. BEAST vs. THE WORLD', 'Mr. Beast vs. The world'], // a period after an abbreviation starts a "sentence": a known, harmless limit
-    ['ANTI-WAR SONG', 'Anti-war song'],
-  ];
-  for (const [input, expected] of table) {
-    test(JSON.stringify(input), () => assert.equal(AP.yt.calmTitles.calmCase(input), expected));
-  }
-
-  test('never changes the length (the page text is patched node by node)', () => {
-    for (const [input] of table) assert.equal(AP.yt.calmTitles.calmCase(input).length, input.length, input);
-  });
-  test('non-strings pass through', () => {
-    assert.equal(AP.yt.calmTitles.calmCase(undefined), undefined);
-    assert.equal(AP.yt.calmTitles.calmCase(null), null);
-  });
-});
 
 describe('filters: keyword matching', () => {
   const F = () => AP.yt.filters;
@@ -339,7 +296,7 @@ function loadBridge({ player, onTimeout } = {}) {
     querySelectorAll: () => [],
     getElementsByTagName: () => [],
   };
-  const context = vm.createContext({ window: win, location: win.location, document: doc, setTimeout: onTimeout ?? setTimeout, clearTimeout, console, URL, Date, Object, Array, Number, String, JSON });
+  const context = vm.createContext({ window: win, location: win.location, document: doc, setTimeout: onTimeout ?? setTimeout, clearTimeout, console, URL, URLSearchParams, Date, Object, Array, Number, String, JSON });
   vm.runInContext(BRIDGE_SOURCE, context);
   return { win, attrs, posted, exports: win.__atPeaceBridgeTest.exports, send: (data, source = win) => listeners.filter(([t]) => t === 'message').forEach(([, fn]) => fn({ source, data })) };
 }
@@ -469,6 +426,95 @@ describe('page bridge: tag mapping (data shapes observed live, 2026-10-04)', () 
     assert.equal(b.actionName({ buttonViewModel: { iconName: 'UNKNOWN_ICON', title: 'Share' } }), null, 'text is never used');
     assert.equal(b.actionName({ buttonViewModel: { targetId: 'watch-metadata-share' } }), 'share');
     assert.equal(b.actionName(null), null);
+  });
+});
+
+describe('page bridge: channel Home rows and header buttons (Phase 7b; data captured live 2026-10-05)', () => {
+  // tests/fixtures/youtube/channel-shelves.json: for six channels (MrBeast, Linus Tech Tips, Lofi Girl, NASA, TED,
+  // PewDiePie) the data of every row of the Home tab as `ytd-shelf-renderer.data` / `ytd-reel-shelf-renderer.data`
+  // holds it (endpoint, kind and type of the first items, badges; titles and texts removed on purpose: the
+  // classification must never need them) and of the header buttons.
+  const fixture = JSON.parse(readFileSync(join(ROOT, 'tests/fixtures/youtube/channel-shelves.json'), 'utf8'));
+  let b;
+  before(() => {
+    b = loadBridge().exports;
+  });
+  /** What a person reading each channel's page sees, row by row (null = a row the bridge leaves alone). */
+  const EXPECTED = {
+    MrBeast: [null, 'series', 'popular', 'channels', 'posts'], // featured video · New Uploads · Popular videos · a custom row of channels · Posts
+    LinusTechTips: [null, 'videos', 'series', 'popular', 'channels', 'series', 'series', 'members', 'playlists', 'shorts', 'posts', null],
+    LofiGirl: [null, 'live', 'series', 'series', 'series', 'channels'],
+    NASA: [null, 'live', 'series', 'series', 'videos', 'series', 'channels', null],
+    TED: ['series', 'series', 'series', 'series', 'series', 'playlists', 'videos', 'popular', 'shorts', 'channels'],
+    PewDiePie: [null, 'videos', 'series', 'series', 'playlists', 'channels', 'posts'],
+  };
+
+  for (const [channel, expected] of Object.entries(EXPECTED)) {
+    test(`${channel}: every row gets the type its own data says`, () => {
+      const rows = fixture[channel].shelves;
+      assert.equal(rows.length, expected.length, 'the fixture has the rows listed here');
+      assert.deepEqual(rows.map((r) => b.shelfType(r.tag, r.data)), expected);
+    });
+  }
+
+  test('the members-only row is found by its playlist (UUM…) or by the star badge, the live row by live_view / UULV / a live badge', () => {
+    const lockups = (...badges) => [{ lockupViewModel: { contentType: 'LOCKUP_CONTENT_TYPE_VIDEO', contentImage: { thumbnailViewModel: { overlays: [{ thumbnailBottomOverlayViewModel: { badges } }] } } } }];
+    const row = (url, items = lockups()) => ({ endpoint: { commandMetadata: { webCommandMetadata: { url } } }, content: { horizontalListRenderer: { items } } });
+    assert.equal(b.shelfType('ytd-shelf-renderer', row('/playlist?list=UUMOabcdefghijklmnopqrstu')), 'members');
+    assert.equal(b.shelfType('ytd-shelf-renderer', { ...row('/playlist?list=PLxyz'), endpoint: { browseEndpoint: { browseId: 'VLUUMFabc' } } }), 'members');
+    assert.equal(b.shelfType('ytd-shelf-renderer', row('/playlist?list=PLxyz', lockups({ thumbnailBadgeViewModel: { icon: { sources: [{ clientResource: { imageName: 'SPONSORSHIP_STAR' } }] } } }))), 'members');
+    assert.equal(b.shelfType('ytd-shelf-renderer', row('/@x/videos?view=2&sort=dd&live_view=502')), 'live');
+    assert.equal(b.shelfType('ytd-shelf-renderer', row('/playlist?list=UULVabcdefghijklmnopqrstu')), 'live');
+    assert.equal(b.shelfType('ytd-shelf-renderer', row('/playlist?list=PLxyz', lockups({ thumbnailBadgeViewModel: { badgeStyle: 'THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE' } }))), 'live');
+    assert.equal(b.shelfType('ytd-shelf-renderer', row('/@x/videos?view=0&sort=p')), 'popular');
+    assert.equal(b.shelfType('ytd-shelf-renderer', row('/@x/videos?view=0&sort=dd')), 'videos');
+    assert.equal(b.shelfType('ytd-shelf-renderer', row('/playlist?list=PLxyz')), 'series');
+  });
+
+  test('a Playlists row holds playlists and courses side by side (seen live on Linus Tech Tips): still one type', () => {
+    const items = ['LOCKUP_CONTENT_TYPE_PLAYLIST', 'LOCKUP_CONTENT_TYPE_COURSE', 'LOCKUP_CONTENT_TYPE_PLAYLIST'].map((contentType) => ({ lockupViewModel: { contentType } }));
+    assert.equal(b.shelfType('ytd-shelf-renderer', { endpoint: { commandMetadata: { webCommandMetadata: { url: '/@x/playlists?view=1&sort=dd&shelf_id=11' } } }, content: { horizontalListRenderer: { items } } }), 'playlists');
+  });
+
+  test('a row of unknown shape, a mixed row and junk are left alone (null), never guessed', () => {
+    assert.equal(b.shelfType('ytd-shelf-renderer', { content: { horizontalListRenderer: { items: [{ mysteryRenderer: {} }] } } }), null);
+    assert.equal(b.shelfType('ytd-shelf-renderer', { content: { horizontalListRenderer: { items: [] } } }), null);
+    const mixed = { content: { horizontalListRenderer: { items: [{ lockupViewModel: { contentType: 'LOCKUP_CONTENT_TYPE_SHORT' } }, { lockupViewModel: { contentType: 'LOCKUP_CONTENT_TYPE_VIDEO' } }] } } };
+    assert.equal(b.shelfType('ytd-shelf-renderer', mixed), null);
+    for (const junk of [null, undefined, 5, 'x', [], {}]) assert.equal(b.shelfType('ytd-shelf-renderer', junk), null);
+    assert.equal(b.shelfType('ytd-reel-shelf-renderer', {}), 'shorts', 'the reel shelf is a Shorts row whatever it holds');
+  });
+
+  test('no row title, text or other free text is read: the verdict is the same when every string in the data is scrambled', () => {
+    const scramble = (v) => (typeof v === 'string' ? (/^(\/|[A-Z_]+$|UU|VL|PL|[a-z]+Renderer|[a-z]+ViewModel|EgZ)/.test(v) ? v : 'zzz') : Array.isArray(v) ? v.map(scramble) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, scramble(x)])) : v);
+    for (const [channel, expected] of Object.entries(EXPECTED)) {
+      assert.deepEqual(fixture[channel].shelves.map((r) => b.shelfType(r.tag, scramble(r.data))), expected, channel);
+    }
+  });
+
+  test('header buttons: join / store / community by icon, id or endpoint kind; text is never used', () => {
+    const btn = (inner) => ({ buttonViewModel: { title: 'Whatever', accessibilityText: 'Whatever', ...inner } });
+    assert.equal(b.channelActionName(btn({ iconName: 'PEOPLE_GROUP', accessibilityId: 'eml.header_community_button' })), 'community');
+    assert.equal(b.channelActionName(btn({ accessibilityId: 'eml.header_join_button' })), 'join');
+    assert.equal(b.channelActionName(btn({ iconName: 'SPONSORSHIP_STAR' })), 'join');
+    assert.equal(b.channelActionName(btn({ onTap: { innertubeCommand: { clickTrackingParams: 'x', sponsorshipsPurchaseEndpoint: {} } } })), 'join');
+    assert.equal(b.channelActionName(btn({ onTap: { innertubeCommand: { commandMetadata: {}, modalEndpoint: { modal: { membershipOfferRenderer: {} } } } } })), 'join');
+    assert.equal(b.channelActionName(btn({ iconName: 'SHOPPING_BAG' })), 'store');
+    assert.equal(b.channelActionName({ subscribeButtonViewModel: {} }), 'subscribe');
+    assert.equal(b.channelActionName(null, 'subscribe-button-view-model'), 'subscribe');
+    assert.equal(b.channelActionName(btn({ title: 'Join', accessibilityText: 'Join this channel' })), null, 'the label alone says nothing');
+    assert.equal(b.channelActionName(null), null);
+    // The captured logged-out headers: Subscribe has no name of its own (the first button is taken for it), Lofi Girl's other button is Community.
+    const lofi = fixture.LofiGirl.actions.map((a) => b.channelActionName({ buttonViewModel: a.data }, a.tag));
+    assert.deepEqual(lofi, [null, 'community']);
+  });
+
+  test('channel tabs: Shows and Courses (seen live), and the membership URL names the Members tab', () => {
+    for (const [channel, names] of Object.entries({ MrBeast: ['home', 'videos', 'shorts', 'shows', 'posts', 'search'], TED: ['home', 'videos', 'shorts', 'streams', 'shows', 'podcasts', 'courses', 'playlists', 'posts', 'search'] })) {
+      assert.deepEqual(fixture[channel].tabs.map((t) => b.tabFromUrl(t.url)), names, channel);
+    }
+    assert.equal(b.tabFromUrl('https://www.youtube.com/@x/membership'), 'members');
+    assert.equal(b.tabFromUrl('/@x/releases'), 'releases');
   });
 });
 

@@ -14,7 +14,7 @@
   const { h } = ui;
   const T = AP.msg.TYPES;
 
-  const LOCKED_MESSAGE = 'Locked. Showing something again needs an unlock first.';
+  const LOCKED_MESSAGE = 'Locked.';
   let counter = 0;
 
   const send = async (type, payload) => {
@@ -62,7 +62,7 @@
       }
       unlockBtn.disabled = false;
       error.textContent =
-        res?.error === 'wrong-password' ? 'That is not the password.' : 'That did not work. Close this and try again in a moment.';
+        res?.error === 'wrong-password' ? 'Wrong password.' : 'Could not unlock. Try again.';
       error.hidden = false;
       onFail?.(res);
     };
@@ -84,7 +84,7 @@
       body = h(
         'div',
         { class: 'unlock' },
-        h('p', { class: 'unlock-lead', id: `${id}-lead` }, `Enter your password to change settings for the next ${minutesText()}.`),
+        h('p', { class: 'unlock-lead', id: `${id}-lead` }, 'Enter your password.'),
         h('div', { class: 'unlock-field' }, field),
         error,
       );
@@ -113,12 +113,12 @@
     const tick = () => {
       const left = Math.max(0, waitSeconds - Math.floor((Date.now() - startedAt) / 1000));
       if (left > 0) {
-        wait.textContent = `Take a breath. You can type it in ${left} s.`;
+        wait.textContent = `Wait ${left} s.`;
         return;
       }
       clearInterval(timer);
       timer = null;
-      wait.textContent = 'Now type the sentence above.';
+      wait.textContent = 'Now type it.';
       field.disabled = false;
       field.focus();
       unlockBtn.disabled = !matches();
@@ -141,7 +141,7 @@
     body = h(
       'div',
       { class: 'unlock' },
-      h('p', { class: 'unlock-lead' }, 'Showing something again is a choice. Take a moment, then type this:'),
+      h('p', { class: 'unlock-lead' }, 'Type this to unlock:'),
       h('p', { class: 'unlock-sentence', id: `${id}-sentence` }, sentence),
       wait,
       h('div', { class: 'unlock-field' }, field),
@@ -206,7 +206,7 @@
       el.hidden = false;
       el.dataset.state = current.locked ? 'locked' : 'open';
       if (current.locked) {
-        setText(message ?? 'Locked. Making YouTube quieter works as usual; showing anything again asks you to unlock first.');
+        setText(message ?? 'Locked.');
         button.textContent = 'Unlock…';
       } else {
         setText(`Unlocked until ${ui.formatTimeOfDay(current.unlockedUntil)}.`);
@@ -232,6 +232,10 @@
       },
       say(message) {
         render(message);
+        // A refused change snaps back; the bar blinks so it is clear why.
+        el.classList.remove('is-flash');
+        void el.offsetWidth;
+        el.classList.add('is-flash');
       },
       focusUnlock: () => button.focus(),
     };

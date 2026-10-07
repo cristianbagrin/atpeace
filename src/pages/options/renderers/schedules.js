@@ -120,7 +120,7 @@
           await ctx.save(draft.map(clean));
           globalError.hidden = true;
         } catch (err) {
-          globalError.textContent = String(err?.message ?? '') || 'That could not be saved.';
+          globalError.textContent = String(err?.message ?? '') || 'Could not save.';
           globalError.hidden = false;
         }
       };
@@ -228,7 +228,7 @@
         const focused = document.activeElement;
         const path = focused && root.contains(focused) ? focused.getAttribute('aria-label') : null;
         const children = draft.map(card);
-        if (draft.length === 0) children.push(h('p', { class: 'empty' }, 'No schedules yet. Add one to close a site at the same times every week.'));
+        if (draft.length === 0) children.push(h('p', { class: 'empty' }, 'No schedules yet.'));
         body.replaceChildren(...children);
         addButton.disabled = draft.length >= MAX_SCHEDULES;
         // Keep the keyboard where it was after a redraw.

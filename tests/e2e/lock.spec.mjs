@@ -26,7 +26,10 @@ after(async () => {
   await close();
 });
 beforeEach(async () => {
-  await evalInExtension(() => chrome.storage.local.clear());
+  await evalInExtension(() => {
+    localStorage.clear(); // the popup remembers its last tab and open groups
+    return chrome.storage.local.clear();
+  });
   await new Promise((resolve) => setTimeout(resolve, 150)); // let the background settle after the wipe
 });
 
@@ -44,7 +47,7 @@ const openOptions = async (opts) => {
   return page;
 };
 const openPopup = async (opts) => {
-  const page = await openPage(POPUP, { width: 360, height: 760, ...opts });
+  const page = await openPage(POPUP, { width: 380, height: 760, ...opts });
   await page.waitForSelector('#content:not([aria-busy])');
   return page;
 };
@@ -81,7 +84,7 @@ test('options: set a password lock, loosening is refused calmly, tightening is n
   await lockRow.locator('#lock-password').fill(PASSWORD);
   await lockRow.locator('#lock-password-again').fill('something else');
   await lockRow.getByRole('button', { name: 'Turn on the lock' }).click();
-  assert.match(await lockRow.locator('.field-error').textContent(), /not the same/);
+  assert.match(await lockRow.locator('.field-error').textContent(), /differ/);
   assert.equal((await stored())['advanced.lock'], undefined, 'nothing was saved');
   await lockRow.locator('#lock-password').fill('ab');
   await lockRow.locator('#lock-password-again').fill('ab');
@@ -96,7 +99,7 @@ test('options: set a password lock, loosening is refused calmly, tightening is n
   assert.deepEqual(Object.keys(lock).sort(), ['hash', 'iterations', 'mode', 'salt']);
   assert.ok(lock.iterations >= 200_000);
   assert.ok(!JSON.stringify(await getStorage()).includes(PASSWORD), 'the password is stored nowhere');
-  assert.match(await lockRow.locator('.lock-state').textContent(), /A password holds these settings/);
+  assert.match(await lockRow.locator('.lock-state').textContent(), /Locked with a password/);
 
   // the bar says it, and the new lock holds right away
   await lockBar(page).waitFor();
@@ -107,7 +110,7 @@ test('options: set a password lock, loosening is refused calmly, tightening is n
   await flip(page, HIDE_ADS);
   const note = row(page, HIDE_ADS).locator('.row-lock');
   await note.waitFor();
-  assert.match(await note.textContent(), /Locked\. Showing something again needs an unlock first\./);
+  assert.match(await note.textContent(), /^Locked\./);
   assert.equal(await switchOf(page, HIDE_ADS).isChecked(), true, 'the switch is back where it was');
   assert.equal((await stored())[HIDE_ADS], true, 'nothing changed in storage');
   assert.equal(await row(page, HIDE_ADS).locator('.row-error').isHidden(), true, 'not an error, a note');
@@ -122,12 +125,12 @@ test('options: set a password lock, loosening is refused calmly, tightening is n
   await note.scrollIntoViewIfNeeded();
   await note.getByRole('button', { name: 'Unlock…' }).click();
   await dialog(page).waitFor();
-  assert.match(await dialog(page).textContent(), /Enter your password to change settings for the next 10 minutes/);
+  assert.match(await dialog(page).textContent(), /Enter your password/);
   await page.screenshot({ path: join(SHOTS, 'unlock-dialog-password-light.png') });
   await dialog(page).locator('input[type="password"]').fill('wrong');
   await dialog(page).getByRole('button', { name: 'Unlock', exact: true }).click();
   await dialog(page).locator('.unlock-error').waitFor();
-  assert.match(await dialog(page).locator('.unlock-error').textContent(), /not the password/);
+  assert.match(await dialog(page).locator('.unlock-error').textContent(), /Wrong password/);
   assert.equal(await unlockedUntil(), 0);
   await dialog(page).locator('input[type="password"]').fill(PASSWORD);
   await page.keyboard.press('Enter');
@@ -158,7 +161,7 @@ test('options: the lock itself cannot be changed or removed without an unlock; r
   const page = await openOptions({ seed: { settings: { 'advanced.lock': lock, [HIDE_ADS]: true } }, hash: '#section=advanced' });
   const lockRow = row(page, 'advanced.lock');
   await lockRow.scrollIntoViewIfNeeded();
-  assert.match(await lockRow.locator('.lock-state').textContent(), /A password holds these settings/);
+  assert.match(await lockRow.locator('.lock-state').textContent(), /Locked with a password/);
   await page.screenshot({ path: join(SHOTS, 'lock-summary-light.png') });
 
   // "Remove lock…" asks for the unlock first; cancelling leaves the lock alone
@@ -205,7 +208,7 @@ test('options: friction lock set up with a wait of 10 seconds; unlocking waits, 
   assert.ok(sentence.endsWith('.') && sentence.length > 15);
   const field = dialog(p2).locator('input[type="text"]');
   assert.equal(await field.isDisabled(), true, 'the field stays shut during the wait');
-  assert.match(await dialog(p2).locator('.unlock-wait').textContent(), /You can type it in \d+ s/);
+  assert.match(await dialog(p2).locator('.unlock-wait').textContent(), /Wait \d+ s/);
   assert.equal(await dialog(p2).getByRole('button', { name: 'Unlock', exact: true }).isDisabled(), true);
   await p2.screenshot({ path: join(SHOTS, 'unlock-dialog-friction-wait-light.png') });
 
@@ -213,7 +216,7 @@ test('options: friction lock set up with a wait of 10 seconds; unlocking waits, 
   assert.equal(await field.isDisabled(), true, 'still waiting after 4 s');
   await p2.clock.fastForward(7000);
   await p2.waitForFunction(() => !document.querySelector('dialog[open] input[type="text"]').disabled);
-  assert.match(await dialog(p2).locator('.unlock-wait').textContent(), /Now type the sentence/);
+  assert.match(await dialog(p2).locator('.unlock-wait').textContent(), /Now type it/);
   await field.fill('I am rushing');
   assert.equal(await dialog(p2).getByRole('button', { name: 'Unlock', exact: true }).isDisabled(), true, 'only the sentence opens it');
   await field.fill(sentence.toLowerCase().replace(/\.$/, '')); // case and the full stop do not matter
@@ -237,20 +240,17 @@ test('options: bulk chips and presets that would show things again need the unlo
   // pressing it again would turn everything off: the unlock dialog opens; cancelling changes nothing
   await page.locator('.chip', { hasText: 'Shorts' }).click();
   await dialog(page).waitFor();
-  assert.match(await dialog(page).textContent(), /Showing something again is a choice/);
+  assert.match(await dialog(page).textContent(), /Type this to unlock/);
   await dialog(page).getByRole('button', { name: 'Cancel' }).click();
   await dialog(page).waitFor({ state: 'detached' });
   assert.equal((await stored())['yt.shorts.mode'], 'block');
   // a preset that hides more goes through; one that shows more is refused until unlocked
-  await page.getByRole('button', { name: 'Presets' }).click();
-  const preset = (name) => dialog(page).locator('.preset').filter({ has: page.locator('.preset-name', { hasText: new RegExp(`^${name}`) }) });
-  await preset('Deep work').getByRole('button', { name: 'Apply' }).click();
-  await dialog(page).getByRole('button', { name: 'Apply preset' }).click();
+  const preset = (name) => page.locator('#sec-presets .preset').filter({ has: page.locator('.preset-name', { hasText: new RegExp(`^${name}`) }) });
+  await preset('Deep work').getByRole('button', { name: 'Apply Deep work' }).click();
+  await dialog(page).getByRole('button', { name: 'Apply', exact: true }).click(); // a hand-made mix: the question comes first
   await until(async () => (await stored())['yt.home.feedMode'] === 'subscriptions');
   assert.equal(await dialog(page).count(), 0);
-  await page.getByRole('button', { name: 'Presets' }).click();
-  await preset('Untouched').getByRole('button', { name: 'Apply' }).click();
-  await dialog(page).getByRole('button', { name: 'Apply preset' }).click();
+  await preset('Untouched').getByRole('button', { name: 'Apply Untouched' }).click(); // Deep work is in use: no question, straight to the unlock
   await dialog(page).locator('.unlock-sentence').waitFor();
   await dialog(page).getByRole('button', { name: 'Cancel' }).click();
   await dialog(page).waitFor({ state: 'detached' });
@@ -285,21 +285,19 @@ test('popup: locked, a loosening is refused with a note, tightening works, the u
   // the master switch off would loosen: refused, the switch stays on
   const master = page.locator('#master input.switch');
   await master.click();
-  await page.waitForFunction(() => /That would show something again/.test(document.querySelector('.lock-bar').textContent));
+  await page.waitForFunction(() => document.querySelector('.lock-bar').classList.contains('is-flash'), null, { timeout: 2000 }); // the bar blinks: that is why it snapped back
+  assert.match(await bar.textContent(), /^Locked\./);
   assert.equal(await master.isChecked(), true);
   assert.equal((await stored())['general.enabled'], undefined);
   await page.screenshot({ path: join(SHOTS, 'popup-locked-refused-light.png') });
 
-  // a quick toggle that is on: refused; one that is off: allowed
-  const quickToggles = await page.evaluate(() => globalThis.AtPeace.ui.quickSettings().filter((d) => d.type === 'toggle' && d.id.startsWith('yt.')).map((d) => d.id));
+  // a toggle that is on: refused; one that is off: allowed
   const on = 'yt.general.hideAds';
-  assert.ok(quickToggles.includes(on));
+  const off = 'yt.general.grayscale';
   await page.locator(`.row[data-id="${on}"] .row-label`).click();
   await sleep(150);
   assert.equal((await stored())[on], true);
   assert.equal(await page.locator(`.row[data-id="${on}"] input.switch`).isChecked(), true);
-  const current = await stored();
-  const off = quickToggles.find((id) => id !== on && !current[id]);
   await page.locator(`.row[data-id="${off}"] .row-label`).click();
   await until(async () => (await stored())[off] === true);
 
@@ -324,11 +322,12 @@ test('popup: locked, a loosening is refused with a note, tightening works, the u
 test('popup: ending a focus block early needs the unlock while locked', async () => {
   const lock = { mode: 'friction', waitSeconds: 10 };
   const page = await openPopup({ seed: { settings: { 'advanced.lock': lock, 'focus.unlockFriction': 'none' } }, clock: true });
+  await page.getByRole('tab', { name: 'Focus', exact: true }).click();
   await page.getByRole('button', { name: '25 min' }).click();
   await page.getByRole('button', { name: 'End early' }).waitFor();
   await page.getByRole('button', { name: 'End early' }).click();
   await page.locator('.unlock-inline .unlock-sentence').waitFor();
-  assert.match(await lockBar(page).textContent(), /Ending a block early needs an unlock first/);
+  assert.match(await lockBar(page).textContent(), /^Locked\./);
   assert.ok((await getStorage('state')).state.blocks.some((b) => b.reason === 'focus'));
   await page.screenshot({ path: join(SHOTS, 'popup-focus-locked-light.png') });
   await page.close();
@@ -336,6 +335,7 @@ test('popup: ending a focus block early needs the unlock while locked', async ()
 
 test('popup: selects show short labels (no truncated "Show the home f…"), the full label is the tooltip', async () => {
   const page = await openPopup();
+  await page.locator('.grp[data-section="yt.home"] .grp-head').click();
   const options = await page.locator('.row[data-id="yt.home.feedMode"] option').evaluateAll((os) => os.map((o) => ({ text: o.textContent, title: o.title })));
   assert.deepEqual(options.map((o) => o.text), ['Show feed', 'Calm page', 'Subscriptions', 'Watch later', 'Playlists', 'My own page']);
   assert.equal(options[0].title, 'Show the home feed');
@@ -407,7 +407,7 @@ test('your week: "Clear usage history" asks, then forgets every day (and asks fo
   await button.click();
   await dialog(page).getByRole('button', { name: 'Clear history' }).click();
   await until(async () => Object.keys((await getStorage('stats')).stats ?? {}).length === 0);
-  await page.getByText(/Nothing to show yet/).waitFor();
+  await page.getByText(/^Nothing yet/).waitFor();
   assert.equal(await button.count(), 0, 'nothing left to clear');
   assert.deepEqual(page.errors, []);
   await page.close();
@@ -494,7 +494,7 @@ test('screenshots in dark: setup, locked row, unlock dialogs, locked popup', asy
   const popup = await openPopup({ seed: { settings: { ...theme('dark'), 'advanced.lock': lock, [HIDE_ADS]: true } } });
   await lockBar(popup).waitFor();
   await popup.locator('#master input.switch').click();
-  await popup.waitForFunction(() => /That would show something again/.test(document.querySelector('.lock-bar').textContent));
+  await popup.waitForFunction(() => document.querySelector('.lock-bar').classList.contains('is-flash'));
   await popup.screenshot({ path: join(SHOTS, 'popup-locked-refused-dark.png') });
   await lockBar(popup).getByRole('button', { name: 'Unlock…' }).click();
   await popup.locator('.unlock-inline').waitFor();

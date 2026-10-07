@@ -40,11 +40,13 @@ export function buildPresetBar(ctx) {
     const current = AP.ui.matchingPresetId(state.values, [...builtIn, ...state.customPresets]);
     const toUpdate = AP.ui.presetToUpdate(state.values, builtIn, state.customPresets, AP.ui.lastPreset.get());
     select.replaceChildren(
-      current === null && h('option', { value: '', disabled: true }, 'Your own mix'),
-      h('optgroup', { label: 'Built in' }, builtIn.map((p) => h('option', { value: p.id }, p.name))),
-      state.customPresets.length > 0 && h('optgroup', { label: 'Yours' }, state.customPresets.map((p) => h('option', { value: p.id }, p.name))),
-      h('option', { value: NEW }, 'Save as new preset…'),
-      toUpdate && h('option', { value: UPDATE }, `Update “${toUpdate.name}”`),
+      ...[
+        current === null && h('option', { value: '', disabled: true }, 'Your own mix'),
+        h('optgroup', { label: 'Built in' }, builtIn.map((p) => h('option', { value: p.id }, p.name))),
+        state.customPresets.length > 0 && h('optgroup', { label: 'Yours' }, state.customPresets.map((p) => h('option', { value: p.id }, p.name))),
+        h('option', { value: NEW }, 'Save as new preset…'),
+        toUpdate && h('option', { value: UPDATE }, `Update “${toUpdate.name}”`),
+      ].filter(Boolean), // a boolean handed to replaceChildren would be written out as the word "false"
     );
     select.value = current ?? '';
     select.dataset.current = current ?? '';

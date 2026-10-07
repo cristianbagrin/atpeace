@@ -7,9 +7,9 @@ const { h } = AP.ui;
 
 const slug = (id) => String(id).replace(/[^A-Za-z0-9_-]/g, '-');
 
-/** What an "Edit" row says about the setting behind it: a count for a list, On / Off for the lock. */
+/** What an "Edit" row says about the setting behind it: a count for a list (not a set of checkboxes), On / Off for the lock. */
 export function editSummary(def, value) {
-  if (Array.isArray(value)) return value.length > 0 ? String(value.length) : '';
+  if (Array.isArray(value)) return value.length > 0 && !def.options ? String(value.length) : '';
   if (def.type === 'object') return value?.mode && value.mode !== 'none' ? 'On' : 'Off';
   return '';
 }

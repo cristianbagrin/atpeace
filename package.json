@@ -13,7 +13,7 @@
     "lint": "eslint . && web-ext lint --self-hosted",
     "test": "node --disable-warning=ExperimentalWarning --test --test-reporter=spec \"tests/unit/*.test.mjs\"",
     "e2e": "node --test --test-reporter=spec --test-concurrency=1 \"tests/e2e/*.spec.mjs\"",
-    "test:firefox": "bash tests/firefox/setup.sh && node --disable-warning=ExperimentalWarning --test --test-reporter=spec --test-concurrency=1 --test-timeout=300000 tests/firefox/smoke.mjs tests/firefox/engine.mjs tests/firefox/ui.mjs tests/firefox/mindful.mjs tests/firefox/picker.mjs tests/firefox/features.mjs tests/firefox/lock.mjs tests/firefox/catalog.mjs",
+    "test:firefox": "bash tests/firefox/setup.sh && node --disable-warning=ExperimentalWarning --test --test-reporter=spec --test-concurrency=1 --test-timeout=300000 tests/firefox/smoke.mjs tests/firefox/engine.mjs tests/firefox/ui.mjs tests/firefox/mindful.mjs tests/firefox/overlay.mjs tests/firefox/picker.mjs tests/firefox/features.mjs tests/firefox/lock.mjs tests/firefox/catalog.mjs",
     "selectors": "node tools/check-selectors.mjs",
     "start:firefox": "web-ext run",
     "build": "web-ext build",

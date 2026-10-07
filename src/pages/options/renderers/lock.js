@@ -14,14 +14,14 @@
   const T = AP.msg.TYPES;
 
   const MODES = Object.freeze([
-    { value: 'password', title: 'A password', text: 'You choose it. Only a salted hash is kept on this device, never the password. If you forget it, the only way back in is to reinstall At Peace.' },
-    { value: 'friction', title: 'A moment of friction', text: 'No password to remember: you wait a little, then type a calm sentence.' },
+    { value: 'password', title: 'A password', text: 'If you forget it, only reinstalling At Peace gets you back in.' },
+    { value: 'friction', title: 'A moment of friction', text: 'Wait, then type a sentence.' },
   ]);
 
   const stateLine = (lock) => {
-    if (lock.mode === 'password') return 'A password holds these settings.';
-    if (lock.mode === 'friction') return `A moment of friction holds these settings: wait ${lock.waitSeconds ?? AP.lock.DEFAULT_WAIT_SECONDS} s, then type a sentence.`;
-    return 'No lock is set. Anything can be changed freely.';
+    if (lock.mode === 'password') return 'Locked with a password.';
+    if (lock.mode === 'friction') return `Locked with a ${lock.waitSeconds ?? AP.lock.DEFAULT_WAIT_SECONDS} s wait and a sentence.`;
+    return 'Not locked.';
   };
 
   const lockEditor = {
@@ -63,7 +63,7 @@
             class: 'btn btn-danger',
             onClick: async () => {
               if (!(await AP.ui.requestUnlock())) return;
-              const ok = await ctx.ui.confirm('Anything can be changed freely again. You can set a new lock whenever you like.', {
+              const ok = await ctx.ui.confirm('Anything can be changed freely.', {
                 title: 'Remove the lock?',
                 confirmLabel: 'Remove lock',
                 danger: true,
@@ -72,7 +72,7 @@
               try {
                 await ctx.save({ mode: 'none' });
               } catch (err) {
-                ctx.toast(String(err?.message ?? 'That could not be saved.'));
+                ctx.toast(String(err?.message ?? 'Could not save.'));
                 return;
               }
               view.lock = { mode: 'none' };
@@ -109,7 +109,7 @@
                 h('label', { for: 'lock-wait' }, 'Wait before the sentence'),
                 h('span', { class: 'number-field' }, wait, h('span', { class: 'unit' }, 'seconds')),
               ),
-              h('p', { class: 'row-hint' }, `Between ${AP.lock.MIN_WAIT_SECONDS} and ${AP.lock.MAX_WAIT_SECONDS}. The default is ${AP.lock.DEFAULT_WAIT_SECONDS}.`),
+              h('p', { class: 'row-hint' }, `${AP.lock.MIN_WAIT_SECONDS} to ${AP.lock.MAX_WAIT_SECONDS} seconds.`),
             );
           }
         };
@@ -145,13 +145,13 @@
           if (view.choice === 'password') {
             const problem = AP.lock.passwordProblem(pw.value);
             if (problem) return fail(problem, pw);
-            if (pw.value !== again.value) return fail('The two passwords are not the same.', again);
+            if (pw.value !== again.value) return fail('The passwords differ.', again);
             turnOn.disabled = true;
             try {
               lock = await AP.lock.createPasswordLock(pw.value);
             } catch (err) {
               turnOn.disabled = false;
-              return fail(String(err?.message ?? 'That password could not be used.'));
+              return fail(String(err?.message ?? 'Could not use that password.'));
             }
           } else {
             const check = AP.ui.numberCheck({ min: AP.lock.MIN_WAIT_SECONDS, max: AP.lock.MAX_WAIT_SECONDS }, wait.value);
@@ -162,13 +162,13 @@
             await ctx.save(lock);
           } catch (err) {
             turnOn.disabled = false;
-            return fail(String(err?.message ?? 'That could not be saved.'));
+            return fail(String(err?.message ?? 'Could not save.'));
           }
           await AP.msg.send(T.LOCK_RELOCK).catch(() => {}); // a new lock holds from this moment on
           view.lock = lock;
           view.editing = false;
           draw();
-          ctx.toast('The lock is on');
+          ctx.toast('Lock on');
         });
 
         const actions = [turnOn];
@@ -188,7 +188,7 @@
             ),
           );
         }
-        return [h('p', { class: 'lock-state' }, 'How should these settings be held?'), choices, fields, error, h('div', { class: 'lock-actions' }, actions)];
+        return [choices, fields, error, h('div', { class: 'lock-actions' }, actions)];
       };
 
       function draw() {

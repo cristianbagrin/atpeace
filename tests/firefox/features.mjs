@@ -3,7 +3,7 @@
 //
 // Two groups, each with its own browser (one resolves www.youtube.com to localhost, the other must not):
 //   1. OFFLINE: pages rebuilt from the Phase 1 snapshots and served by a local http server
-//      (tests/e2e/_yt-fixture.mjs): home placeholder, filters, calm titles, the keyboard / hover guards.
+//      (tests/e2e/_yt-fixture.mjs): home placeholder, filters, the keyboard / hover guards.
 //      Skipped without the snapshots (tests/e2e/artifacts/research is local only).
 //   2. LIVE youtube.com, logged out, paced (Google answers bursts with a /sorry/ captcha: a captcha skips
 //      the test): the bridge on the real data objects (guide entries, channel tabs, the buttons under the
@@ -149,19 +149,6 @@ describe('offline snapshots', { skip: HAVE ? false : 'research snapshots are abs
     await t.until(() => t.run(() => [...document.querySelectorAll('ytd-video-renderer[data-at-peace-filtered]')].every((c) => /^24\/7/i.test(c.querySelector('a#video-title').getAttribute('title'))) && document.querySelector('ytd-video-renderer[data-at-peace-filtered]')), 'regex marks');
     await t.configure({});
     await t.until(() => t.run(() => document.querySelectorAll('[data-at-peace-filtered]').length === 0), 'marks cleared');
-  });
-
-  test('calm titles: converted, the original kept, restored when off', async () => {
-    await t.configure({});
-    await t.open(url('/results?search_query=lofi'), { fixture: true });
-    await t.run(() => {
-      document.querySelector('ytd-video-renderer a#video-title yt-formatted-string').textContent = 'I TRIED THE BIGGEST PIZZA IN THE USA';
-    });
-    await t.configure({ 'yt.general.calmTitles': 'sentence' });
-    await t.until(() => t.run(() => document.querySelector('ytd-video-renderer a#video-title yt-formatted-string').textContent === 'I tried the biggest pizza in the USA'), 'converted');
-    assert.equal(await t.run(() => document.querySelector('ytd-video-renderer a#video-title yt-formatted-string').getAttribute('data-at-peace-original')), 'I TRIED THE BIGGEST PIZZA IN THE USA');
-    await t.configure({});
-    await t.until(() => t.run(() => document.querySelector('ytd-video-renderer a#video-title yt-formatted-string').textContent === 'I TRIED THE BIGGEST PIZZA IN THE USA'), 'restored');
   });
 
   test('Shorts links are rewritten to /watch?v=ID (and restored); the bridge announces itself in the page world', async () => {
@@ -311,8 +298,8 @@ describe('live youtube.com (logged out)', () => {
     assert.equal(await t.driver.getCurrentUrl(), 'https://www.youtube.com/feed/subscriptions');
   });
 
-  live('search: filters, calm titles, Short links and a click on a Short (the in-app interceptor) in Firefox', async () => {
-    await t.configure({ 'yt.filters.keywords': ['lofi'], 'yt.shorts.mode': 'watch', 'yt.general.calmTitles': 'sentence' });
+  live('search: filters, Short links and a click on a Short (the in-app interceptor) in Firefox', async () => {
+    await t.configure({ 'yt.filters.keywords': ['lofi'], 'yt.shorts.mode': 'watch' });
     await paced(SEARCH);
     await t.until(() => t.run(() => document.querySelectorAll('ytd-video-renderer').length >= 10), 'results');
     await t.until(() => t.run(() => document.querySelector('[data-at-peace-filtered]')), 'filtered cards');

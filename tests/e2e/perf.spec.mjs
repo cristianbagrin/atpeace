@@ -42,7 +42,6 @@ const round = (n, digits = 1) => Math.round(n * 10 ** digits) / 10 ** digits;
 
 /** Every observing feature, and the ones with listeners, switched on (nothing that would redirect the page). */
 const HEAVY = {
-  'yt.general.calmTitles': 'sentence',
   'yt.general.disableHoverPreview': true,
   'yt.general.hideViewCounts': true,
   'yt.general.thumbnails': 'blur',

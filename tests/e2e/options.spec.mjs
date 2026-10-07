@@ -491,7 +491,7 @@ test('backup: export, reset, import restores the settings and presets; the repor
 
   // Import the file back.
   await page.setInputFiles('.backup input[type="file"]', file);
-  assert.match(await page.locator('dialog[open]').textContent(), /replaces your current settings/);
+  assert.match(await page.locator('dialog[open]').textContent(), /Replaces your settings/);
   await confirmDialog(page).click();
   await page.waitForSelector('.report:not([hidden])');
   assert.match(await page.locator('.report-head').textContent(), /^Imported \d+ settings?\.$/);
@@ -574,7 +574,7 @@ test('the table of contents follows the scroll with the seal on the current sect
 
 test('your week: empty state without data, bars and totals with it', async () => {
   const page = await openOptions();
-  assert.match(await page.locator('#sec-week .empty').textContent(), /Nothing to show yet/);
+  assert.match(await page.locator('#sec-week .empty').textContent(), /Nothing yet/);
 
   const stats = await page.evaluate(() => {
     const AP = globalThis.AtPeace;

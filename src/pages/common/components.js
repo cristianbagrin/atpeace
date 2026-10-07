@@ -566,7 +566,7 @@
     const banner = h(
       'div',
       { class: 'banner', role: 'region', 'aria-label': 'Access to YouTube', hidden: true },
-      h('p', null, 'At Peace needs your permission to change youtube.com. Nothing is read or sent anywhere.'),
+      h('p', null, 'At Peace needs access to youtube.com.'),
       h(
         'button',
         {
@@ -663,7 +663,9 @@
   /**
    * Opens the settings page, at one row (`{ setting: id }`) or one section (`{ section: id }`). A
    * settings tab that is already open is reused: its address gets the new #hash, which the page
-   * follows, and the tab and its window come forward. Without a target it is runtime.openOptionsPage().
+   * follows, and the tab and its window come forward (where the browser lets an extension see its
+   * own tabs' addresses, as Firefox does; elsewhere a new tab opens). Without a target it is
+   * runtime.openOptionsPage().
    * @param {{ setting?: string, section?: string }} [target]
    */
   async function openSettings(target = {}) {
@@ -674,7 +676,8 @@
     }
     const base = AP.api.runtime.getURL(AP.api.runtime.getManifest().options_ui?.page ?? 'src/pages/options/options.html');
     try {
-      const open = (await AP.api.tabs.query({})).find((tab) => typeof tab.url === 'string' && tab.url.split('#')[0] === base);
+      // Firefox shows the address of the extension's own tabs; a browser that hides it finds none and gets a new tab.
+      const [open] = await AP.api.tabs.query({ url: `${base}*` });
       if (open) {
         await AP.api.tabs.update(open.id, { url: base + hash, active: true });
         await AP.api.windows?.update?.(open.windowId, { focused: true });

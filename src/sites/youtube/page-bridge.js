@@ -19,6 +19,8 @@
 //      data-at-peace-entry   guide + mini-guide entries (iconType / endpoint of `entry.data`)
 //      data-at-peace-tab     channel tabs (URL suffix of the page data's tab list, matched to the DOM tab)
 //      data-at-peace-action  buttons under the video (view-model / renderer data of the action menu)
+//      data-at-peace-shelf   the rows of a channel's Home tab (what the row holds: item kinds, endpoint, badges)
+//      data-at-peace-channel-action  the buttons in a channel's header (join, subscribe, store, community)
 //    Tagging is OFF until the isolated side sends `setTags(true)` (it does while a setting that needs
 //    tags is on) and is switched off, tags removed, when none is. Re-tagged on yt-navigate-finish,
 //    yt-page-data-updated and (debounced) when the DOM changes.
@@ -33,6 +35,8 @@
   const ATTR_ENTRY = 'data-at-peace-entry';
   const ATTR_TAB = 'data-at-peace-tab';
   const ATTR_ACTION = 'data-at-peace-action';
+  const ATTR_SHELF = 'data-at-peace-shelf';
+  const ATTR_CHANNEL_ACTION = 'data-at-peace-channel-action';
 
   // ============================================================================================
   // Pure mapping functions (exported for the unit tests, see the end of the file)
@@ -149,7 +153,7 @@
   }
 
   /** Tab aliases: YouTube's own URL suffix → the contract's name. */
-  const TAB_ALIASES = Object.freeze({ featured: 'home', community: 'posts' });
+  const TAB_ALIASES = Object.freeze({ featured: 'home', community: 'posts', membership: 'members' });
 
   /**
    * URL suffix of a channel tab: "/@x/videos" → "videos", "/@x/featured" → "home", "/@x" → "home",
@@ -278,6 +282,147 @@
     if (id.includes('thanks') || id.includes('donat')) return 'thanks';
     if (id.includes('save') || id.includes('playlist')) return 'save';
     if (/(^|[._-])ask([._-]|$)/.test(id)) return 'ask';
+    return null;
+  }
+
+
+  // ---- channel Home rows ("shelves") ------------------------------------------------------------------
+  // Observed live (logged out, 2026-10-05) on MrBeast, Linus Tech Tips, Lofi Girl, MKBHD, TED, NASA, PewDiePie,
+  // Kurzgesagt, Lex Fridman: a row is `ytd-shelf-renderer` / `ytd-reel-shelf-renderer` whose `.data` holds the
+  // items (`content.horizontalListRenderer.items`, or `items`) and an `endpoint`. Titles are free text chosen
+  // by the creator ("Our members", "Japan Vlogs"), so nothing here ever reads one.
+
+  /** First key of an item object (`{ postRenderer: {...} }` → "postRenderer"). */
+  const itemKind = (item) => (item && typeof item === 'object' ? Object.keys(item).find((k) => k !== 'trackingParams') : undefined);
+
+  /** Item kinds that decide a row's type on their own. */
+  const SHELF_ITEM_TYPES = Object.freeze({
+    postRenderer: 'posts',
+    backstagePostThreadRenderer: 'posts',
+    backstagePostRenderer: 'posts',
+    gridChannelRenderer: 'channels',
+    channelRenderer: 'channels',
+    gridPlaylistRenderer: 'playlists',
+    playlistRenderer: 'playlists',
+    compactPlaylistRenderer: 'playlists',
+    reelItemRenderer: 'shorts',
+    shortsLockupViewModel: 'shorts',
+  });
+
+  /** The items of a row's data, wherever this renderer keeps them. */
+  function shelfItems(data) {
+    const c = data?.content;
+    const list = c?.horizontalListRenderer?.items ?? c?.expandedShelfContentsRenderer?.items ?? c?.gridRenderer?.items ?? c?.verticalListRenderer?.items ?? data?.items;
+    return Array.isArray(list) ? list : [];
+  }
+
+  /** What a row's `endpoint` points at: `{ path, list, params }` (list = playlist id, params = URL query). */
+  function endpointInfo(endpoint) {
+    const info = { path: '', list: '', params: new URLSearchParams() };
+    if (!endpoint || typeof endpoint !== 'object') return info;
+    const url = endpoint.commandMetadata?.webCommandMetadata?.url;
+    if (typeof url === 'string' && url !== '') {
+      try {
+        const u = new URL(url, 'https://www.youtube.com');
+        info.path = u.pathname;
+        info.params = u.searchParams;
+        info.list = u.searchParams.get('list') ?? '';
+      } catch {
+        /* unusable URL: the browse id below may still say something */
+      }
+    }
+    const browseId = endpoint.browseEndpoint?.browseId;
+    if (info.list === '' && typeof browseId === 'string' && browseId.startsWith('VL')) info.list = browseId.slice(2);
+    return info;
+  }
+
+  /**
+   * The type of a channel Home row, from its data only:
+   *   shorts · posts · channels (featured channels) · playlists (a row of playlist cards) · members (members-only
+   *   uploads) · live (live now, upcoming, past streams) · popular · videos (latest uploads) · series (a row that
+   *   shows one playlist's videos) · or null when it cannot be told (left alone).
+   * Language-free: item kinds, `lockupViewModel.contentType`, the endpoint (`UUM…` members-only and `UULV` live
+   * playlists, `sort=p`, `live_view`, `view=2`) and the badges on the first item. Never a title.
+   * @param {string} tagName lower-case tag of the row's element
+   * @param {any} data the row's `.data`
+   * @returns {string|null}
+   */
+  function shelfType(tagName, data) {
+    if (!data || typeof data !== 'object') return null;
+    if (tagName === 'ytd-reel-shelf-renderer') return 'shorts';
+    const items = shelfItems(data);
+    // What each item is; a row that mixes kinds (a "collaborations" row of Shorts and videos) is left alone.
+    const kinds = new Set(items.map(itemType));
+    if (kinds.size !== 1) return null;
+    const kind = [...kinds][0];
+    if (kind !== 'video') return kind ?? null;
+    const first = items[0];
+    const info = endpointInfo(data.endpoint);
+    let marks = '';
+    try {
+      marks = JSON.stringify(first);
+    } catch {
+      /* cyclic or unreadable: no marks */
+    }
+    if (/^UUM[A-Z]/.test(info.list) || /SPONSORSHIP_STAR|MEMBERS_ONLY/.test(marks)) return 'members';
+    if (/^UULV/.test(info.list) || info.params.has('live_view') || info.params.get('view') === '2' || /BADGE_STYLE_LIVE|LIVE_NOW|upcomingEventData/.test(marks)) return 'live';
+    if (info.params.get('sort') === 'p') return 'popular';
+    if (info.list.startsWith('UU') || /\/videos$/.test(info.path)) return 'videos';
+    if (info.list !== '') return 'series';
+    return null;
+  }
+
+  /** One item's type: a kind from SHELF_ITEM_TYPES, `video` for plain video items, or a lockup's own type. */
+  function itemType(item) {
+    const kind = itemKind(item);
+    if (kind === undefined) return undefined;
+    if (Object.hasOwn(SHELF_ITEM_TYPES, kind)) return SHELF_ITEM_TYPES[kind];
+    if (kind === 'lockupViewModel') {
+      const contentType = String(item.lockupViewModel?.contentType ?? '');
+      if (/SHORT/.test(contentType)) return 'shorts';
+      if (/PODCAST/.test(contentType)) return 'podcasts';
+      // A Playlists row holds playlists, courses (a playlist with lessons), albums and mixes side by side.
+      if (/PLAYLIST|COURSE|ALBUM|MIX|RADIO|STATION/.test(contentType)) return 'playlists';
+      return /VIDEO/.test(contentType) ? 'video' : undefined;
+    }
+    return kind === 'gridVideoRenderer' || kind === 'videoRenderer' || kind === 'compactVideoRenderer' ? 'video' : undefined;
+  }
+
+  /** Endpoint kinds and ids named inside a button's `onTap` command (keys only, never values that are text). */
+  function commandKeys(command) {
+    const out = [];
+    const walk = (v, depth) => {
+      if (!v || typeof v !== 'object' || depth > 4 || out.length > 80) return;
+      for (const k of Object.keys(v)) {
+        if (k === 'clickTrackingParams' || k === 'commandMetadata') continue;
+        out.push(k);
+        walk(v[k], depth + 1);
+      }
+    };
+    walk(command, 0);
+    return out;
+  }
+
+  /**
+   * Name of a channel header button from its data: join · subscribe · store · community, or null. Language-free:
+   * the button kind, `iconName`, the identifiers (`accessibilityId`, `targetId`) and the endpoint kinds in its
+   * `onTap` — never the label. (The Join button only shows signed in; its data shape is unverified, so every
+   * key that can name it is tried.)
+   * @param {any} item the button's data (`button-view-model` data, or `subscribeButtonViewModel` …)
+   * @param {string} [hostTag] tag of the element that shows it
+   * @returns {string|null}
+   */
+  function channelActionName(item, hostTag = '') {
+    if (/subscribe/.test(hostTag)) return 'subscribe';
+    if (!item || typeof item !== 'object') return null;
+    if (item.subscribeButtonViewModel || item.subscribeButtonRenderer || item.subscriptionButtonViewModel) return 'subscribe';
+    const inner = item.buttonViewModel ?? item.flexibleActionButtonViewModel ?? item.toggleButtonViewModel ?? item;
+    const icon = String(inner?.iconName ?? inner?.icon?.iconType ?? '');
+    const id = String(inner?.accessibilityId ?? inner?.targetId ?? inner?.buttonId ?? '').toLowerCase();
+    const keys = commandKeys(inner?.onTap?.innertubeCommand ?? inner?.command ?? inner?.serviceEndpoint ?? inner?.navigationEndpoint).join(' ');
+    if (/SPONSOR|MEMBER|JOIN/.test(icon) || /sponsor|member|join/.test(id) || /sponsorship|membership|sponsor/i.test(keys)) return 'join';
+    if (/STORE|SHOP|MERCH|CART/.test(icon) || /store|shop|merch/.test(id) || /merch|shopping|storefront/i.test(keys)) return 'store';
+    if (icon === 'PEOPLE_GROUP' || /community/.test(id)) return 'community';
     return null;
   }
 
@@ -492,9 +637,61 @@
     }
   }
 
+
+  /** A component's data object: Polymer renderers keep it in `.data`; view models behind `componentProps.data()`. */
+  function readData(el) {
+    try {
+      if (el.data && typeof el.data === 'object') return el.data;
+      const props = el.componentProps;
+      const accessor = props?.data;
+      const value = typeof accessor === 'function' ? accessor.call(props) : accessor;
+      return value && typeof value === 'object' ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  const seenShelves = new WeakMap(); // element → data object it was last evaluated for
+
+  /** Rows on a channel page (every cached channel page; the CSS decides which one is on screen). */
+  function tagShelves() {
+    for (const row of document.querySelectorAll('ytd-browse[page-subtype="channels"] ytd-item-section-renderer > #contents > *')) {
+      const data = readData(row);
+      if (!data || seenShelves.get(row) === data) continue;
+      seenShelves.set(row, data);
+      const type = shelfType(row.localName, data);
+      if (type) {
+        if (row.getAttribute(ATTR_SHELF) !== type) row.setAttribute(ATTR_SHELF, type);
+      } else if (row.hasAttribute(ATTR_SHELF)) {
+        row.removeAttribute(ATTR_SHELF);
+      }
+    }
+  }
+
+  /** Header buttons of a channel: tagged on the wrapper that takes up the room, so hiding it closes the gap. */
+  function tagChannelActions() {
+    for (const browse of document.querySelectorAll('ytd-browse[page-subtype="channels"]')) {
+      const wrappers = Array.from(browse.querySelectorAll('yt-page-header-view-model .ytFlexibleActionsViewModelAction'));
+      wrappers.forEach((wrap, i) => {
+        const host = wrap.firstElementChild;
+        const name = host ? channelActionName(readData(host), host.localName) ?? (i === 0 ? 'subscribe' : null) : null;
+        if (name) {
+          if (wrap.getAttribute(ATTR_CHANNEL_ACTION) !== name) wrap.setAttribute(ATTR_CHANNEL_ACTION, name);
+        } else if (wrap.hasAttribute(ATTR_CHANNEL_ACTION)) {
+          wrap.removeAttribute(ATTR_CHANNEL_ACTION);
+        }
+      });
+      // The older header (ytd-c4-tabbed-header-renderer) names its buttons by id.
+      for (const [selector, name] of [['ytd-c4-tabbed-header-renderer #sponsor-button', 'join'], ['ytd-c4-tabbed-header-renderer #subscribe-button', 'subscribe']]) {
+        const el = browse.querySelector(selector);
+        if (el && el.getAttribute(ATTR_CHANNEL_ACTION) !== name) el.setAttribute(ATTR_CHANNEL_ACTION, name);
+      }
+    }
+  }
+
   function scanNow() {
     if (!tagging) return;
-    for (const fn of [tagEntries, tagTabs, tagActions]) {
+    for (const fn of [tagEntries, tagTabs, tagActions, tagShelves, tagChannelActions]) {
       try {
         fn();
       } catch (err) {
@@ -531,7 +728,7 @@
       observer = null;
       clearTimeout(timer);
       timer = null;
-      for (const attr of [ATTR_ENTRY, ATTR_TAB, ATTR_ACTION]) {
+      for (const attr of [ATTR_ENTRY, ATTR_TAB, ATTR_ACTION, ATTR_SHELF, ATTR_CHANNEL_ACTION]) {
         for (const el of document.querySelectorAll(`[${attr}]`)) el.removeAttribute(attr);
       }
     }
@@ -561,6 +758,6 @@
   // ---- test hook -------------------------------------------------------------------------------------
   // Only when a test (or the page, which gains nothing: these are pure functions) sets the flag first.
   if (window.__atPeaceBridgeTest && typeof window.__atPeaceBridgeTest === 'object') {
-    window.__atPeaceBridgeTest.exports = { entryName, entryFromUrl, tabFromUrl, tabsFromPageData, matchTabs, actionName, ICON_ENTRIES };
+    window.__atPeaceBridgeTest.exports = { entryName, entryFromUrl, tabFromUrl, tabsFromPageData, matchTabs, actionName, shelfType, channelActionName, ICON_ENTRIES };
   }
 })();

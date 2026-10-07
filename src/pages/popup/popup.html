@@ -10,15 +10,19 @@
   <script src="../common/theme-boot.js"></script>
 </head>
 <body>
-  <header class="head">
-    <h1 class="wordmark"><span class="glyph" aria-hidden="true"></span>At Peace</h1>
-    <div class="master" id="master"></div>
+  <header class="top">
+    <div class="head">
+      <h1 class="wordmark"><span class="glyph" aria-hidden="true"></span>At Peace</h1>
+      <div class="master" id="master"></div>
+    </div>
+    <div class="tabs" id="tabs" role="tablist" aria-label="Settings"></div>
+    <div id="banner"></div>
   </header>
-  <div class="tabs" id="tabs" role="tablist" aria-label="Settings"></div>
-  <div id="banner"></div>
   <main class="body" id="body"><div id="content" role="tabpanel" aria-busy="true"></div></main>
-  <div class="sheet" id="sheet" hidden></div>
-  <footer class="foot" id="foot"></footer>
+  <footer class="bottom">
+    <div class="sheet" id="sheet" hidden></div>
+    <div class="foot" id="foot"></div>
+  </footer>
 
   <!-- Shared classic scripts, in the same order as the YouTube content script (manifest.json). -->
   <script src="../../shared/namespace.js"></script>

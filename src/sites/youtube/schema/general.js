@@ -149,21 +149,6 @@
       feature: 'thumbnails-hover',
       since: '0.1.0',
     },
-    {
-      id: 'yt.general.calmTitles',
-      group: 'Look',
-      label: 'Calm shouting titles',
-      description: 'Rewrites TITLES THAT SHOUT into normal sentence case in feeds, search and the video page.',
-      type: 'select',
-      default: 'off',
-      options: [
-        { value: 'off', label: 'Leave titles as they are' },
-        { value: 'sentence', label: 'Sentence case' },
-      ],
-      tags: ['behaviour'],
-      feature: 'calm-titles',
-      since: '0.1.0',
-    },
 
     // ---- On video cards ------------------------------------------------------------------------
     {

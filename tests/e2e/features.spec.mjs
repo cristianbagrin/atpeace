@@ -411,45 +411,6 @@ describe('on offline snapshots', { skip: haveFixtures ? false : 'tests/e2e/artif
     });
   });
 
-  describe('calm titles', () => {
-    test('shouting words become sentence case, the original is kept, turning it off restores it, new titles are converted', async () => {
-      await configure({});
-      await open(SEARCH);
-      await page.evaluate(() => {
-        const t = document.querySelector('ytd-video-renderer a#video-title yt-formatted-string');
-        t.textContent = 'I TRIED THE BIGGEST PIZZA IN THE USA';
-      });
-      await configure({ 'yt.general.calmTitles': 'sentence' });
-      await waitFor(() => document.querySelector('ytd-video-renderer a#video-title yt-formatted-string').textContent === 'I tried the biggest pizza in the USA');
-      assert.equal(await page.evaluate(() => document.querySelector('ytd-video-renderer a#video-title yt-formatted-string').getAttribute('data-at-peace-original')), 'I TRIED THE BIGGEST PIZZA IN THE USA');
-      // a card added later
-      await page.evaluate(() => {
-        const card = document.querySelector('ytd-video-renderer').cloneNode(true);
-        card.id = 'new-card';
-        card.querySelector('a#video-title yt-formatted-string').textContent = 'WHY NOBODY TALKS ABOUT THIS';
-        document.querySelector('ytd-video-renderer').parentElement.append(card);
-      });
-      await waitFor(() => document.querySelector('#new-card a#video-title yt-formatted-string').textContent === 'Why nobody talks about this');
-      // the originals are kept (the snapshot has a few shouting titles of its own, so look at ours)
-      assert.deepEqual(
-        await page.evaluate(() => ['ytd-video-renderer a#video-title yt-formatted-string', '#new-card a#video-title yt-formatted-string'].map((sel) => document.querySelector(sel).getAttribute('data-at-peace-original'))),
-        ['I TRIED THE BIGGEST PIZZA IN THE USA', 'WHY NOBODY TALKS ABOUT THIS'],
-      );
-      await configure({});
-      await waitFor(() => document.querySelector('ytd-video-renderer a#video-title yt-formatted-string').textContent === 'I TRIED THE BIGGEST PIZZA IN THE USA');
-      assert.equal(await page.evaluate(() => document.querySelectorAll('[data-at-peace-original]').length), 0);
-    });
-
-    test('the video page title (a different element) is converted too', async () => {
-      await open(WATCH);
-      await page.evaluate(() => {
-        document.querySelector('ytd-watch-metadata h1 yt-formatted-string').textContent = 'THE LONGEST LOFI STREAM EVER';
-      });
-      await configure({ 'yt.general.calmTitles': 'sentence' });
-      await waitFor(() => document.querySelector('ytd-watch-metadata h1 yt-formatted-string').textContent === 'The longest lofi stream ever');
-    });
-  });
-
   describe('bridge tags (MAIN world)', () => {
     test('the bridge announces itself; no tag exists while no setting needs one', async () => {
       await configure({});
@@ -842,8 +803,8 @@ describe('on live youtube.com (logged out)', () => {
     assert.deepEqual(await ourErrors(), []);
   });
 
-  live('search: filters, calm titles, Shorts links and the Shorts click on the real results', async () => {
-    await configure({ 'yt.filters.keywords': ['lofi'], 'yt.shorts.mode': 'watch', 'yt.general.calmTitles': 'sentence' });
+  live('search: filters, Shorts links and the Shorts click on the real results', async () => {
+    await configure({ 'yt.filters.keywords': ['lofi'], 'yt.shorts.mode': 'watch' });
     await paced(SEARCH);
     await waitFor(() => document.querySelectorAll('ytd-video-renderer').length >= 10);
     await waitFor(() => document.querySelector('[data-at-peace-filtered]'));

@@ -1,6 +1,6 @@
 // Welcome page E2E in Chromium (Phase 4b): it opens by itself after a fresh install, Gentle is
 // already in place, choosing a preset and the pause settings is saved at once, Finish marks the
-// onboarding done and offers the two ways on. Light + dark screenshots go to tests/e2e/artifacts/lock/.
+// onboarding done and offers the two ways on. Light + dark screenshots go to tests/e2e/artifacts/round1/7a/.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdirSync } from 'node:fs';
@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { launch, close, getContext, extUrl, trackErrors, setStorage, getStorage, evalInExtension, ARTIFACTS } from './harness.mjs';
 import { until } from '../helpers/wait.mjs';
 
-const SHOTS = join(ARTIFACTS, 'lock');
+const SHOTS = join(ARTIFACTS, 'round1', '7a');
 const WELCOME = 'src/pages/welcome/welcome.html';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -59,8 +59,12 @@ test('the page: three numbered steps, four preset rows, the pause rows, the shor
   assert.deepEqual(await page.locator('.choice-name').allTextContents(), ['Gentle', 'Focused', 'Deep work', 'Untouched']);
   for (const desc of await page.locator('.choice-desc').allTextContents()) assert.ok(desc.length > 10 && desc.length < 70, desc);
   assert.deepEqual(await page.locator('#pause .row-label').allTextContents(), ['Pause before opening YouTube', 'Length of the breath', 'When I continue, keep it open for']);
-  assert.deepEqual(await page.locator('.key-row dd').allTextContents(), ['Turn At Peace on or off', 'Block YouTube for 25 minutes', 'Hide an element on the page']);
+  assert.deepEqual(await page.locator('.key-row dd').allTextContents(), ['Turn At Peace on or off', 'Block YouTube for 25 minutes', 'Hide an element']);
   assert.match(await page.locator('.step').nth(2).textContent(), /Pin to Toolbar/);
+  assert.equal(await page.locator('#keys-help').textContent(), 'Change shortcuts: about:addons → ⚙ → Manage Extension Shortcuts');
+  assert.equal(await page.locator('#step-1-intro').isHidden(), true, 'a preset is in place: nothing to say');
+  // Say what it is, nothing more: no intro lines, no explanations under the rows.
+  assert.equal(await page.locator('.intro .lede, .step-intro:visible, .row-desc').count(), 0);
   assert.equal(await page.getByRole('button', { name: 'Finish' }).count(), 1);
   // the three shortcuts of the manifest, as keys
   const manifestKeys = await page.evaluate(() => Object.values(chrome.runtime.getManifest().commands).map((c) => c.suggested_key.default));
@@ -70,10 +74,42 @@ test('the page: three numbered steps, four preset rows, the pause rows, the shor
   await page.close();
 });
 
+test('the shortcuts are written for the platform: ⌥⇧P on a Mac, one key cap each; Alt+Shift+P with plus signs elsewhere', async () => {
+  const withPlatform = async (os, commands) => {
+    await evalInExtension(() => chrome.storage.local.clear());
+    const page = trackErrors(await getContext().newPage());
+    await page.addInitScript(
+      (config) => {
+        chrome.runtime.getPlatformInfo = async () => ({ os: config.os, arch: 'x86-64' });
+        chrome.commands.getAll = async () => Object.entries(config.commands).map(([name, shortcut]) => ({ name, shortcut, description: name }));
+      },
+      { os, commands },
+    );
+    await page.setViewportSize({ width: 1200, height: 1000 });
+    await page.goto(extUrl(WELCOME));
+    await page.waitForSelector('body[data-ready="true"]');
+    return page;
+  };
+  const caps = (page) => page.locator('.key-row').evaluateAll((rows) => rows.map((r) => [...r.querySelectorAll('dt > *')].map((el) => el.textContent)));
+
+  const mac = await withPlatform('mac', { 'toggle-enabled': 'Alt+Shift+P', 'focus-25': 'Alt+Shift+F', 'open-picker': 'Alt+Shift+H' });
+  assert.deepEqual(await caps(mac), [['⌥', '⇧', 'P'], ['⌥', '⇧', 'F'], ['⌥', '⇧', 'H']]);
+  assert.equal(await mac.locator('.key-row dt').first().getAttribute('aria-label'), '⌥⇧P');
+  await mac.screenshot({ path: join(SHOTS, 'welcome-mac-keys.png'), fullPage: true });
+  await mac.close();
+
+  // The shortcut the person has now, not the suggestion: one was changed, one removed.
+  const win = await withPlatform('win', { 'toggle-enabled': 'Ctrl+Shift+Y', 'focus-25': '', 'open-picker': 'Alt+Shift+H' });
+  assert.deepEqual(await caps(win), [['Ctrl', '+', 'Shift', '+', 'Y'], ['not assigned'], ['Alt', '+', 'Shift', '+', 'H']]);
+  assert.match(await win.locator('#keys-help').textContent(), /Manage Extension Shortcuts/);
+  await win.close();
+});
+
 test('choosing a preset applies it, and Deep work switches the pause on in step 2', async () => {
   const page = await openWelcome({ seed: { settings: { 'yt.general.hideAds': true } } });
   assert.equal(await page.locator('input[name="preset"]:checked').count(), 0, 'a hand-made mix matches no preset');
-  assert.match(await page.locator('#step-1-intro').textContent(), /your own mix/);
+  assert.match(await page.locator('#step-1-intro').textContent(), /Your own mix/);
+  assert.equal(await page.locator('#step-1-intro').isVisible(), true);
 
   // "your own mix" is replaced only after a question
   await page.locator('label.choice', { hasText: 'Focused' }).click();
@@ -134,7 +170,7 @@ test('the whole flow: Focused, a breath of 9 seconds, 30-minute sessions, Finish
   await page.screenshot({ path: join(SHOTS, 'welcome-done-light.png'), fullPage: true });
 
   // The browser opens its settings tab, or brings forward the one that is already open (the test's helper page).
-  await page.getByRole('button', { name: 'See all settings' }).click();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await until(() => getContext().pages().some((p) => p.url().includes('/src/pages/options/options.html')));
 
   // the settings the person chose are the ones in force

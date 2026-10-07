@@ -16,9 +16,13 @@ body {
   font-size: 13px;
 }
 
+.top,
+.bottom {
+  flex: none;
+}
+
 .head {
   display: flex;
-  flex: none;
   align-items: center;
   justify-content: space-between;
   min-height: 24px;
@@ -86,7 +90,6 @@ body {
 /* Notices (lock, host access) sit under the tabs; none, no gap. */
 #banner {
   display: grid;
-  flex: none;
   gap: 8px;
   padding: 0 14px 8px;
 }
@@ -466,7 +469,6 @@ body {
 /* A question or a name field, right above the footer. */
 .sheet {
   display: grid;
-  flex: none;
   gap: 6px;
   padding: 10px 14px;
   border-top: 1px solid var(--panel-line);
@@ -488,7 +490,6 @@ body {
 
 .foot {
   display: flex;
-  flex: none;
   align-items: center;
   gap: 14px;
   padding: 8px 14px 10px;
@@ -562,14 +563,4 @@ body {
   flex-direction: row;
   align-items: center;
   padding: 7px 12px;
-}
-
-@keyframes lock-flash {
-  from {
-    background: var(--act-soft);
-  }
-}
-
-.lock-bar.is-flash {
-  animation: lock-flash 700ms var(--ease);
 }

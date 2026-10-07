@@ -9,7 +9,7 @@ let G;
 
 beforeEach(async () => {
   installFakeBrowser();
-  AP = await loadAtPeace([...CORE_SCRIPTS, 'src/content/guard-core.js']);
+  AP = await loadAtPeace([...CORE_SCRIPTS, 'src/shared/breath.js', 'src/content/guard-core.js']);
   G = AP.guard;
   mock.method(console, 'warn', () => {});
 });
@@ -101,8 +101,8 @@ describe('decide', () => {
 });
 
 /** A guard wired to a fake world. */
-function harness({ siteKey = 'youtube', state = {}, settings = {}, pauseMedia } = {}) {
-  const log = { overlays: [], hidden: 0, navigations: [], closed: 0, paused: 0, keepPaused: [], reads: 0 };
+function harness({ siteKey = 'youtube', state = {}, settings = {}, pauseMedia, finish, playing = true, reply } = {}) {
+  const log = { overlays: [], hidden: 0, navigations: [], closed: 0, paused: 0, resumed: 0, keepPaused: [], reads: 0, sent: [], finishWatchers: [] };
   const timers = [];
   let now = T0;
   let stored = { state, settings };
@@ -139,8 +139,20 @@ function harness({ siteKey = 'youtube', state = {}, settings = {}, pauseMedia } 
     showOverlay: (spec) => log.overlays.push(spec),
     hideOverlay: () => log.hidden++,
     keepPaused: (on) => log.keepPaused.push(on),
+    send: async (type, payload) => {
+      log.sent.push([type, payload]);
+      return reply ? reply(type, payload) : { ok: true };
+    },
   };
-  const guard = G.create({ siteKey, siteName: 'YouTube', pauseMedia: pauseMedia ?? (() => log.paused++), env });
+  const guard = G.create({
+    siteKey,
+    siteName: 'YouTube',
+    pauseMedia: pauseMedia ?? (() => log.paused++),
+    resumeMedia: () => log.resumed++,
+    isPlaying: () => playing,
+    finish,
+    env,
+  });
   return {
     guard,
     log,
@@ -182,24 +194,25 @@ describe('guard controller: session expiry', () => {
     assert.equal(h.log.overlays.length, 1);
     const [overlay] = h.log.overlays;
     assert.equal(overlay.title, 'Your 5 minutes are up.');
-    assert.equal(overlay.body, undefined, 'a title and two buttons: no explanation underneath');
-    assert.deepEqual(overlay.actions.map((a) => a.label), ['Leave YouTube', 'Take a breath']);
+    assert.equal(overlay.body, undefined, 'a title only: no sentence underneath');
+    assert.equal(overlay.view, 'note');
+    assert.deepEqual(overlay.actions.map((a) => a.label), ['Leave', 'Breathe again'], 'no video to finish here');
     assert.equal(overlay.actions[0].primary, true);
     assert.equal(h.log.paused, 1);
     assert.deepEqual(h.log.keepPaused, [true]);
   });
 
-  test('Leave closes the tab; Take a breath goes to the pause page with this page in the hash', async () => {
+  test('Leave closes the tab; Breathe again does not navigate anywhere', async () => {
     const h = harness({ state: { sessions: { youtube: T0 - 1 }, sessionMinutes: { youtube: 5 } } });
     await h.guard.start();
     const [leave, breath] = h.log.overlays[0].actions;
     await leave.onClick();
     assert.equal(h.log.closed, 1);
     assert.deepEqual(h.log.navigations, []);
-    breath.onClick();
-    assert.deepEqual(h.log.navigations, ['ext://src/pages/pause/pause.html#https://www.youtube.com/watch?v=abc']);
+    await breath.onClick();
+    assert.deepEqual(h.log.navigations, [], 'the breath happens in place: no navigation, no reload');
+    assert.equal(h.log.overlays.at(-1).view, 'breath');
   });
-
   test('if the tab cannot be closed, Leave falls back to the pause page', async () => {
     const h = harness({ state: { sessions: { youtube: T0 - 1 } } });
     h.guard.start();
@@ -225,7 +238,7 @@ describe('guard controller: session expiry', () => {
     });
     await failing.start();
     await env.overlays.at(-1).actions[0].onClick();
-    assert.equal(env.navigations.at(-1), 'ext://src/pages/pause/pause.html#u');
+    assert.equal(env.navigations.at(-1), 'ext://src/pages/pause/pause.html#u', 'the pause page is only the way out when the tab cannot be closed');
   });
 
   test('when the background removes the ended session first, the page still shows the overlay', async () => {
@@ -394,6 +407,287 @@ describe('guard controller: reads', () => {
   });
 });
 
+/** What the YouTube feature offers: a controllable "finish this video". */
+function finishHooks({ available = true } = {}) {
+  const hooks = { watchers: [], stopped: 0, availableFor: [], available: available };
+  return {
+    hooks,
+    finish: {
+      available: (url) => {
+        hooks.availableFor.push(url);
+        return typeof hooks.available === 'function' ? hooks.available(url) : hooks.available;
+      },
+      watch: (onDone) => {
+        hooks.watchers.push(onDone);
+        return () => hooks.stopped++;
+      },
+    },
+  };
+}
+
+const EXPIRED = { state: { sessions: { youtube: T0 - 1 }, sessionMinutes: { youtube: 60 } } };
+
+describe('guard controller: the overlay after a session (finish this video, breathe in place)', () => {
+  test('on a watch page: Leave YouTube (primary) · Finish this video · Breathe again, Esc = finish', async () => {
+    const { finish } = finishHooks();
+    const h = harness({ ...EXPIRED, finish });
+    await h.guard.start();
+    const [overlay] = h.log.overlays;
+    assert.equal(overlay.title, 'Your 60 minutes are up.');
+    assert.equal(overlay.body, undefined);
+    assert.deepEqual(overlay.actions.map((a) => a.label), ['Leave YouTube', 'Finish this video', 'Breathe again']);
+    assert.deepEqual(overlay.actions.map((a) => Boolean(a.primary)), [true, false, false]);
+    assert.equal(overlay.hint, 'Esc: finish this video');
+    assert.equal(overlay.onEscape, overlay.actions[1].onClick);
+    assert.equal(h.guard.phase(), 'note');
+  });
+
+  test('elsewhere on YouTube (and on user sites): Leave · Breathe again, Esc = breathe', async () => {
+    const { finish } = finishHooks({ available: false });
+    const h = harness({ ...EXPIRED, finish });
+    await h.guard.start();
+    const [overlay] = h.log.overlays;
+    assert.deepEqual(overlay.actions.map((a) => a.label), ['Leave', 'Breathe again']);
+    assert.equal(overlay.hint, 'Esc: breathe');
+    assert.equal(overlay.onEscape, overlay.actions[1].onClick);
+  });
+
+  test('Finish this video: the overlay steps aside, the video plays on, and nothing keeps it paused', async () => {
+    const { finish, hooks } = finishHooks();
+    const h = harness({ ...EXPIRED, finish });
+    await h.guard.start();
+    assert.equal(h.log.paused, 1);
+    await h.log.overlays[0].actions[1].onClick();
+    assert.equal(h.guard.phase(), 'finishing');
+    assert.equal(h.log.hidden, 1);
+    assert.deepEqual(h.log.keepPaused, [true, false]);
+    assert.equal(h.log.resumed, 1, 'it was playing when the time ran out, so it plays on');
+    assert.equal(hooks.watchers.length, 1);
+    assert.deepEqual(h.log.navigations, []);
+  });
+
+  test('while finishing, the background removing the ended session (and other storage noise) changes nothing', async () => {
+    const { finish } = finishHooks();
+    const h = harness({ state: { sessions: { youtube: T0 + MIN }, sessionMinutes: { youtube: 1 } }, finish });
+    await h.guard.start();
+    await h.advance(MIN + 100);
+    assert.equal(h.log.overlays.length, 1);
+    await h.log.overlays[0].actions[1].onClick();
+    await h.change({ state: {}, settings: {} }); // the background's alarm removes the ended session
+    await h.change({ state: {}, settings: { 'general.theme': 'dark' } });
+    await h.advance(5 * MIN);
+    assert.equal(h.log.overlays.length, 1, 'the overlay is not drawn again for the same session');
+    assert.equal(h.guard.phase(), 'finishing');
+  });
+
+  test('a video that was already paused is not started by "Finish this video"', async () => {
+    const { finish } = finishHooks();
+    const h = harness({ ...EXPIRED, finish, playing: false });
+    await h.guard.start();
+    await h.log.overlays[0].actions[1].onClick();
+    assert.equal(h.log.resumed, 0);
+  });
+
+  test('the video ends: the overlay is back at once, the media paused and kept paused, and there is nothing left to finish', async () => {
+    const { finish, hooks } = finishHooks();
+    const h = harness({ ...EXPIRED, finish });
+    await h.guard.start();
+    await h.log.overlays[0].actions[1].onClick();
+    hooks.available = false; // the video has ended
+    h.log.paused = 0;
+    hooks.watchers[0]('ended');
+    assert.equal(h.guard.phase(), 'note');
+    assert.equal(hooks.stopped, 1, 'the watcher is gone');
+    assert.equal(h.log.paused, 1);
+    assert.deepEqual(h.log.keepPaused, [true, false, true]);
+    const back = h.log.overlays.at(-1);
+    assert.equal(back.title, 'Your 60 minutes are up.');
+    assert.deepEqual(back.actions.map((a) => a.label), ['Leave', 'Breathe again']);
+    assert.equal(back.hint, 'Esc: breathe');
+  });
+
+  test('another video is opened: the overlay is back before it starts, and offers to finish that one', async () => {
+    const { finish, hooks } = finishHooks();
+    const h = harness({ ...EXPIRED, finish });
+    await h.guard.start();
+    await h.log.overlays[0].actions[1].onClick();
+    hooks.available = (url) => url === '/watch?v=next';
+    hooks.watchers[0]('navigate', { url: '/watch?v=next' });
+    assert.equal(h.guard.phase(), 'note');
+    assert.deepEqual(hooks.availableFor.at(-1), '/watch?v=next', 'asked about the page that is coming, not the one that is leaving');
+    assert.deepEqual(h.log.overlays.at(-1).actions.map((a) => a.label), ['Leave YouTube', 'Finish this video', 'Breathe again']);
+    // …and a page that has no video offers no finish
+    hooks.available = (url) => url !== '/';
+    await h.log.overlays.at(-1).actions[1].onClick();
+    hooks.watchers[1]('navigate', { url: '/' });
+    assert.deepEqual(h.log.overlays.at(-1).actions.map((a) => a.label), ['Leave', 'Breathe again']);
+  });
+
+  test('a new session (here or elsewhere) while finishing stops the watching', async () => {
+    const { finish, hooks } = finishHooks();
+    const h = harness({ ...EXPIRED, finish });
+    await h.guard.start();
+    await h.log.overlays[0].actions[1].onClick();
+    await h.change({ state: { sessions: { youtube: T0 + 10 * MIN }, sessionMinutes: { youtube: 10 } }, settings: {} });
+    assert.equal(hooks.stopped, 1);
+    assert.equal(h.guard.phase(), null);
+    assert.equal(h.log.overlays.length, 1, 'nothing comes back after the end of that video: a new session runs');
+  });
+
+  test('stopping the guard leaves nothing watching', async () => {
+    const { finish, hooks } = finishHooks();
+    const h = harness({ ...EXPIRED, finish });
+    await h.guard.start();
+    await h.log.overlays[0].actions[1].onClick();
+    h.guard.stop();
+    assert.equal(hooks.stopped, 1);
+  });
+
+  test('"Finish this video" with nothing to finish any more falls back to the breath', async () => {
+    const { finish, hooks } = finishHooks();
+    const h = harness({ ...EXPIRED, finish });
+    await h.guard.start();
+    hooks.available = false; // the video ended while the overlay was up
+    await h.log.overlays[0].actions[1].onClick();
+    assert.equal(h.guard.phase(), 'breath');
+  });
+
+  test('a finish hook that throws is a "no": the overlay still works', async () => {
+    const h = harness({ ...EXPIRED, finish: { available: () => { throw new Error('page changed'); }, watch: () => () => {} } });
+    await h.guard.start();
+    assert.deepEqual(h.log.overlays[0].actions.map((a) => a.label), ['Leave', 'Breathe again']);
+  });
+
+  test('Breathe again: counts a visit, shows the breath for as long as the pause page would, then the choice', async () => {
+    const h = harness({ ...EXPIRED, settings: { 'pause.breathSeconds': 9, 'pause.sessionMinutes': '30' }, reply: (type) => (type === 'PAUSE_OPENED' ? { ok: true, opens: 4, breathSeconds: 9, sessionUntil: null } : { ok: true }) });
+    await h.guard.start();
+    await h.log.overlays[0].actions.at(-1).onClick();
+    assert.deepEqual(h.log.sent, [['PAUSE_OPENED', { siteKey: 'youtube', repeat: false }]]);
+    const breath = h.log.overlays.at(-1);
+    assert.equal(breath.view, 'breath');
+    assert.equal(breath.seconds, 9);
+    assert.equal(breath.title, 'Breathe in…');
+    assert.equal(h.guard.phase(), 'breath');
+    assert.deepEqual(h.log.navigations, []);
+    assert.equal(h.log.hidden, 0, 'redrawn in place, never hidden in between');
+    breath.onBreathDone();
+    const choice = h.log.overlays.at(-1);
+    assert.equal(choice.view, 'choice');
+    assert.equal(choice.kicker, '4th time today');
+    assert.equal(choice.title, 'Continue?');
+    assert.deepEqual(choice.minutes.map((m) => m.label), ['5 min', '10 min', '15 min', '30 min', '1 h']);
+    assert.equal(choice.selected, '30', 'the length from the settings is preselected');
+    assert.deepEqual(choice.actions.map((a) => a.label), ['Leave']);
+    assert.equal(h.guard.phase(), 'choice');
+    assert.equal(h.log.hidden, 0);
+  });
+
+  test('Esc on a page without a video is Breathe again; on a watch page it is Finish this video', async () => {
+    const plain = harness(EXPIRED);
+    await plain.guard.start();
+    plain.log.overlays[0].onEscape();
+    await new Promise((r) => setImmediate(r));
+    assert.equal(plain.guard.phase(), 'breath');
+
+    const { finish, hooks } = finishHooks();
+    const watch = harness({ ...EXPIRED, finish });
+    await watch.guard.start();
+    watch.log.overlays[0].onEscape();
+    assert.equal(watch.guard.phase(), 'finishing');
+    assert.equal(hooks.watchers.length, 1);
+  });
+
+  test('the breath and the choice are not dismissed by Esc (they offer no Escape at all)', async () => {
+    const h = harness(EXPIRED);
+    await h.guard.start();
+    await h.log.overlays[0].actions.at(-1).onClick();
+    assert.equal(h.log.overlays.at(-1).onEscape, undefined);
+    h.log.overlays.at(-1).onBreathDone();
+    assert.equal(h.log.overlays.at(-1).onEscape, undefined);
+  });
+
+  test('without the background the breath still works (it just is not counted), with the settings\' length', async () => {
+    const h = harness({ ...EXPIRED, settings: { 'pause.breathSeconds': 12 }, reply: () => Promise.reject(new Error('no receiver')) });
+    await h.guard.start();
+    await h.log.overlays[0].actions.at(-1).onClick();
+    assert.equal(h.log.overlays.at(-1).seconds, 12);
+    h.log.overlays.at(-1).onBreathDone();
+    assert.equal(h.log.overlays.at(-1).kicker, undefined, 'no count to show');
+  });
+
+  test('if a session already runs (started in another tab), there is no breath: the overlay goes away through storage', async () => {
+    const h = harness({ ...EXPIRED, reply: () => ({ ok: true, opens: 2, breathSeconds: 6, sessionUntil: T0 + 5 * MIN }) });
+    await h.guard.start();
+    await h.log.overlays[0].actions.at(-1).onClick();
+    assert.equal(h.log.overlays.length, 1, 'no breath drawn');
+    await h.change({ state: { sessions: { youtube: T0 + 5 * MIN } }, settings: {} });
+    assert.equal(h.log.hidden, 1);
+  });
+
+  test('Continue for N min: PAUSE_CONTINUE, no navigation, the overlay goes, the video resumes where it was', async () => {
+    const h = harness({ ...EXPIRED, reply: (type) => (type === 'PAUSE_OPENED' ? { ok: true, opens: 1, breathSeconds: 6, sessionUntil: null } : { ok: true, until: T0 + 10 * MIN }) });
+    await h.guard.start();
+    await h.log.overlays[0].actions.at(-1).onClick();
+    h.log.overlays.at(-1).onBreathDone();
+    const choice = h.log.overlays.at(-1);
+    assert.equal(choice.kicker, 'first time today');
+    await choice.onContinue('10');
+    assert.deepEqual(h.log.sent.at(-1), ['PAUSE_CONTINUE', { siteKey: 'youtube', minutes: 10 }]);
+    assert.equal(h.log.hidden, 1);
+    assert.deepEqual(h.log.keepPaused.at(-1), false);
+    assert.equal(h.log.resumed, 1);
+    assert.deepEqual(h.log.navigations, []);
+    assert.equal(h.guard.phase(), null);
+  });
+
+  test('Continue when the new session reaches the page through storage first: it still resumes, exactly once', async () => {
+    const h = harness({ ...EXPIRED, reply: async (type) => {
+      if (type === 'PAUSE_OPENED') return { ok: true, opens: 1, breathSeconds: 6, sessionUntil: null };
+      await h.change({ state: { sessions: { youtube: T0 + 15 * MIN }, sessionMinutes: { youtube: 15 } }, settings: {} });
+      return { ok: true };
+    } });
+    await h.guard.start();
+    await h.log.overlays[0].actions.at(-1).onClick();
+    h.log.overlays.at(-1).onBreathDone();
+    await h.log.overlays.at(-1).onContinue('15');
+    assert.equal(h.log.resumed, 1);
+    assert.deepEqual(h.log.keepPaused.filter(Boolean), [true], 'kept paused once');
+    assert.equal(h.log.keepPaused.at(-1), false, 'and let go (more than once is harmless)');
+    assert.equal(h.guard.phase(), null);
+  });
+
+  test('a Continue the background refuses shows a short problem line and keeps the choice', async () => {
+    const h = harness({ ...EXPIRED, reply: (type) => (type === 'PAUSE_OPENED' ? { ok: true, opens: 1, breathSeconds: 6, sessionUntil: null } : { ok: false, error: 'handler-failed' }) });
+    await h.guard.start();
+    await h.log.overlays[0].actions.at(-1).onClick();
+    h.log.overlays.at(-1).onBreathDone();
+    await h.log.overlays.at(-1).onContinue('5');
+    const again = h.log.overlays.at(-1);
+    assert.equal(again.view, 'choice');
+    assert.equal(again.note, 'That did not work. Try again.');
+    assert.equal(h.log.resumed, 0);
+    assert.equal(h.guard.phase(), 'choice');
+  });
+
+  test('a focus block that starts during the breath sends the tab to the blocked page (nothing keeps it here)', async () => {
+    const h = harness(EXPIRED);
+    await h.guard.start();
+    await h.log.overlays[0].actions.at(-1).onClick();
+    await h.change({ state: { blocks: [{ reason: 'focus', until: T0 + 25 * MIN, siteKeys: ['youtube'] }] }, settings: {} });
+    assert.equal(h.log.navigations.length, 1);
+    assert.match(h.log.navigations[0], /blocked\.html\?reason=focus#/);
+  });
+
+  test('Leave in the choice closes the tab like the first Leave', async () => {
+    const h = harness(EXPIRED);
+    await h.guard.start();
+    await h.log.overlays[0].actions.at(-1).onClick();
+    h.log.overlays.at(-1).onBreathDone();
+    await h.log.overlays.at(-1).actions[0].onClick();
+    assert.equal(h.log.closed, 1);
+  });
+});
+
 describe('guard controller: sites resolved from storage (user-added sites)', () => {
   test('resolveSiteKey runs on the first read; a page of an unconfigured site does nothing', async () => {
     const sites = [{ siteKey: 'reddit.com', domain: 'reddit.com' }];
@@ -420,7 +714,8 @@ describe('guard controller: sites resolved from storage (user-added sites)', () 
     await mine.start();
     assert.equal(mine.siteKey(), 'reddit.com');
     assert.equal(log.overlays.length, 1);
-    assert.equal(log.overlays[0].actions[0].label, 'Leave www.reddit.com');
+    assert.deepEqual(log.overlays[0].actions.map((a) => a.label), ['Leave', 'Breathe again']);
+    assert.equal(log.overlays[0].hint, 'Esc: breathe');
     const other = make('example.org');
     await other.start();
     assert.equal(other.siteKey(), null);

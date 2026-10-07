@@ -8,8 +8,8 @@ import { loadAtPeace, installFakeBrowser, uninstallFakeBrowser, CORE_SCRIPTS, SC
 
 /** Every YouTube setting that must exist: section → ids without the "yt.<section>." prefix. Keep in sync on purpose. */
 const EXPECTED = {
-  general: ['grayscale', 'thumbnails', 'disableHoverPreview', 'calmTitles', 'hideViewCounts', 'hideUploadDates', 'hideDurations', 'hideChannelAvatars', 'hideBadges', 'hideWatchedProgress', 'hideWatched', 'hideAds', 'hidePremiumUpsells', 'hideMixes', 'hidePlayables'],
-  masthead: ['hideSearchSuggestions', 'hideVoiceSearch', 'hideSearchBar', 'hideCreate', 'hideNotifications', 'hideGuideButton', 'hideAICompanion', 'hideCountryCode', 'hideDoodle', 'hideMastheadAd'],
+  general: ['grayscale', 'thumbnails', 'disableHoverPreview', 'hideViewCounts', 'hideUploadDates', 'hideDurations', 'hideChannelAvatars', 'hideBadges', 'hideWatchedProgress', 'hideWatched', 'hideAds', 'hidePremiumUpsells', 'hideMixes', 'hidePlayables'],
+  masthead: ['hideSearchSuggestions', 'hideSearchHistory', 'hideVoiceSearch', 'hideSearchBar', 'hideCreate', 'hideNotifications', 'hideGuideButton', 'hideAICompanion', 'hideCountryCode', 'hideDoodle', 'hideMastheadAd'],
   guide: ['hideAll', 'hideMini', 'hideHome', 'hideShorts', 'hideSubscriptionsEntry', 'hideYouEntry', 'hideHistory', 'hidePlaylists', 'hideYourVideos', 'hideWatchLater', 'hideLiked', 'hideDownloads', 'hideCourses', 'hideSubscriptionsSection', 'hideExploreSection', 'hideMoreFromYouTube', 'hideSettingsSection', 'hideFooter', 'hideSignInPromo'],
   home: ['feedMode', 'redirectUrl', 'hideChips', 'hideShortsShelf', 'hideNewsShelf', 'hidePostsShelf', 'hideOtherShelves', 'hideFeedNudge'],
   watch: ['hideRelated', 'hideRelatedShorts', 'hideRelatedChips', 'hideLiveChat', 'hidePlayerAds', 'hideShoppingShelf', 'hideMerch', 'hideTickets', 'hideFundraiser', 'hideHashtags', 'hideOwnerAvatar', 'hideSubscriberCount', 'hideJoinButton', 'hideLikeCounts', 'hideLikeButtons', 'hideShare', 'hideDownload', 'hideClip', 'hideThanks', 'hideSave', 'hideAsk', 'hideMoreActions', 'hideViewCount', 'hideUploadDate', 'hideDescription', 'hideAISummary', 'hideChapters', 'hideDescriptionExtras', 'hideInfoPanels', 'hideAmbientMode', 'disableAutoplay', 'noAutoStart', 'autoTheater', 'defaultSpeed', 'dismissStillWatching'],
@@ -18,7 +18,7 @@ const EXPECTED = {
   search: ['hideShorts', 'hideShelves', 'hideRelatedSearches', 'hideAds', 'hideAISummary', 'hideChannelResults', 'hideSnippets', 'hideFilterChips'],
   shorts: ['mode', 'hideComments', 'hideLikeCounts', 'hideRemix', 'hideSubscribe'],
   subs: ['hideShorts', 'hidePosts', 'hideLive', 'hideUpcoming', 'hideWatched'],
-  channel: ['openVideosTab', 'hideTrailer', 'hideHomeShelves', 'hideBanner', 'hideSubscriberCount', 'hideShortsTab', 'hideLiveTab', 'hidePodcastsTab', 'hidePlaylistsTab', 'hidePostsTab', 'hideStoreTab'],
+  channel: ['openVideosTab', 'hideTrailer', 'hideHomeShelves', 'hideRowShorts', 'hideRowPosts', 'hideRowMembers', 'hideRowLive', 'hideRowPopular', 'hideRowPlaylists', 'hideRowChannels', 'hideBanner', 'hideJoinButton', 'hideSubscriberCount', 'hideShortsTab', 'hideLiveTab', 'hidePodcastsTab', 'hidePlaylistsTab', 'hidePostsTab', 'hideStoreTab', 'hideShowsTab', 'hideCoursesTab', 'hideMembersTab', 'hideReleasesTab'],
   filters: ['keywords', 'channels', 'applyTo', 'commentKeywords'],
 };
 const EXPECTED_IDS = Object.entries(EXPECTED).flatMap(([section, names]) => names.map((n) => `yt.${section}.${n}`));
@@ -33,8 +33,11 @@ const PLAYER_REACHING = new Set(['yt.general.thumbnails', 'yt.general.hidePremiu
 /** Contract C5 (docs/reviews/phase-0-1.md): values the page bridge may tag. */
 const BRIDGE = {
   'data-at-peace-entry': ['home', 'shorts', 'subscriptions', 'you', 'history', 'playlists', 'your-videos', 'watch-later', 'liked', 'downloads', 'courses', 'your-clips'],
-  'data-at-peace-tab': ['home', 'videos', 'shorts', 'streams', 'podcasts', 'playlists', 'posts', 'store', 'courses', 'releases'],
+  'data-at-peace-tab': ['home', 'videos', 'shorts', 'streams', 'podcasts', 'playlists', 'posts', 'store', 'courses', 'releases', 'shows', 'members'],
   'data-at-peace-action': ['like', 'share', 'download', 'clip', 'thanks', 'save', 'ask', 'more', 'join'],
+  // Phase 7b: the rows of a channel's Home tab (by what they hold) and its header buttons.
+  'data-at-peace-shelf': ['shorts', 'posts', 'channels', 'playlists', 'members', 'live', 'popular', 'videos', 'series', 'podcasts'],
+  'data-at-peace-channel-action': ['join', 'subscribe', 'store', 'community'],
 };
 
 let AP;
@@ -111,7 +114,7 @@ describe('catalog shape', () => {
       assert.match(def.description, /^[A-Z"]/, `${def.id} description should start with a capital`);
       assert.doesNotMatch(`${def.label} ${def.description}`, /\p{Extended_Pictographic}/u, `${def.id}: no emoji`);
       assert.ok(def.group && def.group.trim() !== '', `${def.id} needs a group`);
-      assert.equal(def.since, '0.1.0', `${def.id} since`);
+      assert.match(def.since, /^0\.[12]\.0$/, `${def.id} since`);
     }
   });
 
@@ -254,17 +257,17 @@ describe('selector hygiene (PLAN §6.2)', () => {
     for (const def of catalog) {
       const sels = selectorsOf(def).map((s) => s.selector);
       for (const sel of sels) {
-        for (const m of sel.matchAll(/\[(data-at-peace-(?:entry|tab|action))="([^"]*)"\]/g)) {
+        for (const m of sel.matchAll(/\[(data-at-peace-(?:entry|tab|action|shelf|channel-action))="([^"]*)"\]/g)) {
           assert.ok(BRIDGE[m[1]].includes(m[2]), `${def.id}: unknown ${m[1]} value "${m[2]}"`);
         }
-        assert.doesNotMatch(sel, /data-at-peace-(?!entry|tab|action)/, `${def.id}: unknown bridge attribute in ${sel}`);
+        assert.doesNotMatch(sel, /data-at-peace-(?!entry|tab|action|shelf|channel-action)/, `${def.id}: unknown bridge attribute in ${sel}`);
       }
-      const usesBridge = sels.some((s) => /data-at-peace-(entry|tab|action)/.test(s));
-      const onlyBridge = usesBridge && sels.every((s) => /data-at-peace-(entry|tab|action)/.test(s) || /ytd-reel-shelf-renderer/.test(s));
+      const usesBridge = sels.some((s) => /data-at-peace-(entry|tab|action|shelf|channel-action)/.test(s));
+      const onlyBridge = usesBridge && sels.every((s) => /data-at-peace-(entry|tab|action|shelf|channel-action)/.test(s) || /ytd-reel-shelf-renderer/.test(s));
       if (def.feature === 'bridgeTags') assert.ok(usesBridge, `${def.id} claims bridgeTags but uses no tag`);
-      if (onlyBridge && !/yt\.channel\.hideShortsTab/.test(def.id)) assert.equal(def.feature, 'bridgeTags', `${def.id} depends on bridge tags only`);
+      if (onlyBridge) assert.equal(def.feature, 'bridgeTags', `${def.id} depends on bridge tags only`);
     }
-    // The three families all appear.
+    // All families appear.
     const all = catalog.flatMap(selectorsOf).map((s) => s.selector).join('\n');
     for (const attr of Object.keys(BRIDGE)) assert.match(all, new RegExp(attr));
   });
@@ -394,6 +397,5 @@ describe('typed settings', () => {
     assert.deepEqual(S.get('yt.shorts.mode').options.map((o) => o.value), ['allow', 'watch', 'block']);
     assert.deepEqual(S.get('yt.home.feedMode').options.map((o) => o.value), ['show', 'hide', 'subscriptions', 'watchLater', 'playlists', 'custom']);
     assert.deepEqual(S.get('yt.general.thumbnails').options.map((o) => o.value), ['show', 'blur', 'grayscale', 'hide']);
-    assert.deepEqual(S.get('yt.general.calmTitles').options.map((o) => o.value), ['off', 'sentence']);
   });
 });

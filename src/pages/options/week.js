@@ -64,7 +64,7 @@ function renderTable(week) {
 
 /** Asks, then has the background forget every stored day. While the settings lock holds it asks for the unlock too (clearing resets a daily limit). */
 async function clearHistory() {
-  const ok = await AP.ui.confirm('This removes the usage numbers kept in this browser. Your settings stay. A daily limit starts counting from zero again.', {
+  const ok = await AP.ui.confirm('Removes your usage numbers. A daily limit starts again from zero.', {
     title: 'Clear usage history?',
     confirmLabel: 'Clear history',
     danger: true,
@@ -74,12 +74,12 @@ async function clearHistory() {
   let res = await send();
   if (res?.error === 'locked') {
     if (!(await AP.ui.requestUnlock())) {
-      AP.ui.toast('Locked: nothing was cleared.');
+      AP.ui.toast('Locked.');
       return;
     }
     res = await send();
   }
-  AP.ui.toast(res?.ok ? 'Usage history cleared' : 'That could not be cleared.');
+  AP.ui.toast(res?.ok ? 'Usage history cleared' : 'Could not clear.');
 }
 
 /** @returns {{ el: HTMLElement, refresh: () => Promise<void> }} */
@@ -99,7 +99,7 @@ export function buildWeek() {
       ...[
         week.hasData
           ? renderTable(week)
-          : h('p', { class: 'empty' }, 'Nothing to show yet. Once you have used YouTube with At Peace on, the last seven days appear here.'),
+          : h('p', { class: 'empty' }, 'Nothing yet.'),
         Object.keys(stats).length > 0 &&
           h('p', { class: 'week-foot' }, h('button', { type: 'button', class: 'btn btn-quiet', onClick: () => clearHistory() }, 'Clear usage history…')),
       ].filter(Boolean),

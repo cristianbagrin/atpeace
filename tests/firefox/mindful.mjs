@@ -215,13 +215,13 @@ test('expiry: the session ends → the video stops and the overlay covers the pa
   assert.deepEqual(await ourErrors(from), []);
 });
 
-test('expiry: Escape does nothing; a block that starts now beats the overlay and sends the tab to the blocked page', async (t) => {
+test('expiry: on a watch page Escape is "Finish this video" (the overlay steps aside); a block that starts now still sends the tab to the blocked page', async (t) => {
   if (captcha) return t.skip('no live YouTube tab: Google served its captcha page (/sorry/) to the Continue step above');
   await driver.switchTo().window(youtubeHandle);
   const watchUrl = await driver.getCurrentUrl();
+  assert.equal(await driver.executeScript(() => document.querySelector('[data-at-peace-overlay]')?.getAttribute('data-at-peace-view')), 'note');
   await driver.actions().sendKeys(Key.ESCAPE).perform();
-  await sleep(300);
-  assert.equal(await overlayTitle(), 'Your 15 minutes are up.');
+  await driver.wait(async () => (await overlayTitle()) === null, 5000, 'Escape on a watch page did not step the overlay aside');
   assert.equal((await send('FOCUS_START', { minutes: 25 })).ok, true);
   // The page guard (a content script) navigates to a moz-extension:// page: Firefox must allow it.
   await waitUrl((u) => u.startsWith(extUrl('src/pages/blocked/blocked.html')), 15_000, 'guard redirect to the blocked page');

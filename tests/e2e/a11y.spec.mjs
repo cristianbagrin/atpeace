@@ -74,6 +74,34 @@ test('axe: popup, options (basic and advanced) and welcome have no violations', 
   }
 });
 
+test('axe: the popup\'s tabs (All with groups open and a search, Focus with a block running), the preset name field and the lock bar', async () => {
+  await resetStorage();
+  const lock = { mode: 'friction', waitSeconds: 10 };
+  await configure({ 'advanced.lock': lock });
+  const page = await openPage(...names.popup);
+  const tab = (name) => page.getByRole('tab', { name, exact: true });
+  await tab('All').click();
+  await page.locator('.grp-head').nth(1).click();
+  assert.deepEqual(await violations(page), [], 'popup: All, a second group open');
+  await page.locator('input[type="search"]').fill('hide');
+  assert.deepEqual(await violations(page), [], 'popup: All, searching');
+  await page.locator('input[type="search"]').press('Escape');
+  await tab('Focus').click();
+  assert.deepEqual(await violations(page), [], 'popup: Focus');
+  assert.equal((await send('FOCUS_START', { minutes: 25 })).ok, true);
+  await page.getByRole('button', { name: 'End early' }).waitFor();
+  assert.deepEqual(await violations(page), [], 'popup: Focus, a block running');
+  await page.locator('#preset-select').selectOption('::new');
+  await page.locator('#sheet input').waitFor();
+  assert.deepEqual(await violations(page), [], 'popup: the preset name field');
+  await page.locator('#master input.switch').click(); // locked: refused, the bar blinks and says so
+  await page.locator('.lock-bar').getByText('Locked.').waitFor();
+  assert.deepEqual(await violations(page), [], 'popup: locked');
+  await page.close();
+  await send('FOCUS_END');
+  await resetStorage();
+});
+
 test('axe: the pause page while breathing and when it asks, and the blocked page', async () => {
   await resetStorage();
   await configure({ 'pause.enabled': true, 'pause.breathSeconds': 3 });
@@ -178,8 +206,8 @@ test('keyboard: the pause page can be finished with the keyboard alone (the choi
 test('keyboard: the options page opens a dialog with focus inside it, keeps Tab inside, and Escape gives focus back', async () => {
   await resetStorage();
   const page = await openPage(...names.options);
-  const opener = page.getByRole('button', { name: /preset/i }).first();
-  assert.ok((await opener.count()) > 0, 'there is a presets button');
+  const opener = page.getByRole('button', { name: 'Reset…' });
+  assert.equal(await opener.count(), 1, 'a button that opens a confirmation dialog');
   await opener.focus();
   await page.keyboard.press('Enter');
   await page.waitForSelector('dialog[open]', { timeout: 5000 });

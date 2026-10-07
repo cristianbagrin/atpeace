@@ -101,7 +101,7 @@ describe('script load-order lists stay in sync', () => {
     assert.equal(rest.at(-1), 'src/sites/youtube/main.js');
     // Everything between page.js and main.js is a feature file, or a helper the features share:
     // the bridge client and the redirect catalog (Contract C2, Phase 3b), the overlay and the pause/focus guard core (Phase 3c).
-    const SHARED = ['src/sites/youtube/bridge-client.js', 'src/sites/youtube/redirects.js', 'src/content/overlay.js', 'src/content/guard-core.js', 'src/content/picker.js'];
+    const SHARED = ['src/sites/youtube/bridge-client.js', 'src/sites/youtube/redirects.js', 'src/shared/breath.js', 'src/content/overlay.js', 'src/content/guard-core.js', 'src/content/picker.js'];
     for (const f of rest.slice(2, -1)) {
       if (!SHARED.includes(f)) assert.match(f, /^src\/sites\/youtube\/features\/[\w-]+\.js$/, f);
     }
@@ -110,6 +110,7 @@ describe('script load-order lists stay in sync', () => {
     for (const f of ['session-guard', 'time-tracker']) {
       assert.ok(at(`src/sites/youtube/features/${f}.js`) > at('src/content/guard-core.js'), `${f} loads after guard-core.js`);
       assert.ok(at('src/content/guard-core.js') > at('src/content/overlay.js'), 'guard-core.js loads after overlay.js');
+      assert.ok(at('src/content/overlay.js') > at('src/shared/breath.js'), 'overlay.js loads after breath.js (the breath it draws)');
     }
   });
 

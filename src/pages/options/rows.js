@@ -48,7 +48,7 @@ export function buildRow(def, initialValue, save, { onUnlock } = {}) {
   const lockEl = h(
     'p',
     { class: 'row-lock', role: 'status', hidden: true },
-    h('span', null, 'Locked. Showing something again needs an unlock first.'),
+    h('span', null, 'Locked.'),
     ' ',
     h('button', { type: 'button', class: 'btn btn-quiet', onClick: () => onUnlock?.() }, 'Unlock…'),
   );

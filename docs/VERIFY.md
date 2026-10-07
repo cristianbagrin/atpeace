@@ -181,8 +181,15 @@ Shorts" and "Hide Subscribe on Shorts" there.
    bottom right says "Press Esc to close" (Esc is the same as Close), and nothing else is on the page:
    no address, no question to answer. Press Continue: YouTube opens. Open another YouTube tab: no
    second pause while the session lasts. (Set "Default time when I continue" to 5 minutes and wait if you
-   want to see "Your 5 minutes are up." with **Leave YouTube** and **Take a breath**, and the video
-   pausing. It always appears; there is no setting for it.)
+   want to see the "time is up" card: "Your 5 minutes are up." and nothing else but the choices, and the
+   video pausing. It always appears; there is no setting for it. On a video page the choices are
+   **Leave YouTube** · **Finish this video** · **Breathe again**; elsewhere **Leave** · **Breathe
+   again**. Esc takes the gentle one (finish the video on a video page, breathe elsewhere); a small
+   line under the buttons says which. **Finish this video**: the card steps aside, the video plays on,
+   and the card is back when the video ends (before the next one starts) or when you open another
+   video or page. **Breathe again** happens on the page, no reload: the card turns into the breathing
+   dial, then "Continue?" with 5 min … 1 h; Continue starts a new session and the video goes on where
+   it was.)
 2. Press **Close YouTube** on a fresh pause: the tab goes back or closes.
 3. Popup, under **Block YouTube for**, press **25 min**. Expect: open YouTube tabs turn into the same
    indigo page, now saying "YouTube is closed for now." with a large countdown and the time it ends, and a

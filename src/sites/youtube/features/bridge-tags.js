@@ -2,7 +2,8 @@
 // one setting that needs the tags is on, and off again (tags removed) when none is.
 //
 // The attributes themselves (`data-at-peace-entry` on guide entries, `data-at-peace-tab` on channel
-// tabs, `data-at-peace-action` on the buttons under the video) are written by page-bridge.js, which can
+// tabs, `data-at-peace-action` on the buttons under the video, `data-at-peace-shelf` on the rows of a channel's
+// Home tab, `data-at-peace-channel-action` on its header buttons) are written by page-bridge.js, which can
 // read YouTube's own data objects; the CSS that uses them is generated from the catalog. The list of
 // settings is not hand-kept: it is every catalog setting that is marked `feature: 'bridgeTags'` or whose
 // CSS mentions one of the tags, so a new setting that uses them turns the bridge on by itself.
@@ -11,7 +12,7 @@
   const AP = globalThis.AtPeace;
   const bridge = () => AP.yt.bridge;
 
-  const TAG = /data-at-peace-(?:entry|tab|action)/;
+  const TAG = /data-at-peace-(?:entry|tab|action|shelf|channel-action)/;
 
   /** Ids of the settings that need bridge tags. */
   function tagSettings(defs) {

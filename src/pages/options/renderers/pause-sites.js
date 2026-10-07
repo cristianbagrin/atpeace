@@ -25,18 +25,18 @@
    */
   function parseSiteInput(text, existing) {
     const raw = String(text ?? '').trim();
-    if (raw === '') return { ok: false, message: 'Type the address of a site, like example.com.' };
-    if (raw.includes('@') || /\s/.test(raw)) return { ok: false, message: 'That does not look like a site address.' };
+    if (raw === '') return { ok: false, message: 'Type a site, like example.com.' };
+    if (raw.includes('@') || /\s/.test(raw)) return { ok: false, message: 'Not a site address.' };
     let host;
     try {
       host = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`).hostname;
     } catch {
-      return { ok: false, message: 'That does not look like a site address.' };
+      return { ok: false, message: 'Not a site address.' };
     }
     host = host.toLowerCase().replace(/\.$/, '').replace(/^www\./, '');
-    if (BUILT_IN_HOSTS.has(host) || host === 'youtube.com') return { ok: false, message: 'YouTube is already in the list.' };
-    if (!host.includes('.') || /^\d+(\.\d+){3}$/.test(host) || host.includes(':')) return { ok: false, message: 'Use a site name like example.com, not an address with numbers.' };
-    if (host.length > 253 || !HOST_RE.test(host)) return { ok: false, message: 'That does not look like a site address.' };
+    if (BUILT_IN_HOSTS.has(host) || host === 'youtube.com') return { ok: false, message: 'YouTube is built in.' };
+    if (!host.includes('.') || /^\d+(\.\d+){3}$/.test(host) || host.includes(':')) return { ok: false, message: 'Use a name like example.com.' };
+    if (host.length > 253 || !HOST_RE.test(host)) return { ok: false, message: 'Not a site address.' };
     if (existing.some((s) => s.siteKey === host || s.domain === host)) return { ok: false, message: `${host} is already in the list.` };
     return { ok: true, domain: host };
   }
@@ -67,8 +67,7 @@
         'aria-label': 'Site to add',
       });
       const addButton = h('button', { type: 'button', class: 'btn' }, 'Add site');
-      const help = h('p', { class: 'field-help' }, 'Your browser will ask you to allow At Peace on that site. Nothing is read from the page except the address.');
-      const root = h('div', { class: ROOT_CLASS }, list, h('div', { class: 'adder' }, input, addButton), help, error);
+      const root = h('div', { class: ROOT_CLASS }, list, h('div', { class: 'adder' }, input, addButton), error);
 
       const save = async (next, successMessage) => {
         try {
@@ -79,7 +78,7 @@
           refreshAccess(); // access may have changed behind our back; the rows say what is true now
           return true;
         } catch (err) {
-          showError(String(err?.message ?? '') || 'That could not be saved.');
+          showError(String(err?.message ?? '') || 'Could not save.');
           return false;
         } finally {
           draw();
@@ -104,12 +103,12 @@
         request.then(
           (granted) => {
             access.set(site.domain, Boolean(granted));
-            if (!granted) showError(`Access to ${site.domain} was not granted, so its pause cannot work yet.`);
+            if (!granted) showError(`Access to ${site.domain} not granted.`);
             else showError(null);
             draw();
           },
           () => {
-            showError('The browser did not let us ask for access.');
+            showError('Could not ask for access.');
             draw();
           },
         );
@@ -148,9 +147,9 @@
             try {
               // Nothing else of ours uses this domain: hand the permission back.
               if (!remaining.some((s) => s.domain === site.domain)) await api.permissions.remove({ origins: [patternFor(site.domain)] });
-              ctx.toast(`Removed ${site.domain} and gave its access back.`);
+              ctx.toast(`Removed ${site.domain}`);
             } catch {
-              ctx.toast(`Removed ${site.domain}.`);
+              ctx.toast(`Removed ${site.domain}`);
             }
           });
           meta.append(remove);
@@ -177,13 +176,13 @@
         request
           .then(async (granted) => {
             if (!granted) {
-              showError(`Access to ${parsed.domain} was not granted, so it was not added.`);
+              showError(`Access to ${parsed.domain} not granted.`);
               return;
             }
             access.set(parsed.domain, true);
-            if (await save([...sites, { siteKey: parsed.domain, domain: parsed.domain, enabled: true }], `Added ${parsed.domain}.`)) input.value = '';
+            if (await save([...sites, { siteKey: parsed.domain, domain: parsed.domain, enabled: true }], `Added ${parsed.domain}`)) input.value = '';
           })
-          .catch(() => showError('The browser did not let us ask for access.'))
+          .catch(() => showError('Could not ask for access.'))
           .finally(() => {
             busy = false;
             draw();

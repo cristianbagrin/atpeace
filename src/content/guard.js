@@ -1,7 +1,8 @@
 // Content script for USER-ADDED sites (registered dynamically by src/background/guards.js once the
 // person granted access to the site). It is deliberately small: no schema, no engine, no styles on
 // the page. It works out which configured site this page belongs to, then runs the shared guard
-// (session-expiry overlay, block redirect) and the heartbeat for the stats and the daily limit.
+// (session-expiry overlay that can breathe in place, block redirect) and the heartbeat for the
+// stats and the daily limit.
 // YouTube has its own pair of features (session-guard, time-tracker) and never loads this file.
 (() => {
   'use strict';
@@ -15,6 +16,11 @@
     resolveSiteKey: (snapshot) => AP.guard.siteKeyForHost(location.hostname, snapshot.sites),
     pauseMedia: () => {
       for (const media of document.querySelectorAll('video, audio')) media.pause();
+    },
+    // After "Continue for …" what was playing goes on (nothing that ended starts over).
+    isPlaying: () => [...document.querySelectorAll('video, audio')].some((m) => !m.paused && !m.ended),
+    resumeMedia: () => {
+      for (const media of document.querySelectorAll('video, audio')) if (media.paused && !media.ended) media.play()?.catch?.(() => {});
     },
   });
 

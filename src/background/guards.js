@@ -19,6 +19,7 @@
     'src/shared/browser-api.js',
     'src/shared/util.js',
     'src/shared/messages.js',
+    'src/shared/breath.js',
     'src/content/overlay.js',
     'src/content/guard-core.js',
     'src/content/guard.js',

@@ -13,8 +13,8 @@ function download(name, text) {
 }
 
 /** A ledger row whose right side is a button. */
-function actionRow(label, description, button) {
-  return h('div', { class: 'row' }, h('div', { class: 'row-text' }, h('p', { class: 'row-label' }, label), h('p', { class: 'row-desc' }, description)), h('div', { class: 'row-control' }, button));
+function actionRow(label, button) {
+  return h('div', { class: 'row' }, h('div', { class: 'row-text' }, h('p', { class: 'row-label' }, label)), h('div', { class: 'row-control' }, button));
 }
 
 /** @returns {{ el: HTMLElement }} */
@@ -33,7 +33,7 @@ export function buildBackup() {
     file.value = '';
     if (!picked) return;
     const ok = await AP.ui.confirm(
-      `This replaces your current settings with the ones in “${picked.name}”. Presets saved in the file are added to yours. Your lock is never changed by an import.`,
+      `Replaces your settings with the ones in “${picked.name}”.`,
       { title: 'Import this backup?', confirmLabel: 'Import' },
     );
     if (!ok) return;
@@ -41,14 +41,14 @@ export function buildBackup() {
     try {
       text = await picked.text();
     } catch {
-      showReport({ tone: 'error', headline: 'Nothing was imported.', lines: ['The file could not be read.'] });
+      showReport({ tone: 'error', headline: 'Nothing was imported.', lines: ['Could not read the file.'] });
       return;
     }
     // An import replaces settings wholesale, so while the lock holds it asks for the unlock first.
     let imported = await AP.lock.importAll(text);
     if (imported.error === 'locked') {
       if (!(await AP.ui.requestUnlock())) {
-        AP.ui.toast('Locked: nothing was imported.');
+        AP.ui.toast('Locked.');
         return;
       }
       imported = await AP.lock.importAll(text);
@@ -65,7 +65,7 @@ export function buildBackup() {
       class: 'btn',
       onClick: async () => {
         download(`at-peace-${AP.util.dayKey()}.json`, JSON.stringify(await AP.settings.exportAll(), null, 2));
-        AP.ui.toast('Backup saved to your downloads');
+        AP.ui.toast('Backup saved');
       },
     },
     'Export…',
@@ -79,7 +79,7 @@ export function buildBackup() {
       type: 'button',
       class: 'btn btn-danger',
       onClick: async () => {
-        const ok = await AP.ui.confirm('Every setting goes back to its default, which leaves YouTube untouched. Presets you saved stay. This cannot be undone, so export a backup first if you might want these settings again.', {
+        const ok = await AP.ui.confirm('Every setting goes back to its default. This cannot be undone.', {
           title: 'Reset all settings?',
           confirmLabel: 'Reset settings',
           danger: true,
@@ -88,13 +88,13 @@ export function buildBackup() {
         let done = await AP.lock.reset();
         if (done.error === 'locked') {
           if (!(await AP.ui.requestUnlock())) {
-            AP.ui.toast('Locked: nothing was reset.');
+            AP.ui.toast('Locked.');
             return;
           }
           done = await AP.lock.reset();
         }
         if (!done.ok) {
-          AP.ui.toast('That could not be reset.');
+          AP.ui.toast('Could not reset.');
           return;
         }
         report.hidden = true;
@@ -107,10 +107,10 @@ export function buildBackup() {
   const el = h(
     'div',
     { class: 'backup' },
-    actionRow('Export settings', 'Saves your settings and presets as a file you can keep or move to another browser.', exportBtn),
-    actionRow('Import settings', 'Loads a file made by Export. It replaces your current settings.', [importBtn, file]),
+    actionRow('Export settings', exportBtn),
+    actionRow('Import settings', [importBtn, file]),
     report,
-    actionRow('Reset all settings', 'Back to the defaults. Your saved presets stay.', resetBtn),
+    actionRow('Reset all settings', resetBtn),
   );
   return { el };
 }

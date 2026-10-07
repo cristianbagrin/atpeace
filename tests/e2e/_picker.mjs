@@ -49,9 +49,9 @@ export async function phase(page) {
 export const waitPhase = (page, wanted, timeout = 8000) =>
   page.waitForFunction((w) => (document.querySelector('[data-at-peace-picker]')?.getAttribute('data-at-peace-picker') ?? null) === w, wanted, { timeout });
 
-async function shadowRootObjectId(page) {
+async function shadowRootObjectId(page, hostSelector = '[data-at-peace-picker]') {
   const cdp = await session(page);
-  const { result } = await cdp.send('Runtime.evaluate', { expression: 'document.querySelector("[data-at-peace-picker]")' });
+  const { result } = await cdp.send('Runtime.evaluate', { expression: `document.querySelector(${JSON.stringify(hostSelector)})` });
   if (!result.objectId) return null;
   const { node } = await cdp.send('DOM.describeNode', { objectId: result.objectId, depth: 1, pierce: true });
   const root = node.shadowRoots?.[0];
@@ -61,8 +61,14 @@ async function shadowRootObjectId(page) {
 }
 
 /** Runs `fn` (a function declaration string) with the panel's shadow root as `this`. */
-async function inPanel(page, fn, args = []) {
-  const objectId = await shadowRootObjectId(page);
+const inPanel = (page, fn, args = []) => inShadow(page, '[data-at-peace-picker]', fn, args);
+
+/**
+ * Runs `fn` (a function declaration string) with the closed shadow root of the element matching
+ * `hostSelector` as `this`; null when there is no such element. Also used for the session-over overlay.
+ */
+export async function inShadow(page, hostSelector, fn, args = []) {
+  const objectId = await shadowRootObjectId(page, hostSelector);
   if (!objectId) return null;
   const cdp = await session(page);
   const { result, exceptionDetails } = await cdp.send('Runtime.callFunctionOn', {

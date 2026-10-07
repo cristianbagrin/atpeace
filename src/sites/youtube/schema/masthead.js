@@ -30,6 +30,19 @@
       since: '0.1.0',
     },
     {
+      id: 'yt.masthead.hideSearchHistory',
+      group: 'Search',
+      label: 'Hide previous searches',
+      type: 'toggle',
+      default: false,
+      // A row of the search box dropdown that comes from your history has a "Remove" link on its right (a
+      // class of its own: ytSuggestionComponentRemoveLink, … Dark, … ClearButton). Live suggestions never
+      // do, so only history goes. Observed in public style sheets and extensions; a signed-in check is on
+      // the verification list (docs/VERIFY.md): logged out YouTube shows no history.
+      hide: ['yt-searchbox .ytSuggestionComponentSuggestion:has([class*="ytSuggestionComponentRemoveLink"])'],
+      since: '0.2.0',
+    },
+    {
       id: 'yt.masthead.hideVoiceSearch',
       group: 'Search',
       label: 'Hide the microphone',

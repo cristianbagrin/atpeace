@@ -69,14 +69,6 @@ function parseTarget(raw) {
   }
 }
 
-/** 1 → "first", 2 → "2nd", 4 → "4th", 11 → "11th", 22 → "22nd". */
-function ordinal(n) {
-  if (n === 1) return 'first';
-  const mod100 = n % 100;
-  const suffix = mod100 >= 11 && mod100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] ?? 'th');
-  return `${n}${suffix}`;
-}
-
 function labelFor(key, sites) {
   if (key === 'youtube') return 'YouTube';
   const site = sites.find((s) => s.siteKey === key);
@@ -132,12 +124,6 @@ function setState(next) {
 
 let breath = null; // { animation, timers, ticker }
 
-/** In/out pairs of about 8 s each (4 in, 4 out), stretched evenly to fill `seconds`. */
-function breathPlan(seconds) {
-  const cycles = Math.max(1, Math.round(seconds / 8));
-  return { cycles, half: (seconds * 1000) / (cycles * 2) };
-}
-
 function setGuidance(text) {
   els.guidance.classList.add('is-fading');
   breath?.timers.push(
@@ -151,26 +137,17 @@ function setGuidance(text) {
 function startBreath() {
   cancelBreath();
   const total = breathSeconds * 1000;
-  const { cycles, half } = breathPlan(breathSeconds);
+  const { cycles, half } = AP.breath.plan(breathSeconds);
   breath = { animation: null, timers: [], ticker: null };
-  els.guidance.textContent = 'Breathe in…';
+  els.guidance.textContent = AP.breath.guidance(0);
   els.guidance.classList.remove('is-fading');
 
-  // The mint disc grows on the in-breath and shrinks on the out-breath, 0.6 ↔ 1.0, easing like a lung.
-  // Reduced motion: no scaling; the disc stays put and softly fades in and out, with a countdown.
-  const frames = [];
-  for (let i = 0; i <= cycles * 2; i++) {
-    const high = i % 2 === 1;
-    frames.push(
-      reducedMotion.matches
-        ? { opacity: high ? 1 : 0.55, transform: 'scale(0.8)', offset: i / (cycles * 2), easing: 'ease-in-out' }
-        : { transform: `scale(${high ? 1 : 0.6})`, offset: i / (cycles * 2), easing: 'cubic-bezier(0.45, 0, 0.55, 1)' },
-    );
-  }
+  // The mint disc grows on the in-breath and shrinks on the out-breath; reduced motion: it only fades, with a countdown.
+  const frames = AP.breath.frames(cycles, reducedMotion.matches);
   breath.animation = els.sun.animate(frames, { duration: total, fill: 'forwards' });
 
   for (let i = 1; i < cycles * 2; i++) {
-    breath.timers.push(setTimeout(() => setGuidance(i % 2 === 1 ? '…and out' : 'Breathe in…'), i * half));
+    breath.timers.push(setTimeout(() => setGuidance(AP.breath.guidance(i)), i * half));
   }
   breath.timers.push(setTimeout(finishBreath, total));
 
@@ -448,7 +425,7 @@ async function main() {
   }
   breathSeconds = info?.ok && info.breathSeconds > 0 ? info.breathSeconds : settings['pause.breathSeconds'];
   if (info?.ok && info.opens > 0) {
-    countKicker = `${ordinal(info.opens)} time today`;
+    countKicker = `${AP.breath.ordinal(info.opens)} time today`;
   }
 
   document.body.dataset.breath = String(breathSeconds); // how long this breath lasts (also a handle for tests)

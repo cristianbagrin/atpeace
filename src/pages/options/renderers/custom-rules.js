@@ -168,7 +168,7 @@
             if (redraw) draw();
             return true;
           } catch (err) {
-            showProblem(err?.message ?? 'That could not be saved.');
+            showProblem(err?.message ?? 'Could not save.');
             draw();
             return false;
           }
@@ -290,7 +290,7 @@
           createdAt: Date.now(),
         };
         clearUndo();
-        if (await commit([...rules, rule], { toast: 'Added. It is hidden now.', redraw: true })) {
+        if (await commit([...rules, rule], { toast: 'Added', redraw: true })) {
           adderSelector.value = '';
           adderNote.value = '';
         }

@@ -87,9 +87,7 @@ describe('isLoosening: selects', () => {
     assert.equal(loosens('focus.unlockFriction', 'phrase', 'wait'), true);
   });
 
-  test('titles: off → sentence is calmer; theme and playback speed are cosmetic', () => {
-    assert.equal(loosens('yt.general.calmTitles', 'off', 'sentence'), false);
-    assert.equal(loosens('yt.general.calmTitles', 'sentence', 'off'), true);
+  test('theme and playback speed are cosmetic', () => {
     assert.equal(loosens('general.theme', 'light', 'dark'), false);
     assert.equal(loosens('general.theme', 'dark', 'system'), false);
     assert.equal(loosens('yt.watch.defaultSpeed', 'default', '2'), false);

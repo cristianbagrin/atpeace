@@ -63,7 +63,7 @@ describe('parseSiteInput', () => {
 
   test('YouTube is built in, whatever form it is typed in; duplicates are refused', () => {
     for (const typed of ['youtube.com', 'www.youtube.com', 'https://m.youtube.com/watch?v=x', 'YOUTUBE.com']) {
-      assert.match(sites.parseSiteInput(typed, none).message, /YouTube is already/, typed);
+      assert.match(sites.parseSiteInput(typed, none).message, /YouTube is built in/, typed);
     }
     const existing = [{ siteKey: 'reddit.com', domain: 'reddit.com' }];
     assert.match(sites.parseSiteInput('www.reddit.com', existing).message, /already in the list/);

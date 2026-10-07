@@ -97,11 +97,11 @@ test('pause sites: refused access means nothing is added; bad input says why', a
   const editor = page.locator('[data-id="pause.sites"]');
   await editor.getByLabel('Site to add').fill('example.org');
   await editor.getByRole('button', { name: 'Add site' }).click();
-  await editor.getByRole('alert').filter({ hasText: 'was not granted' }).waitFor();
+  await editor.getByRole('alert').filter({ hasText: 'not granted' }).waitFor();
   assert.equal(await editor.locator('.site').count(), 1);
   assert.equal((await stored())['pause.sites'], undefined);
 
-  for (const [typed, message] of [['youtube.com', /already in the list/], ['', /Type the address/], ['localhost', /site name like/], ['not a site', /does not look like/]]) {
+  for (const [typed, message] of [['youtube.com', /built in/], ['', /Type a site/], ['localhost', /Use a name like/], ['not a site', /Not a site address/]]) {
     await editor.getByLabel('Site to add').fill(typed);
     await editor.getByRole('button', { name: 'Add site' }).click();
     await editor.getByRole('alert').filter({ hasText: message }).waitFor();

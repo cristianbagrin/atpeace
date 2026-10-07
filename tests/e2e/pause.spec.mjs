@@ -360,8 +360,8 @@ test('expiry: when the session ends the YouTube tab pauses the video and shows t
   await settle();
   assert.deepEqual((await readState()).state.sessions, {});
   assert.equal((await dnrRules()).length, 1);
-  // Keys never reach the page; Escape does nothing.
-  await page.keyboard.press('Escape');
+  // Keys never reach the page (the details of Escape, Finish this video and the breath are in overlay.spec.mjs).
+  assert.equal(await page.getAttribute('[data-at-peace-overlay]', 'data-at-peace-view'), 'note');
   await page.keyboard.press('k'); // YouTube's play/pause shortcut: the page must not see it
   assert.equal(page.isClosed(), false);
   assert.equal(await page.locator('[data-at-peace-overlay]').count(), 1);
@@ -370,7 +370,7 @@ test('expiry: when the session ends the YouTube tab pauses the video and shows t
   await Promise.race([closed, new Promise((_, reject) => setTimeout(() => reject(new Error('tab did not close')), 8000))]);
 });
 
-test('expiry: "Take a breath" opens the pause page with this page in the hash', async () => {
+test('expiry: "Breathe again" breathes in place: the page is not taken to the pause page and not reloaded', async () => {
   const page = await newTab();
   await page.goto(WATCH, { waitUntil: 'domcontentloaded' });
   await waitPauseState(page, 'choosing');
@@ -379,11 +379,14 @@ test('expiry: "Take a breath" opens the pause page with this page in the hash', 
   await configureSession(Date.now() + 2500);
   await page.waitForSelector('[data-at-peace-overlay]', { state: 'attached', timeout: 10_000 });
   await page.waitForTimeout(600);
-  await page.keyboard.press('Tab'); // Leave → Take a breath
+  await page.evaluate(() => { window.__same = 'still here'; });
+  await page.keyboard.press('Tab'); // Leave YouTube → Finish this video
+  await page.keyboard.press('Tab'); // → Breathe again
   await page.keyboard.press('Enter');
-  await page.waitForURL((u) => u.pathname.endsWith('/pause.html'), { timeout: 10_000 });
-  assert.equal(page.url(), `${extUrl('src/pages/pause/pause.html')}#${WATCH}`);
-  await waitPauseState(page, 'breathing');
+  await page.waitForFunction(() => document.querySelector('[data-at-peace-overlay]')?.getAttribute('data-at-peace-view') === 'breath');
+  assert.equal(page.url(), WATCH, 'no navigation to the pause page');
+  assert.equal(await page.evaluate(() => window.__same), 'still here', 'no reload');
+  await page.waitForFunction(() => document.querySelector('[data-at-peace-overlay]')?.getAttribute('data-at-peace-view') === 'choice', null, { timeout: 8000 });
   await page.close();
 });
 

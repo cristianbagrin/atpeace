@@ -651,6 +651,16 @@ dialog.dialog > form {
   font-size: 12.5px;
 }
 
+@keyframes lock-flash {
+  from {
+    background: var(--act-soft);
+  }
+}
+
+.lock-bar.is-flash {
+  animation: lock-flash 700ms var(--ease);
+}
+
 .unlock-lead {
   max-width: 52ch;
   color: var(--text-2);

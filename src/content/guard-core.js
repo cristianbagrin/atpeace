@@ -4,7 +4,11 @@
 // site we do not own we want to be small) and:
 //
 //   * when the pause SESSION for this site ends, pauses the media and shows the overlay
-//     "Your 15 minutes are up." → Leave (close the tab) / Take a breath (the pause page);
+//     "Your 15 minutes are up." with Leave (close the tab), Breathe again (the breath, IN PLACE: the
+//     overlay turns into the breathing dial, then "Continue for ..." starts a new session; the page is
+//     never reloaded) and, on a YouTube watch page, Finish this video (the overlay steps aside and comes
+//     back when that video ends or another page is opened). Esc takes the gentle choice: finish the
+//     video on a watch page, breathe elsewhere;
 //   * when a focus / schedule / limit BLOCK covers this site, sends the tab to the blocked page
 //     (full page loads are caught by the DNR rules; this covers tabs that are already open and
 //     in-page navigation);
@@ -28,6 +32,10 @@
   const MIN_BEAT_GAP_MS = 25_000;
   /** After a redirect the page is going away: skip storage reads this long (they would resolve into an unloading page). */
   const LEAVE_QUIET_MS = 3000;
+
+  /** The lengths "Continue for" offers after a breath in place (the same five as the pause page). */
+  const MINUTE_CHOICES = Object.freeze([5, 10, 15, 30, 60]);
+  const minuteLabel = (m) => (m === 60 ? '1 h' : `${m} min`);
 
   const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
@@ -57,7 +65,11 @@
       .map((b) => ({ reason: typeof b.reason === 'string' ? b.reason : 'focus', until: b.until, siteKeys: b.siteKeys.filter((k) => typeof k === 'string') }));
     const sites = Array.isArray(settings['pause.sites']) ? settings['pause.sites'].filter((s) => isObject(s) && typeof s.siteKey === 'string' && typeof s.domain === 'string') : [];
     const theme = settings['general.theme'];
+    const breath = Number(settings['pause.breathSeconds']);
+    const chosen = Number(settings['pause.sessionMinutes']);
     return {
+      breathSeconds: Number.isFinite(breath) ? Math.min(30, Math.max(3, Math.round(breath))) : 6,
+      defaultMinutes: MINUTE_CHOICES.includes(chosen) ? chosen : 15,
       sessions,
       sessionMinutes,
       blocks,
@@ -140,11 +152,19 @@
    * @property {(spec: object) => void} [showOverlay]
    * @property {() => void} [hideOverlay]
    * @property {(on: boolean) => void} [keepPaused]                              while the overlay is up, media that starts playing is paused again
+   * @property {(type: string, payload?: object) => Promise<any>} [send]         a message to the background (PAUSE_OPENED, PAUSE_CONTINUE)
+   */
+
+  /**
+   * @typedef {Object} FinishHooks  what a site offers for "Finish this video" (YouTube only)
+   * @property {(url?: string) => boolean} available   is there a video to finish (on `url`, default: this page)?
+   * @property {(onDone: (why: 'ended'|'navigate', info?: { url?: string|null }) => void) => (() => void)} watch
+   *   calls `onDone` when that video ends or another page is opened; returns the way to stop watching
    */
 
   /**
    * @param {{ siteKey?: string, siteName?: string, resolveSiteKey?: (snapshot: ReturnType<typeof parseSnapshot>) => string|null,
-   *   pauseMedia?: () => void, env?: GuardEnv }} options
+   *   pauseMedia?: () => void, resumeMedia?: () => void, isPlaying?: () => boolean, finish?: FinishHooks, env?: GuardEnv }} options
    */
   function create(options = {}) {
     const real = {
@@ -177,6 +197,7 @@
       pageUrl: () => location.href,
       navigate: (url) => location.replace(url),
       closeTab: () => AP.msg.send(AP.msg.TYPES.CLOSE_TAB),
+      send: (type, payload) => AP.msg.send(type, payload),
       showOverlay: (spec) => AP.overlay.show(spec),
       hideOverlay: () => AP.overlay.hide(),
       keepPaused: (on) => {
@@ -230,21 +251,150 @@
       if (!res?.ok) takeABreath(); // could not close the tab: the pause page is the next best calm place
     }
 
-    function showExpiry(minutes) {
+    // The overlay after a session: 'note' (the title and the choices) → 'finishing' (stepped aside until
+    // the video ends) | 'breath' → 'choice' (Continue for …). null = no overlay in play.
+    let phase = null;
+    let expiryMinutes = null;
+    let leaveLabel = 'Leave';
+    let resumeWanted = false; // the media was playing when the time ran out: Continue / Finish let it go on
+    let stopFinishWatch = () => {};
+    let breathing = false; // PAUSE_OPENED is on its way
+
+    const safely = (fn, what) => {
       try {
-        options.pauseMedia?.();
+        return fn();
       } catch (err) {
-        AP.warn('could not pause the media', err);
+        AP.warn(what, err);
+        return undefined;
       }
-      env.keepPaused(true);
+    };
+
+    const pauseMedia = () => safely(() => options.pauseMedia?.(), 'could not pause the media');
+    const resumeMedia = () => {
+      if (resumeWanted) safely(() => options.resumeMedia?.(), 'could not resume the media');
+    };
+    const finishAvailable = (url) => Boolean(safely(() => options.finish?.available(url), 'finish hook failed'));
+
+    /** Nothing of the overlay is left: no watchers, no keeping the media paused. */
+    function dismiss() {
+      overlayFor = null;
+      phase = null;
+      stopFinishWatch();
+      stopFinishWatch = () => {};
+      env.hideOverlay();
+      env.keepPaused(false);
+    }
+
+    /** The title and the choices. `url`: the page this is about when it is not this one yet (a navigation in flight). */
+    function renderNote(url) {
+      phase = 'note';
+      const canFinish = finishAvailable(url);
+      leaveLabel = canFinish ? `Leave ${options.siteName ?? 'this site'}` : 'Leave';
+      const actions = [{ label: leaveLabel, primary: true, onClick: leave }];
+      if (canFinish) actions.push({ label: 'Finish this video', onClick: finishThisVideo });
+      actions.push({ label: 'Breathe again', onClick: breatheAgain });
       env.showOverlay({
-        title: expiryTitle(minutes),
+        view: 'note',
+        title: expiryTitle(expiryMinutes),
         theme: snapshot?.theme ?? 'light',
-        actions: [
-          { label: `Leave ${options.siteName ?? 'this site'}`, primary: true, onClick: leave },
-          { label: 'Take a breath', onClick: takeABreath },
-        ],
+        actions,
+        hint: canFinish ? 'Esc: finish this video' : 'Esc: breathe',
+        onEscape: canFinish ? finishThisVideo : breatheAgain,
       });
+    }
+
+    function showExpiry(minutes) {
+      resumeWanted = Boolean(safely(() => options.isPlaying?.(), 'could not tell if the media plays'));
+      pauseMedia();
+      env.keepPaused(true);
+      expiryMinutes = minutes;
+      renderNote();
+    }
+
+    /** "Finish this video": the overlay steps aside, the video plays on, the overlay returns when it ends or the person goes elsewhere. */
+    function finishThisVideo() {
+      if (phase !== 'note') return;
+      if (!finishAvailable()) return breatheAgain();
+      phase = 'finishing';
+      env.hideOverlay();
+      env.keepPaused(false);
+      resumeMedia();
+      stopFinishWatch();
+      stopFinishWatch =
+        safely(
+          () =>
+            options.finish.watch((why, info) => {
+              if (phase !== 'finishing') return;
+              stopFinishWatch();
+              stopFinishWatch = () => {};
+              // Back before the next video can start: pause what plays, keep it paused, and ask again.
+              resumeWanted = why === 'navigate';
+              pauseMedia();
+              env.keepPaused(true);
+              renderNote(why === 'navigate' ? (info?.url ?? undefined) : undefined);
+            }),
+          'finish hook failed',
+        ) ?? (() => {});
+    }
+
+    /** "Breathe again": in place. The count goes up like a visit to the pause page, then the breath, then the choice. */
+    async function breatheAgain() {
+      if (phase !== 'note' || breathing) return;
+      breathing = true;
+      let info;
+      try {
+        info = await env.send(AP.msg.TYPES.PAUSE_OPENED, { siteKey, repeat: false });
+      } catch {
+        info = null; // never a trap: the breath works without the background, it just is not counted
+      } finally {
+        breathing = false;
+      }
+      if (phase !== 'note' || overlayFor === null) return; // something else happened meanwhile (a session elsewhere, a block)
+      if (info?.ok && info.sessionUntil > env.now()) return; // a session already runs: the storage change lets the person back in
+      const seconds = info?.ok && info.breathSeconds > 0 ? info.breathSeconds : (snapshot?.breathSeconds ?? 6);
+      const opens = info?.ok && info.opens > 0 ? info.opens : 0;
+      phase = 'breath';
+      env.showOverlay({
+        view: 'breath',
+        title: AP.breath.guidance(0),
+        seconds,
+        theme: snapshot?.theme ?? 'light',
+        onBreathDone: () => renderChoice(opens),
+      });
+    }
+
+    function renderChoice(opens, note) {
+      if (phase !== 'breath' && phase !== 'choice') return;
+      phase = 'choice';
+      env.showOverlay({
+        view: 'choice',
+        kicker: opens > 0 ? `${AP.breath.ordinal(opens)} time today` : undefined,
+        title: 'Continue?',
+        theme: snapshot?.theme ?? 'light',
+        actions: [{ label: leaveLabel, primary: true, onClick: leave }],
+        minutes: MINUTE_CHOICES.map((m) => ({ value: String(m), label: minuteLabel(m) })),
+        selected: String(snapshot?.defaultMinutes ?? 15),
+        onContinue: (value) => continueFor(Number(value), opens),
+        note,
+      });
+    }
+
+    /** "Continue for N min": a new session, no navigation; the video goes on where it was. */
+    async function continueFor(minutes, opens) {
+      let res;
+      try {
+        res = await env.send(AP.msg.TYPES.PAUSE_CONTINUE, { siteKey, minutes });
+      } catch {
+        res = { ok: false, error: 'failed' };
+      }
+      if (res?.ok || ['no-receiver', 'context-invalidated'].includes(res?.error)) {
+        // (The new session may already have taken the overlay away through storage: dismissing twice is harmless.)
+        dismiss();
+        resumeMedia();
+        return;
+      }
+      if (res?.error === 'blocked' || phase !== 'choice') return; // a focus block started: the guard sends the tab to the blocked page
+      renderChoice(opens, 'That did not work. Try again.');
     }
 
     /** Applies the current snapshot. Idempotent: safe to call on every event. */
@@ -270,11 +420,7 @@
           redirected = false;
           memory.knownUntil = decision.until;
           memory.knownMinutes = snapshot.sessionMinutes[siteKey] ?? null;
-          if (overlayFor !== null) {
-            overlayFor = null; // a new session started somewhere else: let the person back in
-            env.hideOverlay();
-            env.keepPaused(false);
-          }
+          if (overlayFor !== null) dismiss(); // a new session started (here or somewhere else): let the person back in
           clearTimer();
           timer = env.setTimeout(() => {
             timer = null;
@@ -291,11 +437,7 @@
         default:
           clearTimer();
           memory.knownUntil = null;
-          if (overlayFor !== null) {
-            overlayFor = null;
-            env.hideOverlay();
-            env.keepPaused(false);
-          }
+          if (overlayFor !== null) dismiss();
       }
     }
 
@@ -341,15 +483,13 @@
         clearTimer();
         for (const off of unsubscribe) off();
         unsubscribe = [];
-        if (overlayFor !== null) {
-          env.hideOverlay();
-          env.keepPaused(false);
-        }
-        overlayFor = null;
+        if (overlayFor !== null) dismiss();
       },
       refresh,
       /** The site this guard watches (null until resolved from the stored sites). */
       siteKey: () => siteKey,
+      /** Test hook: where the overlay is: null | 'note' | 'finishing' | 'breath' | 'choice'. */
+      phase: () => phase,
       /** Test hook: the pure decision for the current snapshot. */
       peek: () => (snapshot && siteKey ? decide(snapshot, siteKey, env.now(), memory) : null),
     };
