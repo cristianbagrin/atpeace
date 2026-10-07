@@ -3,6 +3,15 @@
 All notable changes to At Peace. The format follows [Keep a Changelog](https://keepachangelog.com/),
 and the version number follows [Semantic Versioning](https://semver.org/).
 
+Write what changed under "Unreleased" as you go. `npm run release` turns that section into the next
+version (see [docs/RELEASING.md](docs/RELEASING.md)).
+
+## Unreleased
+
+### Updates
+
+- Installed copies update themselves: Firefox and Zen check for a new signed version once a day.
+
 ## 0.1.0 - first release
 
 The first version: YouTube only, desktop (`www.youtube.com`), Firefox and Zen 140 or newer.

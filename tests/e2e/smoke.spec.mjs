@@ -2,6 +2,7 @@
 // difference between the two browsers shows up as one passing and one failing.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   launch,
   close,
@@ -26,7 +27,7 @@ test('background service worker is alive and answers GET_STATUS', async () => {
   const page = await openExtPage('src/pages/popup/popup.html');
   const status = await page.evaluate(() => chrome.runtime.sendMessage({ type: 'GET_STATUS' }));
   assert.equal(status.ok, true);
-  assert.equal(status.version, '0.1.0');
+  assert.equal(status.version, JSON.parse(readFileSync(new URL('../../manifest.json', import.meta.url), 'utf8')).version); // whatever the manifest says: a release changes it
   // Phase 3c: the full Contract C3 shape.
   for (const key of ['block', 'sessions', 'scheduleOverride', 'activeSchedules', 'today', 'limit']) assert.ok(key in status, `GET_STATUS has ${key}`);
 

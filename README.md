@@ -54,25 +54,12 @@ read straight from the folder, so after editing a file use **Reload** on that pa
 
 ### Keep it (permanent)
 
-Zen, like Firefox release, only keeps *signed* add-ons. Signing is free through the unlisted channel on
-addons.mozilla.org and needs your own Mozilla account:
+Zen, like Firefox release, only keeps *signed* add-ons. Mozilla signs each version privately (it is not
+listed publicly) and installed copies then update themselves. How to install the signed file, and how
+a new version is shipped: [docs/RELEASING.md](docs/RELEASING.md).
 
-1. Create an account at https://addons.mozilla.org/ and sign in.
-2. Get an API key and secret at https://addons.mozilla.org/developers/addon/api/key/.
-3. In the project folder:
-
-   ```sh
-   npm install
-   export WEB_EXT_API_KEY=...        # "JWT issuer"
-   export WEB_EXT_API_SECRET=...     # "JWT secret"
-   npm run sign
-   ```
-
-4. Signing takes a minute or two and writes a `.xpi` into `web-ext-artifacts/`. Drag that file onto a Zen
-   window and accept the install prompt.
-
-Never commit the key or secret. The add-on id (`at-peace@cristianbagrin`) must not change: Mozilla ties
-the signature to it, and settings are stored per id.
+The add-on id (`at-peace@cristianbagrin`) must not change: Mozilla ties the signature to it, and settings
+are stored per id.
 
 After installing, follow [docs/VERIFY.md](docs/VERIFY.md): a 10 to 15 minute checklist for the parts that
 could only be verified in a signed-in browser.
@@ -110,7 +97,8 @@ npm run test:firefox   # the same ideas in real headless Firefox (Selenium + gec
 | `npm run start:firefox` | `web-ext run`: a throwaway Firefox profile with the extension loaded (`-- --firefox=/path/to/zen` for another browser) |
 | `npm run build` | `web-ext build`: `web-ext-artifacts/at-peace-<version>.zip` |
 | `npm run verify:package` | unzips the built package and checks that every file the manifest, pages and scripts refer to is inside, and that no dev files are |
-| `npm run sign` | `web-ext sign --channel=unlisted` (see above) |
+| `npm run sign` | `web-ext sign --channel=unlisted`, by hand (needs `WEB_EXT_API_KEY` and `WEB_EXT_API_SECRET`; see [docs/RELEASING.md](docs/RELEASING.md)) |
+| `npm run release -- patch` | cuts a version: checks, bumps the version, closes the CHANGELOG's "Unreleased", commits and tags (`minor`, `major`, `x.y.z`, `--dry-run` also work); then `git push && git push origin v<version>` publishes it |
 
 The PNG icons are generated from `icons/icon.svg` with `node tools/make-icons.mjs`.
 
@@ -159,7 +147,9 @@ src/
   pages/                 popup, options, pause, blocked, welcome, and common/ (tokens, base, components)
 icons/                   icon.svg and generated PNGs
 tests/                   unit/, e2e/ (Chromium), firefox/ (real Firefox), helpers/ (wait.mjs, instrument.js)
-tools/                   yt-probe.mjs, check-selectors.mjs, make-icons.mjs, verify-package.mjs
+tools/                   yt-probe.mjs, check-selectors.mjs, make-icons.mjs, verify-package.mjs,
+                         release.mjs, update-manifest.mjs
+.github/workflows/       ci.yml (lint, tests, package check), release.yml (sign and publish on a tag)
 docs/                    PLAN.md (design), youtube-dom.md (selector research), selector-report.md,
                          VERIFY.md, PERFORMANCE.md, IDEAS.md, reviews/
 ```
@@ -237,4 +227,10 @@ statement, what is stored and how to clear it: [PRIVACY.md](PRIVACY.md).
 - [docs/VERIFY.md](docs/VERIFY.md): the 10 to 15 minute checklist to run in Zen.
 - [docs/PERFORMANCE.md](docs/PERFORMANCE.md): what it costs on a page.
 - [docs/IDEAS.md](docs/IDEAS.md): what could come next.
+- [docs/RELEASING.md](docs/RELEASING.md): signing, auto-updates and how to ship a version.
 - [CHANGELOG.md](CHANGELOG.md).
+
+## Licence
+
+All rights reserved (see [LICENSE](LICENSE)). You may install and use At Peace; the source may not be copied,
+modified or redistributed without permission.

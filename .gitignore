@@ -4,3 +4,5 @@ tests/e2e/artifacts/
 .cache/
 *.xpi
 .DS_Store
+.amo-upload-uuid
+.web-extension-id

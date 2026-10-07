@@ -14,6 +14,11 @@ export default {
     'docs',
     'docs/**',
     '*.md',
+    // Not needed by Mozilla for a self-distributed (unlisted) add-on.
+    'LICENSE',
+    // `web-ext sign` builds into a temp folder, so it would otherwise pack this (empty) folder too.
+    'web-ext-artifacts',
+    'web-ext-artifacts/**',
     'package.json',
     'package-lock.json',
     'eslint.config.js',

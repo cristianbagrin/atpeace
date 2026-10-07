@@ -2,6 +2,7 @@
 // is stubbed (see _mindful.mjs); the DNR rules, the background and the pages are the real ones.
 import { test, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { launch, close, extUrl, evalInExtension, setStorage, extensionDiagnostics } from './harness.mjs';
 import { stubYouTube, send, resetStorage, configure, settle, dnrRules, readState, newTab, shot, today, ourErrors } from './_mindful.mjs';
 
@@ -295,7 +296,7 @@ test('GET_STATUS has the shape the popup relies on (Contract C3)', async () => {
   await send('FOCUS_START', { minutes: 10 });
   const status = await send('GET_STATUS');
   assert.equal(status.ok, true);
-  assert.equal(status.version, '0.1.0');
+  assert.equal(status.version, JSON.parse(readFileSync(new URL('../../manifest.json', import.meta.url), 'utf8')).version); // whatever the manifest says: a release changes it
   assert.deepEqual(Object.keys(status.block).sort(), ['reason', 'siteKeys', 'until']);
   assert.deepEqual(status.limit, { dailyMinutes: 30, usedSec: 0, graceLeft: 1 });
   assert.deepEqual(status.sessions, {});

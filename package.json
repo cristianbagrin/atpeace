@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "A calm, intentional YouTube: hide what you don't want to see and add a little friction between you and the feed.",
   "private": true,
+  "license": "UNLICENSED",
   "type": "module",
   "author": "Cristian Bagrin",
   "engines": {
@@ -17,7 +18,8 @@
     "start:firefox": "web-ext run",
     "build": "web-ext build",
     "verify:package": "npm run build --silent && node tools/verify-package.mjs",
-    "sign": "web-ext sign --channel=unlisted"
+    "sign": "web-ext sign --channel=unlisted",
+    "release": "node tools/release.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

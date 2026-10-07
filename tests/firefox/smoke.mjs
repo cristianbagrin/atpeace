@@ -23,7 +23,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -211,7 +211,7 @@ test('extension loads as a temporary add-on and its background answers GET_STATU
   const status = await sendMessage({ type: 'GET_STATUS' });
   // Phase 3c answers the full Contract C3 shape (src/background/sessions.js), not just { ok, version }.
   assert.equal(status.ok, true);
-  assert.equal(status.version, '0.1.0');
+  assert.equal(status.version, JSON.parse(readFileSync(join(ROOT, 'manifest.json'), 'utf8')).version); // whatever the manifest says: a release changes it
   for (const key of ['block', 'sessions', 'scheduleOverride', 'activeSchedules', 'today', 'limit']) assert.ok(key in status, `GET_STATUS has ${key}`);
 
   const unknown = await sendMessage({ type: 'NO_SUCH_MESSAGE' });

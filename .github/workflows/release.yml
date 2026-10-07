@@ -1,0 +1,174 @@
+name: Release
+
+# Starts when a version tag is pushed (`npm run release -- patch`, then `git push && git push origin vX.Y.Z`).
+# Checks the code, has Mozilla sign it (unlisted), publishes the signed .xpi and updates.json to the public
+# updates repo so installed copies update themselves, and attaches the .xpi to a GitHub Release here.
+# Secrets and one-time setup: docs/RELEASING.md.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write # gh release create, in this repo only
+
+# One release at a time, and never cancel one halfway: a version Mozilla has signed cannot be signed again.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Sign and publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      UPDATES_REPO: cristianbagrin/at-peace-updates
+    steps:
+      - name: Check out
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Set up Node 22
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Tag matches the version
+        id: version
+        run: |
+          version="$(jq -r .version manifest.json)"
+          if [ "$GITHUB_REF_NAME" != "v$version" ] || [ "$(jq -r .version package.json)" != "$version" ]; then
+            echo "::error title=Tag and version differ::Tag $GITHUB_REF_NAME, manifest.json $version, package.json $(jq -r .version package.json). Release with 'npm run release', which keeps them equal."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Check the secrets exist
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+          UPDATES_REPO_TOKEN: ${{ secrets.UPDATES_REPO_TOKEN }}
+        run: |
+          missing=0
+          for name in AMO_JWT_ISSUER AMO_JWT_SECRET UPDATES_REPO_TOKEN; do
+            if [ -z "${!name}" ]; then
+              echo "::error title=Secret missing::Repository secret $name is not set. See docs/RELEASING.md, one-time setup."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Verify the package
+        run: npm run verify:package
+
+      # Before signing: a bad or read-only token must fail here, not after the version is used up at Mozilla.
+      # The clone lives outside the workspace on purpose: web-ext packs everything under the source folder.
+      - name: Check access to the updates repo
+        env:
+          UPDATES_REPO_TOKEN: ${{ secrets.UPDATES_REPO_TOKEN }}
+        run: |
+          auth="$(printf 'x-access-token:%s' "$UPDATES_REPO_TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          if ! git clone --depth 1 --branch main --config "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+               "https://github.com/$UPDATES_REPO.git" "$RUNNER_TEMP/updates"; then
+            echo "::error title=Cannot read the updates repo::Does $UPDATES_REPO exist, with a main branch (create it with a README), and can UPDATES_REPO_TOKEN read it? See docs/RELEASING.md."
+            exit 1
+          fi
+          if ! git -C "$RUNNER_TEMP/updates" push --dry-run origin HEAD:main; then
+            echo "::error title=Cannot push to the updates repo::UPDATES_REPO_TOKEN needs Contents: Read and write on $UPDATES_REPO, and must not have expired. See docs/RELEASING.md."
+            exit 1
+          fi
+
+      - name: Sign with Mozilla (unlisted)
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          # Validation up to 10 minutes, approval up to 25. Unlisted versions are normally signed in a minute or two.
+          if ! npx web-ext sign --channel=unlisted --timeout=600000 --approval-timeout=1500000 --no-input; then
+            echo "::error title=Mozilla did not sign this version::See the web-ext output above (validation errors, a version that already exists, or a timeout). docs/RELEASING.md, Troubleshooting."
+            exit 1
+          fi
+
+      - name: Collect the signed file
+        id: signed
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          shopt -s nullglob
+          files=(web-ext-artifacts/*.xpi)
+          if [ "${#files[@]}" -ne 1 ]; then
+            echo "::error title=No signed file::Expected exactly one .xpi in web-ext-artifacts/ after signing, found ${#files[@]}."
+            exit 1
+          fi
+          mkdir -p dist
+          cp "${files[0]}" "dist/at-peace-$VERSION.xpi"
+          # The signed package must hold exactly what verify:package checked (plus Mozilla's signature folder).
+          unexpected="$(unzip -Z1 "dist/at-peace-$VERSION.xpi" | cut -d/ -f1 | sort -u | grep -vxE 'manifest\.json|icons|src|META-INF' | tr '\n' ' ' || true)"
+          if [ -n "$unexpected" ]; then
+            echo "::error title=Unexpected files in the signed package::$unexpected"
+            exit 1
+          fi
+          echo "sha256=$(sha256sum "dist/at-peace-$VERSION.xpi" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      # Mozilla will not sign the same version twice, so keep the signed file in case a later step fails.
+      - name: Keep the signed file
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: at-peace-${{ steps.version.outputs.version }}-signed
+          path: dist/at-peace-${{ steps.version.outputs.version }}.xpi
+          if-no-files-found: error
+
+      - name: Publish to the updates repo
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          updates="$RUNNER_TEMP/updates"
+          mkdir -p "$updates/xpi"
+          cp "dist/at-peace-$VERSION.xpi" "$updates/xpi/at-peace-$VERSION.xpi"
+          node tools/update-manifest.mjs --file "$updates/updates.json" --xpi "$updates/xpi/at-peace-$VERSION.xpi"
+          cd "$updates"
+          git config user.name "at-peace release"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add xpi updates.json
+          git diff --cached --quiet || git commit -m "At Peace $VERSION"
+          git push origin HEAD:main
+
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          node tools/release.mjs --notes "$VERSION" > "$RUNNER_TEMP/notes.md" || echo "At Peace $VERSION" > "$RUNNER_TEMP/notes.md"
+          gh release create "$GITHUB_REF_NAME" "dist/at-peace-$VERSION.xpi" \
+            --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --title "At Peace $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+
+      # An installed copy only updates if these two public URLs serve what was just pushed.
+      - name: Check the public update files
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SHA256: ${{ steps.signed.outputs.sha256 }}
+        run: |
+          base="https://raw.githubusercontent.com/$UPDATES_REPO/main"
+          for attempt in $(seq 1 20); do
+            ok=1
+            curl -fsSL "$base/xpi/at-peace-$VERSION.xpi" -o "$RUNNER_TEMP/check.xpi" || ok=0
+            [ "$ok" = 1 ] && [ "$(sha256sum "$RUNNER_TEMP/check.xpi" | cut -d' ' -f1)" = "$SHA256" ] || ok=0
+            [ "$ok" = 1 ] && curl -fsSL "$base/updates.json" | jq -e --arg v "$VERSION" --arg h "sha256:$SHA256" \
+              '[.addons[].updates[] | select(.version == $v and .update_hash == $h)] | length == 1' > /dev/null || ok=0
+            if [ "$ok" = 1 ]; then echo "Published: $base/updates.json lists $VERSION"; exit 0; fi
+            echo "Not visible yet (attempt $attempt of 20), waiting 15 s"
+            sleep 15
+          done
+          echo "::error title=Update files not public::$base did not serve version $VERSION. Is $UPDATES_REPO public? raw.githubusercontent.com can also lag a few minutes."
+          exit 1
