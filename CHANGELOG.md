@@ -12,6 +12,18 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 
 - Installed copies update themselves: Firefox and Zen check for a new signed version once a day.
 
+### YouTube
+
+- Fixed: "Hide view counts" hid the channel name and kept the number on some cards (signed-in home).
+  Now only the view count goes; channel, badge and date stay. Same fix for the subscriber count on
+  channel pages.
+- New: hide previous searches in the search box.
+- New: hide single rows on a channel's Home (Shorts, posts, members-only, live, popular, playlists,
+  featured channels), the Join button, and the Shows, Courses, Members and Releases tabs.
+- New: thumbnail picture: Original, or a frame from early in, the middle of, or late in the video.
+- Removed: calm titles.
+- Setting descriptions only where the name alone is unclear.
+
 ### Time's up
 
 - "Your N minutes are up." has no second sentence. On a video page it offers **Leave YouTube**,
