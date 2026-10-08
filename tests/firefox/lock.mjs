@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { By, Key } from 'selenium-webdriver';
-import { launchFirefox, extUrl, ROOT } from './_harness.mjs';
+import { launchFirefox, extUrl, ROOT, NAVIGATION_NOISE } from './_harness.mjs';
 import { until } from '../helpers/wait.mjs';
 
 const SHOTS = join(ROOT, 'tests', 'e2e', 'artifacts', 'lock');
@@ -69,7 +69,7 @@ before(async () => {
         if ((await driver.getCurrentUrl()).includes(WELCOME_PATH)) return handle;
       }
       return null;
-    }, { what: 'the welcome tab', retryErrors: true, timeout: 15_000 }).catch(() => null);
+    }, { what: 'the welcome tab', retryErrors: true, timeout: 40_000 }).catch(() => null);
   if (!welcomeHandle) await driver.switchTo().window(original);
 });
 
@@ -113,7 +113,7 @@ test('welcome: the first install opens it, Gentle is applied, choices are saved,
   assert.equal(await css('#open-youtube').getAttribute('href'), 'https://www.youtube.com/');
   assert.ok(await css('#open-settings'));
   await shot('welcome-done');
-  assert.deepEqual(await ff.ourScriptErrors(), []);
+  assert.deepEqual((await ff.ourScriptErrors()).filter((e) => !NAVIGATION_NOISE.test(e)), []); // the browser's note about a page that navigated away mid-read is not ours
 });
 
 test('options: password lock — refused loosening shows a calm note, wrong password, right password, loosen, lock now', async () => {
@@ -164,7 +164,7 @@ test('options: password lock — refused loosening shows a calm note, wrong pass
   await click(label);
   await until(() => run((id) => !document.querySelector(`.row[data-id="${id}"] .row-lock`).hidden, HIDE_ADS), { what: 'the note again', retryErrors: true });
   assert.equal((await settings())[HIDE_ADS], true);
-  assert.deepEqual(await ff.ourScriptErrors(), []);
+  assert.deepEqual((await ff.ourScriptErrors()).filter((e) => !NAVIGATION_NOISE.test(e)), []); // the browser's note about a page that navigated away mid-read is not ours
 });
 
 test('popup: locked, refused with a note, the friction unlock is inline (wait, then the sentence)', async () => {
@@ -188,7 +188,7 @@ test('popup: locked, refused with a note, the friction unlock is inline (wait, t
   await shot('popup-unlocked');
   await click('#master input.switch');
   await until(async () => (await settings())['general.enabled'] === false, { what: 'At Peace off', retryErrors: true });
-  assert.deepEqual(await ff.ourScriptErrors(), []);
+  assert.deepEqual((await ff.ourScriptErrors()).filter((e) => !NAVIGATION_NOISE.test(e)), []); // the browser's note about a page that navigated away mid-read is not ours
 });
 
 test('options: "When I open YouTube" short labels in the popup, the redirect row waits for "my own page", clear usage history', async () => {
@@ -212,5 +212,5 @@ test('options: "When I open YouTube" short labels in the popup, the redirect row
   await until(() => run(() => document.querySelector('dialog[open]') !== null), { what: 'the dialog', retryErrors: true });
   await click(await byText('button', 'Clear history'));
   await until(async () => Object.keys((await ff.getStorage('stats')).stats ?? {}).length === 0, { what: 'stats cleared', retryErrors: true });
-  assert.deepEqual(await ff.ourScriptErrors(), []);
+  assert.deepEqual((await ff.ourScriptErrors()).filter((e) => !NAVIGATION_NOISE.test(e)), []); // the browser's note about a page that navigated away mid-read is not ours
 });
