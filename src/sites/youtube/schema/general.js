@@ -10,7 +10,6 @@
     site: 'youtube',
     title: 'All of YouTube',
     order: 100,
-    description: 'How the whole site looks, what video cards show, and promotions.',
   });
 
   // --- Thumbnails -------------------------------------------------------------------------------
@@ -100,7 +99,6 @@
       id: 'yt.general.grayscale',
       group: 'Look',
       label: 'Show YouTube in grayscale',
-      description: 'Turns every page, thumbnail and video black and white so nothing pulls at your eye.',
       type: 'toggle',
       default: false,
       tags: ['behaviour'],
@@ -114,7 +112,6 @@
       id: 'yt.general.thumbnails',
       group: 'Look',
       label: 'Thumbnails',
-      description: 'Blur or grey out video thumbnails (they come back when you point at one), or leave an empty space where they were.',
       type: 'select',
       default: 'show',
       options: [
@@ -144,9 +141,9 @@
       default: 'default',
       options: [
         { value: 'default', label: 'Original' },
-        { value: 'start', label: 'Start' },
+        { value: 'start', label: 'Early' },
         { value: 'middle', label: 'Middle' },
-        { value: 'end', label: 'End' },
+        { value: 'end', label: 'Late' },
       ],
       // YouTube's own frames of the video (a quarter, half and three quarters in), set by the feature.
       feature: 'thumbnail-frame',
@@ -156,7 +153,6 @@
       id: 'yt.general.disableHoverPreview',
       group: 'Look',
       label: 'Turn off hover previews',
-      description: 'Stops thumbnails from playing a short muted clip when you point at them.',
       type: 'toggle',
       default: false,
       tags: ['behaviour'],
@@ -171,7 +167,6 @@
       id: 'yt.general.hideViewCounts',
       group: 'On video cards',
       label: 'Hide view counts',
-      description: 'Removes "1.2M views" and "N watching" from cards in feeds, search, Shorts shelves and the sidebar.',
       type: 'toggle',
       default: false,
       tags: ['metrics'],
@@ -205,7 +200,6 @@
       id: 'yt.general.hideUploadDates',
       group: 'On video cards',
       label: 'Hide upload dates',
-      description: 'Removes "3 days ago" and "Streamed 1 year ago" from cards in feeds, search and the sidebar.',
       type: 'toggle',
       default: false,
       tags: ['metrics'],
@@ -231,7 +225,6 @@
       id: 'yt.general.hideDurations',
       group: 'On video cards',
       label: 'Hide video lengths',
-      description: 'Removes the length badge ("12:34") from thumbnails; live streams lose their LIVE badge too.',
       type: 'toggle',
       default: false,
       // Only the badge child: the bottom overlay also hosts the watched-progress bar.
@@ -242,7 +235,6 @@
       id: 'yt.general.hideChannelAvatars',
       group: 'On video cards',
       label: 'Hide channel pictures',
-      description: 'Removes the round channel picture next to video titles in feeds, search and the sidebar.',
       type: 'toggle',
       default: false,
       hide: [
@@ -257,7 +249,6 @@
       id: 'yt.general.hideBadges',
       group: 'On video cards',
       label: 'Hide badges and verified ticks',
-      description: 'Removes the New, 4K, CC and Live chips and the verified tick from video cards.',
       type: 'toggle',
       default: false,
       // Not the duration pill (yt-thumbnail-badge-view-model is a different element).
@@ -275,7 +266,6 @@
       id: 'yt.general.hideWatchedProgress',
       group: 'On video cards',
       label: 'Hide the red "watched" bar',
-      description: 'Removes the red resume bar at the bottom of thumbnails of videos you have started.',
       type: 'toggle',
       default: false,
       hide: ['yt-thumbnail-overlay-progress-bar-view-model', 'ytw-thumbnail-overlay-resume-playback-renderer', 'ytd-thumbnail-overlay-resume-playback-renderer'],
@@ -285,7 +275,6 @@
       id: 'yt.general.hideWatched',
       group: 'On video cards',
       label: 'Hide videos you have already watched',
-      description: 'Removes whole cards that show a red progress bar from the home feed, subscriptions, channel pages, search and the sidebar.',
       type: 'toggle',
       default: false,
       // The card wrapper is hidden (not the inner lockup) so the grid closes up. History and
@@ -305,7 +294,7 @@
       id: 'yt.general.hideAds',
       group: 'Promotions',
       label: 'Hide ad slots and sponsored cards',
-      description: 'Removes sponsored cards in feeds and search, the home banner ad and the ad slot next to videos. Ads inside the player are not touched, so Skip stays reachable.',
+      description: 'Ads inside videos are not touched.',
       type: 'toggle',
       default: false,
       tags: ['ads'],
@@ -334,7 +323,6 @@
       id: 'yt.general.hidePremiumUpsells',
       group: 'Promotions',
       label: 'Hide Premium and Music promotions',
-      description: 'Removes the "Try Premium" banners and pop-up bars, the Premium entry in the sidebar and the Premium-only quality entries.',
       type: 'toggle',
       default: false,
       tags: ['ads'],
@@ -354,7 +342,7 @@
       id: 'yt.general.hideMixes',
       group: 'Extras',
       label: 'Hide Mixes',
-      description: 'Removes auto-generated "Mix" playlists from the home feed, search and the sidebar.',
+      description: 'Auto-generated playlists.',
       type: 'toggle',
       default: false,
       tags: ['recommendations'],
@@ -373,7 +361,6 @@
       id: 'yt.general.hidePlayables',
       group: 'Extras',
       label: 'Hide Playables (games)',
-      description: 'Removes the row of browser games from the home feed.',
       type: 'toggle',
       default: false,
       tags: ['clutter'],

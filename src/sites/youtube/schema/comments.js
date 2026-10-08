@@ -10,7 +10,6 @@
     site: 'youtube',
     title: 'Comments',
     order: 160,
-    description: 'Comments on videos, Shorts and posts.',
   });
 
   const SHORTS_COMMENTS_PANEL = 'ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-comments-section"]';
@@ -20,7 +19,6 @@
       id: 'yt.comments.hideAll',
       group: 'Comments',
       label: 'Hide comments',
-      description: 'Removes the comments section under videos and posts, and the comments panel and button on Shorts.',
       type: 'toggle',
       default: false,
       tags: ['comments'],
@@ -39,7 +37,6 @@
       id: 'yt.comments.hideTeaser',
       group: 'Comments',
       label: 'Hide the comment preview',
-      description: 'Removes the single top comment shown inside the description box.',
       type: 'toggle',
       default: false,
       tags: ['comments'],
@@ -51,7 +48,6 @@
       id: 'yt.comments.hideCount',
       group: 'Details',
       label: 'Hide the comment count',
-      description: 'Removes "2,458 Comments" above the comments; sorting and the comment box stay.',
       type: 'toggle',
       default: false,
       tags: ['metrics'],
@@ -62,7 +58,6 @@
       id: 'yt.comments.hideAvatars',
       group: 'Details',
       label: 'Hide profile pictures',
-      description: 'Removes the round pictures next to comments and next to the "Add a comment" box.',
       type: 'toggle',
       default: false,
       hide: [
@@ -76,7 +71,6 @@
       id: 'yt.comments.hideLikeCounts',
       group: 'Details',
       label: 'Hide comment like counts',
-      description: 'Removes the number next to the thumbs-up on each comment; the buttons stay.',
       type: 'toggle',
       default: false,
       tags: ['metrics'],
@@ -87,7 +81,6 @@
       id: 'yt.comments.hideReplies',
       group: 'Details',
       label: 'Hide replies',
-      description: 'Removes the "N replies" links and reply threads under comments.',
       type: 'toggle',
       default: false,
       hide: ['ytd-comment-thread-renderer #replies', 'ytd-comment-replies-renderer'],
@@ -97,7 +90,6 @@
       id: 'yt.comments.hideCreatorHearts',
       group: 'Details',
       label: 'Hide creator hearts',
-      description: 'Removes the small red heart a creator can give a comment.',
       type: 'toggle',
       default: false,
       advanced: true,

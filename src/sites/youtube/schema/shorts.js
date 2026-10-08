@@ -10,7 +10,6 @@
     site: 'youtube',
     title: 'Shorts',
     order: 180,
-    description: 'What happens when you open a Short, and the buttons on the Shorts player.',
   });
 
   // While a redirect (watch) or the "Shorts are off" page (block) takes over, the Shorts player
@@ -22,7 +21,6 @@
       id: 'yt.shorts.mode',
       group: 'Opening Shorts',
       label: 'When I open a Short',
-      description: 'Choose whether Shorts play as usual, open in the normal video player instead, or show a calm "Shorts are off" page.',
       type: 'select',
       default: 'allow',
       options: [
@@ -41,7 +39,6 @@
       id: 'yt.shorts.hideComments',
       group: 'On the Shorts player',
       label: 'Hide comments on Shorts',
-      description: 'Removes the comments button and panel from the Shorts player.',
       type: 'toggle',
       default: false,
       tags: ['comments'],
@@ -57,7 +54,6 @@
       id: 'yt.shorts.hideLikeCounts',
       group: 'On the Shorts player',
       label: 'Hide counts on Shorts',
-      description: 'Removes the like count and the comment count under the buttons on the Shorts player.',
       type: 'toggle',
       default: false,
       tags: ['metrics'],
@@ -72,7 +68,6 @@
       id: 'yt.shorts.hideRemix',
       group: 'On the Shorts player',
       label: 'Hide Remix',
-      description: 'Removes the Remix button from the Shorts player.',
       type: 'toggle',
       default: false,
       advanced: true,
@@ -85,7 +80,6 @@
       id: 'yt.shorts.hideSubscribe',
       group: 'On the Shorts player',
       label: 'Hide Subscribe on Shorts',
-      description: 'Removes the Subscribe button next to the channel name on the Shorts player.',
       type: 'toggle',
       default: false,
       page: 'shorts',

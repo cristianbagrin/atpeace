@@ -123,7 +123,7 @@ export function thumbnailReportInPage() {
     .map((img) => {
       const link = img.closest('a[href]') ?? img.closest(CARD)?.querySelector('a[href*="/watch?v="], a[href*="/shorts/"]');
       return {
-        id: link ? idOf(link.getAttribute('href')) : null,
+        id: link && !img.closest(CARD)?.querySelector('yt-collection-thumbnail-view-model') ? idOf(link.getAttribute('href')) : null,
         src: img.getAttribute('src'),
         mark: img.getAttribute('data-at-peace-thumb'),
         orig: img.getAttribute('data-at-peace-thumb-src'),

@@ -4,6 +4,7 @@
 //   1. card metadata: only the number goes (item 7), in every layout of tests/e2e/_card-variants.mjs
 //   2. search box: previous searches go, live suggestions stay (item 8)
 //   3. channel Home rows by type, the Join button and more tabs (item 10)
+//   4. thumbnail picture: the frame is asked for, and put back when it cannot load (item 6)
 // Prerequisite: bash tests/firefox/setup.sh. Skipped without the snapshots.
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,7 +13,7 @@ import { join } from 'node:path';
 import { launchFirefox, ROOT, NAVIGATION_NOISE } from './_harness.mjs';
 import { fixturesAvailable, startFixtureServer } from '../e2e/_yt-fixture.mjs';
 import { buildVariantsInPage, partsVisibleInPage } from '../e2e/_card-variants.mjs';
-import { buildSearchDropdownInPage, visibleDropdownRowsInPage, attachShelfDataInPage, homeRowsInPage, addHeaderButtonInPage, headerButtonsInPage } from '../e2e/_7b-pages.mjs';
+import { buildSearchDropdownInPage, visibleDropdownRowsInPage, attachShelfDataInPage, homeRowsInPage, addHeaderButtonInPage, headerButtonsInPage, thumbnailReportInPage } from '../e2e/_7b-pages.mjs';
 import { until } from '../helpers/wait.mjs';
 
 const SHOTS = join(ROOT, 'tests', 'e2e', 'artifacts', 'round1', '7b');
@@ -33,8 +34,10 @@ describe('7b on offline snapshots', { skip: HAVE ? false : 'research snapshots a
     server = await startFixtureServer();
     ff = await launchFirefox({
       prefs: {
-        'network.dns.localDomains': 'www.youtube.com',
-        'network.proxy.no_proxies_on': 'localhost, 127.0.0.1, www.youtube.com',
+        // i.ytimg.com (the pictures) resolves to this machine too: nothing reaches Google, and a frame that cannot
+        // load is exactly the "no frame" case the thumbnail feature must survive.
+        'network.dns.localDomains': 'www.youtube.com, i.ytimg.com',
+        'network.proxy.no_proxies_on': 'localhost, 127.0.0.1, www.youtube.com, i.ytimg.com',
         'network.stricttransportsecurity.preloadlist': false,
       },
     });
@@ -176,6 +179,52 @@ describe('7b on offline snapshots', { skip: HAVE ? false : 'research snapshots a
       const shown = () => run(() => [...document.querySelectorAll('yt-tab-shape[role="tab"]')].map((t) => [t.getAttribute('data-at-peace-tab'), getComputedStyle(t).display !== 'none']));
       await until(async () => (await shown()).some(([name, visible]) => name === 'shows' && !visible), 'Shows tab hidden', 15_000);
       assert.deepEqual((await shown()).map(([, v]) => v), [true, true, true, true, false, true, true, true]);
+      assert.deepEqual(await ourErrors(), []);
+    });
+  });
+  describe('thumbnail picture (item 6)', () => {
+    test('every card picture is pointed at YouTube\'s frame of its video; where the frame cannot load the original comes back, once; Original leaves nothing behind', async () => {
+      await configure({});
+      await open('/@MrBeast/videos');
+      const before = await run(thumbnailReportInPage);
+      assert.ok(before.length >= 10);
+      // A page-side log of every src this page sees, to catch the frame URLs even though they fail at once here.
+      await run(() => {
+        window.__srcLog = [];
+        new MutationObserver((records) => {
+          for (const r of records) if (r.target.localName === 'img') window.__srcLog.push(r.target.getAttribute('src'));
+        }).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['src'] });
+      });
+      await configure({ 'yt.general.thumbnailFrame': 'middle' });
+      await until(
+        () => run((n) => document.querySelectorAll('img[data-at-peace-thumb="failed"]').length >= n, before.filter((x) => x.id).length),
+        'every frame refused here and the originals put back',
+        20_000,
+      );
+      const log = await run(() => window.__srcLog);
+      for (const { id } of before.filter((x) => x.id)) assert.ok(log.includes(`https://i.ytimg.com/vi/${id}/mq2.jpg`), `${id}: the frame was asked for`);
+      assert.ok(log.every((u) => u === null || u.startsWith('data:') || /^https:\/\/i\.ytimg\.com\/vi\/[\w-]{11}\/mq2\.jpg$/.test(u)), 'and nothing else');
+      const now = await run(thumbnailReportInPage);
+      assert.deepEqual(now.map((x) => x.src), before.map((x) => x.src), 'the originals are back');
+      assert.equal(await run(() => document.querySelectorAll('img[data-at-peace-thumb="mq2"]').length), 0);
+      assert.equal(await run(() => [...document.querySelectorAll('yt-thumbnail-view-model img')].some((i) => getComputedStyle(i).opacity !== '1')), false, 'all visible');
+      await configure({});
+      await until(() => run(() => !document.querySelector('img[data-at-peace-thumb]') && !document.getElementById('at-peace-thumb-style')), 'nothing left behind', 10_000);
+      assert.deepEqual((await run(thumbnailReportInPage)).map((x) => x.src), before.map((x) => x.src));
+      assert.deepEqual(await ourErrors(), []);
+    });
+
+    test('the same on a search page (legacy cards, Shorts shelves) and a watch page sidebar', async () => {
+      for (const path of ['/results?search_query=lofi', '/watch?v=n61ULEU7CO0']) {
+        await configure({});
+        await open(path);
+        const before = await run(thumbnailReportInPage);
+        await configure({ 'yt.general.thumbnailFrame': 'end' });
+        await until(() => run((n) => document.querySelectorAll('img[data-at-peace-thumb]').length >= n, before.length), `${path}: every picture handled`, 20_000);
+        const now = await run(thumbnailReportInPage);
+        assert.deepEqual(now.map((x) => x.src), before.map((x) => x.src), `${path}: originals back (frames cannot load here)`);
+        await configure({});
+      }
       assert.deepEqual(await ourErrors(), []);
     });
   });

@@ -91,7 +91,7 @@
     const card = img.closest(CARDS.join(','));
     if (!card || card.querySelector('yt-collection-thumbnail-view-model')) return { skip: true };
     const link = linkOf(img);
-    if (!link) return card.querySelector('a[href]') ? { skip: true } : {}; // links, but none to a video: not one (a channel, a playlist)
+    if (!link) return img.closest('a[href]') ? { skip: true } : {}; // wrapped by a link to something else (a channel, a playlist): not one video; no link at all yet: wait
     const id = videoIdFromHref(link.getAttribute('href'));
     return id ? { id } : { skip: true };
   }

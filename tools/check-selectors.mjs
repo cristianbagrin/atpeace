@@ -49,6 +49,11 @@ const AREA_LIMIT = 0.6;
  * Settings whose whole point is to blank most of the page (the feed, the Shorts player, a channel's Home rows,
  * the comments when the page is scrolled down to them).
  */
+/** Settings whose target only exists signed in (YouTube shows no search history, Join button, personal sidebar entries or Create button logged out). */
+const SIGNED_IN_ONLY = [
+  'yt.guide.hideCourses', 'yt.guide.hideDownloads', 'yt.guide.hideLiked', 'yt.guide.hidePlaylists', 'yt.guide.hideWatchLater', 'yt.guide.hideYouEntry', 'yt.guide.hideYourVideos',
+  'yt.masthead.hideCreate', 'yt.masthead.hideNotifications', 'yt.masthead.hideSearchHistory', 'yt.channel.hideJoinButton',
+];
 const BROAD_BY_DESIGN = new Set(['yt.home.feedMode', 'yt.shorts.mode', 'yt.channel.hideHomeShelves', 'yt.home.hideOtherShelves', 'yt.comments.hideAll']);
 
 // ---------------------------------------------------------------------------------------------
@@ -403,8 +408,9 @@ async function main() {
   }
 
   const rows = analyse(entries, results);
-  // Logged-out snapshots cannot see signed-in UI: say so next to settings whose description says that.
-  const notesBySetting = new Map(defs.filter((d) => /signed in|signed-in|signed out/.test(d.description ?? '')).map((d) => [d.id, 'signed-in / signed-out UI']));
+  // Logged-out snapshots cannot see signed-in UI: say so next to these settings (descriptions are kept to a few
+  // words and no longer say it, so the list lives here).
+  const notesBySetting = new Map(SIGNED_IN_ONLY.filter((id) => defs.some((d) => d.id === id)).map((id) => [id, 'signed-in / signed-out UI']));
   const { text, counts } = buildReport({ rows, results, mode, entries, defs, notesBySetting });
   await mkdir(dirname(o.out), { recursive: true });
   await writeFile(o.out, text);

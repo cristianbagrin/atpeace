@@ -251,10 +251,10 @@ describe('feature registry', () => {
     }
   });
 
-  test('bridgeTags covers every setting whose CSS uses a bridge tag (26 in the current catalog)', () => {
+  test('bridgeTags covers every setting whose CSS uses a bridge tag (shelf and channel-action tags included)', () => {
     const tags = AP.yt.features.find((f) => f.id === 'bridgeTags').settings;
-    for (const id of ['yt.guide.hideWatchLater', 'yt.guide.hideShorts', 'yt.watch.hideClip', 'yt.watch.hideShare', 'yt.channel.hideShortsTab', 'yt.channel.hideStoreTab']) assert.ok(tags.includes(id), id);
-    assert.ok(tags.length >= 26, `${tags.length} settings`);
+    for (const id of ['yt.guide.hideWatchLater', 'yt.guide.hideShorts', 'yt.watch.hideClip', 'yt.watch.hideShare', 'yt.channel.hideShortsTab', 'yt.channel.hideStoreTab', 'yt.channel.hideRowPosts', 'yt.channel.hideRowMembers', 'yt.channel.hideRowLive', 'yt.channel.hideJoinButton', 'yt.channel.hideShowsTab', 'yt.channel.hideMembersTab']) assert.ok(tags.includes(id), id);
+    assert.ok(tags.length >= 38, `${tags.length} settings`);
   });
 
   test('layout nudge only names layout settings that exist', () => {
@@ -323,9 +323,9 @@ describe('thumbnail frame (Phase 7b)', () => {
     for (const f of Object.values(T().FRAMES)) assert.match(T().frameUrl('plN7JMbadRg', f), /^https:\/\/i\.ytimg\.com\/vi\/[\w-]{11}\/mq[123]\.jpg$/);
   });
 
-  test('the setting is a select Original · Start · Middle · End whose first option is the default', () => {
+  test('the setting is a select Original · Early · Middle · Late whose first option is the default', () => {
     const def = AP.schema.get('yt.general.thumbnailFrame');
-    assert.deepEqual(def.options.map((o) => o.label), ['Original', 'Start', 'Middle', 'End']);
+    assert.deepEqual(def.options.map((o) => o.label), ['Original', 'Early', 'Middle', 'Late']);
     assert.equal(def.default, def.options[0].value);
     assert.equal(def.feature, 'thumbnail-frame');
   });

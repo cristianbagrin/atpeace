@@ -55,7 +55,7 @@ describe('card metadata: only the number goes', { skip: have ? false : 'tests/e2
     const want = Object.keys(settings).filter((id) => settings[id] === true);
     await page.waitForFunction((ids) => {
       const tokens = (document.documentElement.getAttribute('data-at-peace') ?? '').split(' ');
-      return ids.every((id) => tokens.includes(id)) && ['yt.general.hideViewCounts', 'yt.general.hideUploadDates'].filter((id) => !ids.includes(id)).every((id) => !tokens.includes(id));
+      return ids.every((id) => tokens.includes(id)) && ['yt.general.hideViewCounts', 'yt.general.hideUploadDates', 'yt.general.hideBadges'].filter((id) => !ids.includes(id)).every((id) => !tokens.includes(id));
     }, want, { timeout: 10_000 });
     await sleep(150);
   }
@@ -74,6 +74,14 @@ describe('card metadata: only the number goes', { skip: have ? false : 'tests/e2
       await page.screenshot({ path: join(SHOTS, `card-metrics-${mode}.png`), clip: { x: 0, y: 0, width: 1440, height: 640 } });
     });
   }
+
+  test('hide badges and verified ticks: the tick goes, the channel name, numbers and separators stay (every layout)', async () => {
+    await apply({ 'yt.general.hideBadges': true });
+    for (const name of variants) {
+      assert.deepEqual(await page.evaluate(partsVisibleInPage, name), EXPECT[name].none.filter((role) => role !== 'tick'), `${name}: only the tick goes`);
+    }
+    await apply({});
+  });
 
   test('the channel name is still readable text, not just present', async () => {
     await apply({ [VIEWS]: true });

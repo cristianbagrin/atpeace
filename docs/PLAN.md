@@ -91,7 +91,7 @@ at-peace/
         page.js                # page-type detection for YouTube URLs
         features/              # JS behaviours (§7)
           home-feed.js shorts.js autoplay.js theater.js speed.js still-watching.js
-          channel-tab.js filters.js thumbnails-hover.js calm-titles.js
+          channel-tab.js filters.js thumbnails-hover.js thumbnail-frame.js
           session-guard.js     # pause-session expiry overlay + block enforcement on open tabs
           time-tracker.js      # heartbeat for daily limit / stats
         page-bridge.js         # MAIN-world script (player API calls), tiny, message-based
@@ -382,7 +382,7 @@ and `/gaming`, which now redirect to `/`).
 - `hidePremiumUpsells` (Premium/Music/TV promos, mealbars) [ads]
 - `hideMixes` (YouTube "Mix" playlists in any feed) [recommendations]
 - `hidePlayables` [clutter] · `hideLiveBadgesAndPremieres`? (only if cheap)
-- `calmTitles` select: `off` | `sentence` (Shouting WORDS → normal case) [behaviour, JS]
+- `thumbnailFrame` select: `default` (Original) | `start` | `middle` | `end` (YouTube's own frames `mq1`…`mq3`, Phase 7b) [JS]. `calmTitles` was removed in Phase 7b.
 
 **Top bar** (`yt.masthead.*`)
 - `hideCreate` · `hideNotifications` · `hideVoiceSearch` · `hideSearchSuggestions` (autocomplete dropdown; rabbit-hole) · `hideSearchBar` (advanced) · `hideCountryCode` · `hideDoodle` (animated logo) · `hideAICompanion` [ai] · `hideMastheadAd` [ads] · `hideGuideButton` (burger)

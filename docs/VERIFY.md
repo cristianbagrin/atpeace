@@ -42,6 +42,7 @@ Settings, **Top bar**. Turn on, one at a time, and look at YouTube's top bar:
 | Hide the Create button | The "Create" (camera) button disappears. Bell and your avatar stay. | `yt.masthead.hideCreate` |
 | Hide the notifications bell | The bell disappears. Create and avatar stay. | `yt.masthead.hideNotifications` |
 | Hide the banner ad | Nothing visible changes unless an ad banner shows on the page. Skip if none. | `yt.masthead.hideMastheadAd` |
+| Hide previous searches | Click the search box (empty, then type two letters): the rows with a "Remove" link (your earlier searches) are gone, the live suggestions stay. Needs some search history; YouTube shows none logged out. | `yt.masthead.hideSearchHistory` |
 
 Turn them off again when done (or leave them, it makes no difference to later steps).
 
@@ -73,6 +74,9 @@ Open `https://www.youtube.com/`. Settings, **Home**, and **All of YouTube**:
 | Thumbnails: Blur until hovered | Thumbnails are blurred; hovering one makes only that one sharp. Switch back to "Show". | `yt.general.thumbnails` |
 | Show YouTube in grayscale | The whole page, including thumbnails and the player, loses colour. Turn it off. | `yt.general.grayscale` |
 | Hide videos you have already watched | Cards with a red watched bar are gone. | `yt.general.hideWatched` |
+| Hide view counts (look closely at the home grid, the cards that show the channel picture) | The number next to the play arrow ("386K") and the dot after it are gone. The channel name, its tick and the age ("1d ago") stay, with a dot between channel and age. This is the card layout that once lost the channel name instead. Also check a search result, a sidebar card next to a video and a Shorts shelf. | `yt.general.hideViewCounts` |
+| Hide upload dates | The age ("1d ago") and its dot are gone; the channel name and the views stay. With both on, only the channel name is left. | `yt.general.hideUploadDates` |
+| Thumbnail picture: Early, then Middle, then Late | Every video card shows a different still from its video (a quarter, the middle, three quarters in); Shorts cards too. Playlists and Mixes keep their normal picture. A live stream or a brand-new video keeps its normal picture. "Original" brings every picture back. | `yt.general.thumbnailFrame` |
 | Hide Mixes | Cards titled "Mix - ..." (with a stack icon) are gone. Skip if your feed has none. | `yt.general.hideMixes` |
 | **When I open YouTube**: "Show a calm empty page" | The feed is replaced by a short calm message; the sidebar and search still work. | `yt.home.feedMode` |
 | **When I open YouTube**: "Go to Subscriptions", then click the YouTube logo | Opening or clicking Home takes you to your Subscriptions. | `yt.home.feedMode` |
@@ -119,6 +123,18 @@ Open a channel you know. Settings, **Channel pages**. Turn on "Hide the Shorts t
 channel has Live, Podcasts, Store tabs, try "Hide the Live tab", "Hide the Podcasts tab", "Hide the Store
 tab" as well. Failure ids: `yt.channel.hide<Name>Tab`.
 
+Also try "Hide the Shows tab", "Hide the Courses tab" and, on a channel with memberships, "Hide the Members tab".
+
+**Home rows.** Settings, **Channel pages**, "Home tab". Open a channel with several rows (Linus Tech Tips, TED and
+NASA are good ones) and turn on, one at a time: "Hide the Shorts row", "Hide the Posts row", "Hide the members-only
+row", "Hide live and upcoming rows", "Hide the popular videos row", "Hide the playlists row", "Hide featured
+channels". Expect: only that kind of row disappears, whatever the creator named it, and the gap closes. "Hide all
+rows" still removes every row. Failure ids: `yt.channel.hideRow<Name>`.
+
+**Join button (signed in).** On a channel that offers memberships, turn on "Hide the Join button". Expect: the Join
+button next to Subscribe is gone and Subscribe stays. YouTube shows no Join button signed out, so this one can only
+be checked signed in. Fail: `yt.channel.hideJoinButton`.
+
 Then turn on **Open channels on their Videos tab**: clicking a channel name from a video or a search
 result lands on `/videos`, while clicking the Home tab yourself still shows Home.
 
@@ -150,8 +166,6 @@ These need a video to actually play. Settings, **Video page**, "Playback". Turn 
 7. **Turn off hover previews** (Settings, **All of YouTube**): on the home page point at a thumbnail and
    wait three seconds. Expect: no moving preview and no preview sound. The buttons that appear on a
    thumbnail (Watch later, Add to queue) still work. Fail: `yt.general.disableHoverPreview`.
-8. **Calm shouting titles**: set to "Sentence case". A title with CAPITAL WORDS becomes ordinary text;
-   "4K", "NASA", "USA" stay. Fail: `yt.general.calmTitles`.
 
 ## 7. Ads (1 minute, only if you see ads; they often appear when signed out of Premium)
 

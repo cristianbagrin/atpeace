@@ -10,17 +10,14 @@
     site: 'youtube',
     title: 'Filters',
     order: 210,
-    description: 'Hide videos by words in the title or by channel, wherever they show up.',
   });
-
-  const LIST_NOTE = 'One per line. Matching ignores capitals and accents.';
 
   AP.schema.define('yt.filters', [
     {
       id: 'yt.filters.keywords',
       group: 'Hide videos',
       label: 'Words to hide',
-      description: `Hides any video whose title contains one of these words or phrases. Wrap a pattern in slashes for a regular expression, like /spoiler|leak/i. ${LIST_NOTE}`,
+      description: 'One per line. Use /regex/ for patterns.',
       type: 'list',
       default: [],
       maxItems: 500,
@@ -31,7 +28,7 @@
       id: 'yt.filters.channels',
       group: 'Hide videos',
       label: 'Channels to hide',
-      description: `Hides every video from these channels. Use the channel name or its @handle. ${LIST_NOTE}`,
+      description: 'Name or @handle, one per line.',
       type: 'list',
       default: [],
       maxItems: 500,
@@ -42,7 +39,6 @@
       id: 'yt.filters.applyTo',
       group: 'Hide videos',
       label: 'Where the filters apply',
-      description: 'The places that keyword and channel filters hide videos in.',
       type: 'list',
       default: ['home', 'search', 'watch', 'subscriptions'],
       options: [
@@ -58,7 +54,7 @@
       id: 'yt.filters.commentKeywords',
       group: 'Hide comments',
       label: 'Words to hide in comments',
-      description: `Hides any comment that contains one of these words or phrases. ${LIST_NOTE}`,
+      description: 'One per line.',
       type: 'list',
       default: [],
       maxItems: 500,

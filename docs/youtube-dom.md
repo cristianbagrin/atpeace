@@ -265,17 +265,17 @@ Settings use the exact ids of PLAN §6.3, in the same order. Each entry gives: t
 
 | Status | # | Settings |
 |---|---|---|
-| live-verified | 86 | `general.grayscale`, `general.thumbnails`, `general.disableHoverPreview`, `general.hideViewCounts`, `general.hideUploadDates`, `general.hideDurations`, `general.hideChannelAvatars`, `general.hideBadges`, `general.hideWatchedProgress`, `masthead.hideVoiceSearch`, `masthead.hideSearchSuggestions`, `masthead.hideSearchBar`, `masthead.hideCountryCode`, `masthead.hideAICompanion`, `masthead.hideMastheadAd`, `masthead.hideGuideButton`, `guide.hideAll`, `guide.hideMini`, `guide.hideHome`, `guide.hideShorts`, `guide.hideSubscriptionsEntry`, `guide.hideYouEntry`, `guide.hideHistory`, `guide.hideExploreSection`, `guide.hideMoreFromYouTube`, `guide.hideSettingsSection`, `guide.hideFooter`, `guide.hideSignInPromo`, `home.feedMode`, `home.hideOtherShelves`, `home.hideFeedNudge`, `watch.hideRelated`, `watch.hideLiveChat`, `watch.hideShoppingShelf`, `watch.hideTickets`, `watch.hideHashtags`, `watch.hideOwnerAvatar`, `watch.hideSubscriberCount`, `watch.hideJoinButton`, `watch.hideLikeCounts`, `watch.hideLikeButtons`, `watch.hideDownload`, `watch.hideMoreActions`, `watch.hideViewCount`, `watch.hideDescription`, `watch.hideChapters`, `watch.hideDescriptionExtras`, `watch.hideInfoPanels`, `watch.hideFundraiser`, `watch.hideAmbientMode`, `watch.autoTheater`, `watch.defaultSpeed`, `player.hideEndscreenWall`, `player.hideInfoCards`, `player.hidePaidPromotion`, `player.hideAutoplayToggle`, `player.hideNextButton`, `player.hideCastButton`, `player.hideSubtitlesButton`, `player.hideChapterTitle`, `player.hideProgressPreviews`, `comments.hideAll`, `comments.hideTeaser`, `comments.hideCount`, `comments.hideAvatars`, `comments.hideLikeCounts`, `comments.hideReplies`, `comments.hideCreatorHearts`, `search.hideShorts`, `search.hideShelves`, `search.hideSnippets`, `search.hideFilterChips`, `search.hideAISummary`, `search.hideChannelResults`, `shorts.hideComments`, `shorts.hideLikeCounts`, `shorts.hideRemix`, `shorts.hideSubscribe`, `channel.hideTrailer`, `channel.hideHomeShelves`, `channel.hideSubscriberCount`, `channel.hideBanner`, `filters.commentKeywords`, `general.hideWatched`, `general.calmTitles`, `shorts.mode` |
+| live-verified | 94 | `general.grayscale`, `general.thumbnails`, `general.disableHoverPreview`, `general.hideViewCounts`, `general.hideUploadDates`, `general.hideDurations`, `general.hideChannelAvatars`, `general.hideBadges`, `general.hideWatchedProgress`, `masthead.hideVoiceSearch`, `masthead.hideSearchSuggestions`, `masthead.hideSearchBar`, `masthead.hideCountryCode`, `masthead.hideAICompanion`, `masthead.hideMastheadAd`, `masthead.hideGuideButton`, `guide.hideAll`, `guide.hideMini`, `guide.hideHome`, `guide.hideShorts`, `guide.hideSubscriptionsEntry`, `guide.hideYouEntry`, `guide.hideHistory`, `guide.hideExploreSection`, `guide.hideMoreFromYouTube`, `guide.hideSettingsSection`, `guide.hideFooter`, `guide.hideSignInPromo`, `home.feedMode`, `home.hideOtherShelves`, `home.hideFeedNudge`, `watch.hideRelated`, `watch.hideLiveChat`, `watch.hideShoppingShelf`, `watch.hideTickets`, `watch.hideHashtags`, `watch.hideOwnerAvatar`, `watch.hideSubscriberCount`, `watch.hideJoinButton`, `watch.hideLikeCounts`, `watch.hideLikeButtons`, `watch.hideDownload`, `watch.hideMoreActions`, `watch.hideViewCount`, `watch.hideDescription`, `watch.hideChapters`, `watch.hideDescriptionExtras`, `watch.hideInfoPanels`, `watch.hideFundraiser`, `watch.hideAmbientMode`, `watch.autoTheater`, `watch.defaultSpeed`, `player.hideEndscreenWall`, `player.hideInfoCards`, `player.hidePaidPromotion`, `player.hideAutoplayToggle`, `player.hideNextButton`, `player.hideCastButton`, `player.hideSubtitlesButton`, `player.hideChapterTitle`, `player.hideProgressPreviews`, `comments.hideAll`, `comments.hideTeaser`, `comments.hideCount`, `comments.hideAvatars`, `comments.hideLikeCounts`, `comments.hideReplies`, `comments.hideCreatorHearts`, `search.hideShorts`, `search.hideShelves`, `search.hideSnippets`, `search.hideFilterChips`, `search.hideAISummary`, `search.hideChannelResults`, `shorts.hideComments`, `shorts.hideLikeCounts`, `shorts.hideRemix`, `shorts.hideSubscribe`, `channel.hideTrailer`, `channel.hideHomeShelves`, `channel.hideSubscriberCount`, `channel.hideBanner`, `channel.hideRowShorts`, `channel.hideRowPosts`, `channel.hideRowMembers`, `channel.hideRowLive`, `channel.hideRowPopular`, `channel.hideRowPlaylists`, `channel.hideRowChannels`, `channel.hideShowsTab`, `channel.hideCoursesTab`, `filters.commentKeywords`, `general.hideWatched`, `shorts.mode` |
 | partly live (see notes) | 7 | `masthead.hideDoodle`, `watch.hidePlayerAds`, `watch.hideShare`, `watch.hideSave`, `watch.hideAISummary`, `watch.disableAutoplay`, `general.hideAds` |
 | live-structure only | 5 | `home.hideChips`, `player.hideEndscreenCards`, `player.hideWatermark`, `subs.hideWatched`, `general.hideMixes` |
-| source / inferred only | 25 | `masthead.hideNotifications`, `guide.hidePlaylists`, `guide.hideYourVideos`, `guide.hideWatchLater`, `guide.hideLiked`, `guide.hideDownloads`, `guide.hideCourses`, `guide.hideSubscriptionsSection`, `home.hideShortsShelf`, `home.hideNewsShelf`, `home.hidePostsShelf`, `watch.hideRelatedShorts`, `watch.hideRelatedChips`, `watch.hideClip`, `watch.dismissStillWatching`, `player.hidePauseOverlay`, `player.hideMiniplayerButton`, `search.hideRelatedSearches`, `search.hideAds`, `subs.hideShorts`, `subs.hidePosts`, `subs.hideLive`, `subs.hideUpcoming`, `general.hidePremiumUpsells`, `general.hidePlayables` |
+| source / inferred only | 29 | `masthead.hideNotifications`, `guide.hidePlaylists`, `guide.hideYourVideos`, `guide.hideWatchLater`, `guide.hideLiked`, `guide.hideDownloads`, `guide.hideCourses`, `guide.hideSubscriptionsSection`, `home.hideShortsShelf`, `home.hideNewsShelf`, `home.hidePostsShelf`, `watch.hideRelatedShorts`, `watch.hideRelatedChips`, `watch.hideClip`, `watch.dismissStillWatching`, `player.hidePauseOverlay`, `player.hideMiniplayerButton`, `search.hideRelatedSearches`, `search.hideAds`, `subs.hideShorts`, `subs.hidePosts`, `subs.hideLive`, `subs.hideUpcoming`, `general.hidePremiumUpsells`, `general.hidePlayables`, `masthead.hideSearchHistory`, `channel.hideJoinButton`, `channel.hideMembersTab`, `channel.hideReleasesTab` |
 | GAP (no language-free selector) | 6 | `masthead.hideCreate`, `watch.hideThanks`, `watch.hideAsk`, `channel.hideShortsTab`, `channel.hidePostsTab`, `channel.hideStoreTab` |
 | player API (unverified effect) | 1 | `watch.noAutoStart` |
-| JS / no selector | 5 | `home.redirectUrl`, `channel.openVideosTab`, `filters.keywords`, `filters.channels`, `filters.applyTo` |
+| JS / no selector | 6 | `home.redirectUrl`, `channel.openVideosTab`, `general.thumbnailFrame`, `filters.keywords`, `filters.channels`, `filters.applyTo` |
 | infeasible in CSS | 1 | `home.limitRows` |
 | recommend dropping | 1 | `general.hideLiveBadgesAndPremieres` |
 
-Total: 137 setting ids = the 136 ids of PLAN §6.3 (minus the cross-site `general.enabled/theme` and `advanced.*`) + 1 proposed (`search.hideAISummary`). "live-verified" means at least one language-free selector of the setting matched an exact snapshot (or was exercised in the CSS lab); it does not mean every selector of the setting is live — read the per-selector tags.
+Total: 150 setting ids in this table (Phase 7b: calm titles removed; thumbnail picture, previous searches, seven channel rows, the Join button and four tabs added) = the 136 ids of PLAN §6.3 (minus the cross-site `general.enabled/theme` and `advanced.*`) + 1 proposed (`search.hideAISummary`). "live-verified" means at least one language-free selector of the setting matched an exact snapshot (or was exercised in the CSS lab); it does not mean every selector of the setting is live — read the per-selector tags.
 
 ### General
 
@@ -300,6 +300,10 @@ Not a hide rule. Apply `filter: grayscale(1)` to `html` (or `ytd-app`). Chromium
 
 Modes = per-value CSS on the same element set: blur => `filter: blur(14px)`, grayscale => `filter: grayscale(1)`, hide => `visibility:hidden` (keeps the card layout stable; display:none would collapse the grid). "Reveal on hover" = `:scope-on yt-lockup-view-model:hover .ytThumbnailViewModelImage > img { filter:none }`. Do NOT target `img` inside `yt-avatar-shape` (avatars) or `#movie_player` (the video). Watch-page background `ytd-thumbnail.player-container-background-image` is also matched by `ytd-thumbnail img` (harmless, hidden behind player).
 
+#### `yt.general.thumbnailFrame` (Phase 7b, item 6)
+
+JS feature `features/thumbnail-frame.js`; no selectors in the catalog (it owns a small style while it runs). YouTube's own frames of every processed video: `https://i.ytimg.com/vi/<id>/mq1.jpg`, `mq2.jpg`, `mq3.jpg` — **[live]** 320×180, 16:9 (checked on a 58-minute video and a Short: roughly the first quarter, the middle and the third quarter; `1.jpg … 3.jpg` are 120×90, `hq1.jpg … 3.jpg` 480×360 4:3, `sd1.jpg` 640×480 4:3). A live stream or a brand-new video answers 404 for every frame (the feature then puts the original back). See §4.13.
+
 #### `yt.general.disableHoverPreview`
 
 - `ytd-app #video-preview` — **[live]** · live: present in 18/18 snapshots (every page type) — host container of the inline preview player (always present, empty until hover)
@@ -313,27 +317,28 @@ CSS only hides the preview; YouTube still *starts* loading/playing the muted pre
 
 #### `yt.general.hideViewCounts`
 
-- `yt-lockup-view-model .ytContentMetadataViewModelMetadataRow:has(> .ytContentMetadataViewModelDelimiter) > :nth-child(1 of .ytContentMetadataViewModelMetadataText)` — **[live]** · live: playlist 54, channel-videos 30, watch-music 26, +4 more snapshots — first text span of the "views • date" row (the channel row has no delimiter; the badge row has none)
-- `yt-lockup-view-model .ytContentMetadataViewModelMetadataRow:has(> .ytContentMetadataViewModelDelimiter) > .ytContentMetadataViewModelDelimiter` — **[live]** · live: playlist 54, channel-videos 30, watch-music 26, +4 more snapshots — the bullet between views and date (hide with views so no dangling bullet)
-- `yt-lockup-view-model .ytContentMetadataViewModelLeadingIcon` — **[live]** · live: playlist 54, channel-videos 30, watch-music 25, +4 more snapshots — "play triangle" icon before the views (watch sidebar / channel home layouts)
-- `ytd-video-meta-block #metadata-line > span.inline-metadata-item:nth-of-type(1)` — **[live]** · live: hashtag 36, search-lofi 21, search-mrbeast 20, +2 more snapshots — legacy search result renderer: 1st span = views, 2nd = date
-- `.shortsLockupViewModelHostOutsideMetadataSubhead` — **[live]** · live: channel-shorts 45, search-lofi 20, search-rice 20, +1 more snapshots — Shorts cards: the subhead is the view count only
-- `ytd-playlist-video-renderer #video-info > span:nth-of-type(1)` — **[source: author knowledge]** — legacy playlist rows (no longer used on /playlist as of 2026-10: lockups)
-- `ytd-rich-grid-media #metadata-line > span.inline-metadata-item:nth-of-type(1)` — **[live]** · live: hashtag 36 — legacy rich-grid card (`ytd-rich-item-renderer > #content > ytd-rich-grid-media`) — still live on /hashtag/…
-- `ytd-compact-video-renderer #metadata-line > span.inline-metadata-item:nth-of-type(1)` — **[source: author knowledge]** — legacy watch sidebar (0 matches 2026-10; replaced by lockups)
-- `ytd-grid-video-renderer #metadata-line > span.inline-metadata-item:nth-of-type(1)` — **[source: RYS]** — legacy grid (subscriptions)
+Rewritten in Phase 7b (user feedback round 1, item 7: a signed-in home card showed `✓386K1d ago`, channel name gone and number left). See §4.11 for the layouts. Selectors (`V` = `yt-lockup-view-model:not(:has(yt-collection-thumbnail-view-model))`, so playlist / mix cards are never touched):
 
-Live streams show "N watching" in the same slot (also hidden: that is a metric too). Rows that contain only views (no date) have no delimiter and are NOT matched by the `:has(> delimiter)` guard — acceptable leak. Uses `:nth-child(1 of S)` (Chromium 111+, Firefox 113+; fine for FF140). The watch page main view count is a separate setting (`yt.watch.hideViewCount`).
+- `V .ytContentMetadataViewModelLeadingIcon` — **[live]** — the play-arrow icon in front of the view count (data: `leadingIcon.name = PLAY_ARROW_OUTLINED` on the part)
+- `V .ytContentMetadataViewModelLeadingIcon + .ytContentMetadataViewModelMetadataText` — **[live]** — the part behind the icon = the view count (the "views" word is no longer in the text: "99M" with aria-label "99 million views")
+- `V .ytContentMetadataViewModelLeadingIcon + .ytContentMetadataViewModelMetadataText + .ytContentMetadataViewModelDelimiter` — **[live]** — the separator after the views, so the one before what is left stays ("channel ✓ • 1d ago")
+- `V:not(<live>):not(:has(<leading icon>)) <text>:has(+ <delimiter> + <last text of its row>)` and the delimiter after it — **[live-structure]** — no icon: the part before "separator + last part"; never counted from the front of the row
+- live streams ("764 watching"): `lockup:has(badge-shape.ytBadgeShapeThumbnailLive)`: the second row when it is alone (`:nth-child(2 of row)`), or the last part of a row that also holds the channel, and the delimiter before it — **[live]** (2-row layout), **[inferred]** (1-row)
+- `.shortsLockupViewModelHostOutsideMetadataSubhead` — **[live]** — Shorts cards: the sub-heading is only the view count
+- legacy renderers (search results `ytd-video-meta-block`, `ytd-rich-grid-media`, grid/compact/playlist rows): `#metadata-line > span.inline-metadata-item:nth-of-type(1)` and a rule that drops the bullet `::before` of the date span — **[live]** (search, hashtag), **[source]** (the others)
+
+Verified: `tests/e2e/card-metrics.spec.mjs` (Chromium) and `tests/firefox/youtube7b.mjs` (Firefox) build every layout from a real snapshot lockup (two rows, one row, with and without the icon, no channel, live in both shapes, playlist) and assert, by role, what stays for views / dates / both; the old rule on the one-row layout reproduces the user's `✓386K1d ago` exactly. The signed-in home itself cannot be loaded here (docs/VERIFY.md).
 
 #### `yt.general.hideUploadDates`
 
-- `yt-lockup-view-model .ytContentMetadataViewModelMetadataRow:has(> .ytContentMetadataViewModelDelimiter) > .ytContentMetadataViewModelMetadataText.ytContentMetadataViewModelMetadataTextLastPart` — **[live]** · live: playlist 54, channel-videos 30, watch-music 26, +4 more snapshots — last text span of the "views • date" row
-- `yt-lockup-view-model .ytContentMetadataViewModelMetadataRow:has(> .ytContentMetadataViewModelDelimiter) > .ytContentMetadataViewModelDelimiter` — **[live]** · live: playlist 54, channel-videos 30, watch-music 26, +4 more snapshots — bullet (shared with hideViewCounts)
-- `ytd-video-meta-block #metadata-line > span.inline-metadata-item:nth-of-type(2)` — **[live]** · live: hashtag 36, search-mrbeast 20, search-lofi 18, +2 more snapshots — legacy search results
-- `ytd-rich-grid-media #metadata-line > span.inline-metadata-item:nth-of-type(2)` — **[live]** · live: hashtag 36 — legacy rich-grid card (live on /hashtag/…)
-- `ytd-grid-video-renderer #metadata-line > span.inline-metadata-item:nth-of-type(2)` — **[source: RYS]** — legacy grid
+Same audit and fix as the view counts (§4.11): the date is the last part of a row when a delimiter comes before it, plus that delimiter.
 
-On Shorts cards there is no date. If a row has only a date (rare) it will not match the `:has(> delimiter)` guard. On the watch page the date is `ytd-watch-info-text #date-text` — covered by `yt.watch.hideViewCount`/description settings, not here.
+- `V:not(<live>) row > delimiter + <last text of its row>` — **[live]** — the date ("12h ago", "Streamed 1 year ago")
+- `V:not(<live>) row > delimiter:has(+ <last text of its row>)` — **[live]** — the separator before it
+- legacy: `ytd-video-meta-block / ytd-rich-grid-media / ytd-grid-video-renderer / ytd-compact-video-renderer #metadata-line > span.inline-metadata-item:nth-of-type(2)` — **[live]** (search, hashtag), **[source]**
+- both settings on: every delimiter of a video lockup goes (nothing is left to separate), and the byline separator of the search-result renderer (`ytd-video-meta-block #byline-container > #separator`, visible in the `byline-separated` variant) — rules gated by the other setting's token.
+
+A live stream's last part is its "watching" count (view-count setting), not a date.
 
 #### `yt.general.hideDurations`
 
@@ -438,15 +443,6 @@ Home-grid shelf; unverified live (no home cards).
 
 The card wrapper must be the thing hidden (`ytd-rich-item-renderer`, `ytd-video-renderer`, `yt-lockup-view-model` inside a wrapper `div`), otherwise a hole remains in the grid. On /feed/history watched videos are the content — scope out `history`.
 
-#### `yt.general.calmTitles`
-
-- `yt-lockup-view-model .ytLockupMetadataViewModelTitle` — **[live]** · live: playlist 54, channel-videos 30, watch-chapters 26, +4 more snapshots — title anchor (text in `span.ytAttributedStringHost`)
-- `ytd-video-renderer a#video-title` — **[live]** · live: search-lofi 21, search-mrbeast 20, search-rice 15 — search results
-- `.shortsLockupViewModelHostMetadataTitle a` — **[live]** · live: channel-shorts 45, search-lofi 20, search-rice 20, +1 more snapshots — Shorts cards
-- `ytd-watch-metadata #title h1 yt-formatted-string` — **[live]** · live: present in 18/18 snapshots (every page type) — watch page title
-
-JS feature. Mind `aria-label` on the same anchors (full title + duration + views) — leave untouched (a11y). Text lives in a nested `span`; mutate `textContent` of that span only.
-
 #### `yt.general.hideLiveBadgesAndPremieres`
 
 - `yt-lockup-view-model badge-shape.ytBadgeShapeThumbnailLive` — **[live]** · live: watch-chapters 5, watch-live 5, watch-music 1 — the red LIVE pill on lockup thumbnails (language-free class; `div.ytBadgeShapeText` says "LIVE" localized)
@@ -473,6 +469,12 @@ Logged-in only. Logged out, `#buttons` contains: Settings (3-dot) `ytd-topbar-me
 - `ytd-masthead #buttons ytd-notification-topbar-button-renderer` — **[source: RYS]**
 
 Logged-in only; not present in the logged-out DOM (0 matches).
+
+#### `yt.masthead.hideSearchHistory` (Phase 7b, item 8)
+
+- `yt-searchbox .ytSuggestionComponentSuggestion:has([class*="ytSuggestionComponentRemoveLink"])` — **[source: public style sheets and extensions, unverified live]** · a dropdown row from your history carries a "Remove" link (`ytSuggestionComponentRemoveLink`, `…LinkDark`, `…LinkClearButton`) in its right container; live suggestions never do
+
+Logged out YouTube showed no history even after three searches in a persistent profile (checked 2026-10-07), so the real rows could not be observed; see §4.9. The match is on the class family, not on the word "Remove".
 
 #### `yt.masthead.hideVoiceSearch`
 
@@ -1344,7 +1346,7 @@ CSS hides it, but the player may still load; JS `ytd-channel-video-player-render
 
 The channel trailer (`ytd-channel-video-player-renderer`) lives inside the FIRST of these item sections, so this setting also removes it (lab: #primary height 1497 px -> 780 px with all sections hidden, 1497 -> 1211 with only the trailer hidden; no gaps). The same sections host content on other tabs (e.g. /posts = `ytd-backstage-items`). Page scope + tab check needed: the Home tab is the only tab where the URL has no tab segment — set `data-at-peace-channel-tab` in JS (`home|videos|shorts|live|playlists|posts|…`) so CSS can scope to home only.
 
-#### `yt.channel.hideShortsTab` — page: `channel`
+#### `yt.channel.hideShortsTab` — page: `channel` (tab only since Phase 7b; the row is `hideRowShorts`)
 
 - `ytd-browse[page-subtype="channels"] yt-tab-shape[tab-title="Shorts"]` — **[source: gijsdev]** · also matches live: channel-home 1, channel-posts 1, channel-shorts 1, +1 more snapshots — TEXT-BASED (English) — gijsdev/ublock-hide-yt-shorts
 - `ytd-browse[page-subtype="channels"] yt-tab-shape:nth-of-type(3)` — **[inferred]** · also matches live: channel-home 1, channel-posts 1, channel-shorts 1, +1 more snapshots — positional guess: Home, Videos, Shorts — varies per channel (Live, Podcasts…)
@@ -1365,10 +1367,9 @@ Same problem. No Store tab on the sample channel.
 
 #### `yt.channel.hideSubscriberCount` — page: `channel`
 
-- `ytd-browse[page-subtype="channels"] .ytPageHeaderViewModelContentMetadata .ytContentMetadataViewModelMetadataRow:has(> .ytContentMetadataViewModelDelimiter) > :nth-child(1 of .ytContentMetadataViewModelMetadataText)` — **[live]** · live: channel-home 1, channel-posts 1, channel-shorts 1, +1 more snapshots — in the header metadata, the row with a bullet is "subscribers • videos": its first text is the subscriber count
-- `ytd-browse[page-subtype="channels"] .ytPageHeaderViewModelContentMetadata .ytContentMetadataViewModelMetadataRow:has(> .ytContentMetadataViewModelDelimiter) > .ytContentMetadataViewModelDelimiter` — **[live]** · live: channel-home 1, channel-posts 1, channel-shorts 1, +1 more snapshots
+- `ytd-browse[page-subtype="channels"] .ytPageHeaderViewModelContentMetadata <text>:has(+ <delimiter> + <last text of its row>)` and the delimiter after it — **[live]** · the subscriber count is the part right before "separator + last part"; the handle (`@MrBeast`, a row of its own, or the first part of one row) is never matched, wherever it sits
 
-Header metadata observed: [@handle] • [519M subscribers • 1K videos]. The first row (handle) has no inner delimiter. Hiding only the first text leaves "• 1K videos".
+Header metadata observed: [@handle] • [519M subscribers • 1K videos]. Since Phase 7b the rule no longer counts "the first text of the row that has a delimiter" (it would hide the handle in a one-row header).
 
 #### `yt.channel.hideBanner` — page: `channel`
 
@@ -1377,6 +1378,18 @@ Header metadata observed: [@handle] • [519M subscribers • 1K videos]. The fi
 - `.page-header-banner` — **[source: yt-neuter]**
 
 Check that the avatar/title block below does not jump (page-header uses the banner as a background only).
+
+#### `yt.channel.hideRow*` — page: `channel` (Phase 7b, item 10)
+
+`hideRowShorts`, `hideRowPosts`, `hideRowMembers`, `hideRowLive`, `hideRowPopular`, `hideRowPlaylists`, `hideRowChannels`. Each hides, on the Home tab only, `ytd-item-section-renderer:has(> #contents > [data-at-peace-shelf="<type>"])` and the tagged row itself. The tag is set by the page bridge from the row's own data (§4.12); `hideRowShorts` also matches `ytd-reel-shelf-renderer` without the bridge. **[live]**: verified on MrBeast, Linus Tech Tips (members-only, Shorts, Posts, Playlists, popular, featured channels), Lofi Girl and NASA (live / upcoming), TED, PewDiePie.
+
+#### `yt.channel.hideJoinButton` — page: `channel`
+
+- `ytd-browse[page-subtype="channels"] [data-at-peace-channel-action="join"]` — **[source / inferred]** · the wrapper (`.ytFlexibleActionsViewModelAction`) of the header button the bridge named `join`, or the older header's `#sponsor-button`. YouTube shows no Join button on a logged-out channel header (Linus Tech Tips has members and still shows only Subscribe), so the data shape of the real button is unverified (§4.12; docs/VERIFY.md).
+
+#### `yt.channel.hideShowsTab`, `hideCoursesTab`, `hideMembersTab`, `hideReleasesTab` — page: `channel`
+
+- `ytd-browse[page-subtype="channels"] yt-tab-shape[data-at-peace-tab="shows" | "courses" | "members" | "releases"]` — Shows and Courses **[live]** (the tab list of MrBeast, Linus Tech Tips, TED); Members (URL `/membership`, named `members`) and Releases are **[source / inferred]**.
 
 ### Filters
 
@@ -1508,12 +1521,51 @@ Full guide (`ytd-guide-entry-renderer > a#endpoint`), logged out, in DOM order:
 
 `yt-searchbox` (host classes `ytSearchboxComponentHost ytSearchboxComponentDesktop`, `yt-searchbox-filled-query` / `ytSearchboxComponentHostIsFocused` while typing) contains `input.ytSearchboxComponentInput[name="search_query"][role="combobox"]` and the dropdown **`div.ytSearchboxComponentSuggestionsContainer[role="listbox"]`** (`hidden="true"` while closed; the attribute disappears when open). Rows: `div.ytSuggestionComponentSuggestion` > `div.ytSuggestionComponentText[role="option"][id="searchbox-suggestion:N"][aria-label="<query>"]` (14 rows for "lofi") + a footer "Report search predictions". Pressing Esc closes it. Snapshots: `autocomplete.html`, `autocomplete.png`. `div.sbdd_a` (RYS) is the *pre-2024* dropdown: 0 matches.
 
+Previous searches (Phase 7b): history rows have a "Remove" link in `div.ytSuggestionComponentRightContainer` — a class of the `ytSuggestionComponentRemoveLink` family (also `…Dark`, `…ClearButton`), documented by several public style sheets and extensions; live suggestions have an empty right container. Logged out, YouTube shows no history in the dropdown (3 searches in a persistent profile, focus with an empty box and after typing "lo": 14 live suggestions, none removable), so this is unverified live and is on the signed-in checklist. The rows expose no component data (only signals), so the DOM class is the only language-free key. `yt-searchbox.componentProps` has no suggestion list either.
+
 ### 4.10 Ads, AI, Premium upsells — what exists in the DOM logged out
 
 * **Empty ad hosts always present**: `#masthead-ad` (on `ytd-browse` **and** inside `ytd-rich-grid-renderer`), `#player-ads`, engagement panel `target-id="engagement-panel-ads"` (hidden), player `.ytp-suggested-action` pills. No actual ad element (`ytd-ad-slot-renderer`, `ytd-in-feed-ad-layout-renderer`, `ytd-promoted-*`, `.video-ads`, `.ytp-ad-*`) existed in any snapshot — the sample was served no ads.
 * **AI**: (1) `div#ai-companion-button.ytd-masthead[hidden]` (empty, inside `#center`); (2) **AI-generated summaries inside SEARCH RESULTS** — `ytd-video-renderer #expandable-metadata > ytd-expandable-metadata-renderer` whose `#content` holds a `video-summary-content-view-model` (label "Summary", expanded title "AI-generated video summary" + "AI can make mistakes" link): live on 1 of 16 results for "how to cook rice" (see `yt.search.hideAISummary`, a setting PLAN §6.3 lacks); (3) `div#video-summary` exists empty in the watch page's structured description. No "Ask" button/panel anywhere logged out. Engagement-panel `target-id`s seen on watch pages: `PAmodern_transcript_view`, `engagement-panel-searchable-transcript`, `engagement-panel-structured-description`, `engagement-panel-comments-section`, `engagement-panel-ads`, `PAsearch_preview` (purpose unknown), `engagement-panel-macro-markers-description-chapters` (chapters) — none is AI.
 * **Premium/mealbars**: no `ytd-mealbar-promo-renderer` etc. appeared logged out.
 * Overlay of the sandbox player: `.ytp-gated-actions-overlay` ("Sign in to confirm you're not a bot"), a bot-gate, not a feature to hide.
+
+### 4.11 Metadata rows of video cards (Phase 7b)
+
+`yt-lockup-view-model` → `yt-lockup-metadata-view-model` → `yt-content-metadata-view-model`: rows (`.ytContentMetadataViewModelMetadataRow`) of parts (`.ytContentMetadataViewModelMetadataText`; the last of a row also carries `…TextLastPart`), a `.ytContentMetadataViewModelDelimiter` span between two parts of a row, a `.ytContentMetadataViewModelLeadingIcon` before a part, a trailing `.ytContentMetadataViewModelIcon` (verified tick) after a channel, and `.ytContentMetadataViewModelBadge` rows. The data (`componentProps.data()` on the lockup, MAIN world) is `metadata.lockupMetadataViewModel.metadata.contentMetadataViewModel` = `{ metadataRows: [{ metadataParts: [{ text: { content }, accessibilityLabel, leadingIcon?: { name }, icon? }] }], delimiter: " " }`. Observed live 2026-10-05:
+
+```
+channel Videos tab              [▷ 99M | 1d ago]                                (no channel row)
+channel Home shelves / sidebar  [MrBeast ✓] / [▷ 99M | 1d ago]                  (channel in its own row)
+live                            [Lofi Girl ✓] / [19K watching]                  (no icon, no date)
+reported by a signed-in home    [channel ✓ | ▷ 386K | 1d ago]                   (ONE row; the old rule hid the channel and kept the number)
+```
+
+The view count is the part with `leadingIcon.name = PLAY_ARROW_OUTLINED` (the text no longer says "views": "99M", aria-label "99 million views"); the date is the last part of a row after a delimiter. Rules therefore never count parts from the front. A playlist / mix / station card (`yt-collection-thumbnail-view-model`) has other rows and is excluded. Page-header metadata (channel header) uses the same classes: `[@handle] • [519M subscribers • 1K videos]` with the standalone delimiter between rows.
+
+### 4.12 Channel Home rows and header buttons (Phase 7b)
+
+The page bridge (MAIN world) reads `.data` of each child of `ytd-browse[page-subtype="channels"] ytd-item-section-renderer > #contents` — `ytd-shelf-renderer` (`{ title, endpoint, content.horizontalListRenderer.items }`), `ytd-reel-shelf-renderer` (`{ items }`), `ytd-channel-video-player-renderer` (the trailer) — and writes `data-at-peace-shelf="<type>"`. Never from a title (creators name rows freely: "Our Best Stuff", "Japan Vlogs"). Observed on nine channels:
+
+| Type | Data |
+|---|---|
+| `shorts` | `ytd-reel-shelf-renderer`, or every item a `lockupViewModel` of type `…_SHORT` / `shortsLockupViewModel` |
+| `posts` | items `postRenderer` |
+| `channels` | items `gridChannelRenderer` (endpoint `showEngagementPanelEndpoint`, no URL) |
+| `playlists` | lockups `…_PLAYLIST` / `…_COURSE` / `…_ALBUM` (a Playlists row mixes playlists and courses) |
+| `members` | endpoint playlist `UUM…` (members-only uploads), or the `SPONSORSHIP_STAR` badge on the items |
+| `live` | endpoint with `live_view=` (e.g. `/@NASA/videos?view=2&sort=dd&live_view=502` "Upcoming live streams") or `view=2`, playlist `UULV…`, or a live badge (`THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE`; Lofi Girl's radios) |
+| `popular` | endpoint `…/videos?view=0&sort=p` |
+| `videos` | endpoint `…/videos?view=0&sort=dd` or a `UU…` uploads playlist |
+| `series` | any other row of videos backed by a playlist (`/playlist?list=PL…`: "New Uploads", "As Fast As Possible") — tagged, no setting |
+| (untagged) | a row that mixes kinds (a "Collaborations" row of Shorts and videos, no endpoint), or an unknown kind |
+
+Header buttons: `yt-page-header-view-model .ytFlexibleActionsViewModelAction > button-view-model` (data through `componentProps.data()`: `{ title, onTap.innertubeCommand, iconName?, accessibilityId?, type, style }`). Logged out: Subscribe (a sign-in `modalEndpoint`) and, on Lofi Girl, a "Community" button (`iconName: PEOPLE_GROUP`, `accessibilityId: eml.header_community_button`, a `browseEndpoint`). Names written to `data-at-peace-channel-action` on the wrapper: `join` (icon / `accessibilityId` / endpoint-kind keys naming sponsorship, membership or join), `subscribe` (the subscribe view model, or the first button), `store`, `community`. The Join button is not served logged out, so its shape is a best guess. Tabs: `membership` → `members` in `TAB_ALIASES`; MrBeast has Shows, TED Shows / Podcasts / Courses.
+
+### 4.13 Thumbnail frames (Phase 7b)
+
+The video id comes from the card's own link (`/watch?v=ID`, `/shorts/ID`; 11 characters). Card pictures: `yt-thumbnail-view-model img` (lockups, Shorts cards) and `ytd-thumbnail img` (search results, hashtag grids, the queue panel), inside a card element; not in the player, a chapter, a playlist / Mix / station card (`yt-collection-thumbnail-view-model`, `ytd-playlist-renderer`, `ytd-radio-renderer`). YouTube sets `src` only (no `srcset`); the original is kept in `data-at-peace-thumb-src`. A frame that fails to load (`error` event, capture phase) puts the original back and is not asked for again. Cards that appear later are swapped before they paint (the engine's mutation batch runs before the next frame, and unhandled card pictures are transparent for at most 1.2 s). Measured in the Chromium E2E: no frame in which the original was visible.
+
 
 ---
 

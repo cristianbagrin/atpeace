@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { launch, close, getContext, setStorage, trackErrors, ARTIFACTS } from './harness.mjs';
 import { fixturesAvailable, installYouTubeFixtures } from './_yt-fixture.mjs';
 import { readFileSync } from 'node:fs';
+import { deflateSync } from 'node:zlib';
 import { buildSearchDropdownInPage, visibleDropdownRowsInPage, attachShelfDataInPage, homeRowsInPage, addHeaderButtonInPage, headerButtonsInPage, thumbnailReportInPage } from './_7b-pages.mjs';
 
 const SHELVES = JSON.parse(readFileSync(join(import.meta.dirname, '..', 'fixtures', 'youtube', 'channel-shelves.json'), 'utf8'));
@@ -29,6 +30,7 @@ async function start() {
 /** Stores the settings, opens the page, and waits for the engine and the snapshot. */
 async function open(url, settings = {}) {
   await setStorage({ settings });
+  await page.bringToFront(); // a background tab gets no animation frames
   previous = Object.entries(settings).filter(([, v]) => v === true).map(([id]) => id);
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => document.documentElement.getAttribute('data-fixture-ready') === '1' && document.documentElement.hasAttribute('data-at-peace'), null, { timeout: 15_000 });
@@ -39,6 +41,7 @@ let previous = [];
 /** Changes the settings of the open page and waits until the engine's tokens say so. */
 async function apply(settings) {
   await setStorage({ settings });
+  await page.bringToFront();
   const want = Object.entries(settings).map(([id, v]) => (v === true ? id : typeof v === 'string' ? `${id}=${v}` : null)).filter(Boolean);
   const drop = previous.filter((t) => !want.includes(t));
   await page.waitForFunction(({ want, drop }) => {
@@ -167,6 +170,36 @@ describe('channel pages: rows by type, the Join button, more tabs (item 10)', { 
 // Thumbnail picture (item 6)
 // ---------------------------------------------------------------------------------------------
 
+
+/** A solid-colour PNG (16:9), so a frame in a screenshot is visibly a different picture from the grey stand-in. */
+function solidPng(r, g, b, w = 32, h = 18) {
+  const crc = (buf) => {
+    let c;
+    let x = 0xffffffff;
+    for (const byte of buf) {
+      c = (x ^ byte) & 0xff;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      x = (x >>> 8) ^ c;
+    }
+    return (x ^ 0xffffffff) >>> 0;
+  };
+  const chunk = (type, data) => {
+    const body = Buffer.concat([Buffer.from(type), data]);
+    const out = Buffer.alloc(body.length + 8);
+    out.writeUInt32BE(data.length, 0);
+    body.copy(out, 4);
+    out.writeUInt32BE(crc(body), body.length + 4);
+    return out;
+  };
+  const row = Buffer.concat([Buffer.from([0]), Buffer.from(Array.from({ length: w }, () => [r, g, b]).flat())]);
+  const raw = Buffer.concat(Array.from({ length: h }, () => row));
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0);
+  ihdr.writeUInt32BE(h, 4);
+  ihdr.set([8, 2, 0, 0, 0], 8);
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
+}
+
 const FRAME = { start: 'mq1', middle: 'mq2', end: 'mq3' };
 const frameUrl = (id, mode) => `https://i.ytimg.com/vi/${id}/${FRAME[mode]}.jpg`;
 const THUMB = 'yt.general.thumbnailFrame';
@@ -186,6 +219,9 @@ describe('thumbnail picture (item 6)', { skip: fixturesAvailable(SURFACES.map((x
   before(async () => {
     await start();
     requested = [];
+    // YouTube's frames come from a local stand-in (no traffic to Google), a different colour per frame.
+    const colours = { mq1: [38, 166, 154], mq2: [239, 108, 0], mq3: [123, 31, 162] };
+    await getContext().route(/^https:\/\/i\.ytimg\.com\/vi\/[\w-]{11}\/mq[123]\.jpg/, (route) => route.fulfill({ status: 200, contentType: 'image/png', body: solidPng(...colours[/(mq[123])\.jpg/.exec(route.request().url())[1]]) }));
     getContext().on('request', (r) => {
       if (r.url().startsWith('https://i.ytimg.com/')) requested.push(r.url());
     });
@@ -193,7 +229,7 @@ describe('thumbnail picture (item 6)', { skip: fixturesAvailable(SURFACES.map((x
   after(async () => close());
 
   for (const [label, url, snapshot] of SURFACES) {
-    test(`${label}: Start, Middle and End swap every card picture for YouTube's frame of that video, and Original puts the same pictures back`, async () => {
+    test(`${label}: Early, Middle and Late swap every card picture for YouTube's frame of that video, and Original puts the same pictures back`, async () => {
       await open(`https://www.youtube.com${url}`);
       await sleep(300);
       const before = await page.evaluate(thumbnailReportInPage);
@@ -216,7 +252,11 @@ describe('thumbnail picture (item 6)', { skip: fixturesAvailable(SURFACES.map((x
             assert.equal(now[i].src, before[i].src, `${snapshot} #${i}: no single video, untouched`);
           }
         }
-        if (mode === 'middle') await page.screenshot({ path: join(SHOTS, `thumbs-${snapshot}-middle.png`) });
+        if (mode === 'middle') {
+          await page.evaluate(() => document.querySelector('img[data-at-peace-thumb]')?.scrollIntoView({ block: 'center' }));
+          await sleep(300);
+          await page.screenshot({ path: join(SHOTS, `thumbs-${snapshot}-middle.png`) });
+        }
       }
       await apply({});
       await page.waitForFunction(() => !document.querySelector('img[data-at-peace-thumb]'), null, { timeout: 10_000 });

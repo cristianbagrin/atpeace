@@ -90,7 +90,8 @@ describe('catalog shape', () => {
     assert.deepEqual(sections.map((s) => s.id), Object.keys(EXPECTED).map((n) => `yt.${n}`));
     for (const sec of sections) {
       assert.ok(sec.order >= 100 && sec.order <= 899, `${sec.id} order`);
-      assert.ok(sec.title.trim() !== '' && sec.description?.trim() !== '', `${sec.id} title/description`);
+      assert.ok(sec.title.trim() !== '', `${sec.id} title`);
+      assert.equal(sec.description, undefined, `${sec.id}: a section title says what it is, no description`);
     }
     assert.equal(new Set(sections.map((s) => s.title)).size, sections.length, 'section titles must differ');
     assert.ok(!sections.some((s) => s.title === 'General'), 'the cross-site section is called General');
@@ -102,20 +103,29 @@ describe('catalog shape', () => {
     }
   });
 
-  test('labels are unique within a section, plain and short; descriptions are one or two plain sentences', () => {
+  test('labels are unique within a section, plain and short; a description exists only where the label is ambiguous and is a few plain words', () => {
     for (const sec of Object.keys(EXPECTED)) {
       const labels = catalog.filter((d) => d.section === `yt.${sec}`).map((d) => d.label);
       assert.equal(new Set(labels).size, labels.length, `duplicate label in ${sec}: ${labels.filter((l, i) => labels.indexOf(l) !== i)}`);
     }
     for (const def of catalog) {
       assert.ok(def.label.length >= 3 && def.label.length <= 60, `${def.id} label length`);
-      assert.ok(typeof def.description === 'string' && def.description.length >= 20 && def.description.length <= 330, `${def.id} description length`);
-      assert.match(def.description, /[.)]$/, `${def.id} description should end with a full stop`);
-      assert.match(def.description, /^[A-Z"]/, `${def.id} description should start with a capital`);
-      assert.doesNotMatch(`${def.label} ${def.description}`, /\p{Extended_Pictographic}/u, `${def.id}: no emoji`);
+      if (def.description !== undefined) {
+        // The copy rule (docs/feedback/round-1.md, item 2): say what it is, nothing more; at most about eight words.
+        const words = def.description.trim().split(/\s+/).length;
+        assert.ok(words <= 9, `${def.id}: description has ${words} words: ${def.description}`);
+        assert.match(def.description, /[.)]$/, `${def.id} description should end with a full stop`);
+        assert.match(def.description, /^[A-Z"]/, `${def.id} description should start with a capital`);
+        assert.doesNotMatch(def.description, /\p{Extended_Pictographic}/u, `${def.id}: no emoji`);
+        assert.notEqual(def.description.toLowerCase().replace(/[^a-z]/g, ''), def.label.toLowerCase().replace(/[^a-z]/g, ''), `${def.id}: the description must not repeat the label`);
+      }
+      assert.doesNotMatch(def.label, /\p{Extended_Pictographic}/u, `${def.id}: no emoji`);
       assert.ok(def.group && def.group.trim() !== '', `${def.id} needs a group`);
       assert.match(def.since, /^0\.[12]\.0$/, `${def.id} since`);
     }
+    // Most settings have none: the label says it. A growing list here means the rule is slipping.
+    const described = catalog.filter((d) => d.description !== undefined);
+    assert.ok(described.length <= 20, `${described.length} settings carry a description: ${described.map((d) => d.id)}`);
   });
 
   test('toggles that carry CSS have a non-empty list; every select variant has CSS; JS-only settings name their feature', () => {

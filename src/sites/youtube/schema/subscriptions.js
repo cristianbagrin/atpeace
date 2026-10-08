@@ -11,7 +11,6 @@
     site: 'youtube',
     title: 'Subscriptions feed',
     order: 190,
-    description: 'Trim the feed of videos from channels you follow.',
   });
 
   const SUBS = 'ytd-browse[page-subtype="subscriptions"]';
@@ -22,7 +21,6 @@
       id: 'yt.subs.hideShorts',
       group: 'Hide from the feed',
       label: 'Hide Shorts',
-      description: 'Removes Shorts rows and single Shorts from your subscriptions feed.',
       type: 'toggle',
       default: false,
       tags: ['shorts'],
@@ -43,7 +41,6 @@
       id: 'yt.subs.hidePosts',
       group: 'Hide from the feed',
       label: 'Hide community posts',
-      description: 'Removes posts (polls, images and text) from channels you follow.',
       type: 'toggle',
       default: false,
       page: 'subscriptions',
@@ -59,7 +56,6 @@
       id: 'yt.subs.hideLive',
       group: 'Hide from the feed',
       label: 'Hide live streams',
-      description: 'Removes streams that are live right now from your subscriptions feed.',
       type: 'toggle',
       default: false,
       page: 'subscriptions',
@@ -76,7 +72,6 @@
       id: 'yt.subs.hideUpcoming',
       group: 'Hide from the feed',
       label: 'Hide upcoming premieres',
-      description: 'Removes scheduled streams and premieres that have not started yet.',
       type: 'toggle',
       default: false,
       page: 'subscriptions',
@@ -91,7 +86,6 @@
       id: 'yt.subs.hideWatched',
       group: 'Hide from the feed',
       label: 'Hide videos you have watched',
-      description: 'Removes videos that show a red progress bar from your subscriptions feed.',
       type: 'toggle',
       default: false,
       page: 'subscriptions',

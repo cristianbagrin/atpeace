@@ -1,8 +1,8 @@
 # Selector coverage report
 
-Generated 2026-10-04 by `npm run selectors` (offline). Do not edit by hand.
+Generated 2026-10-08 by `npm run selectors` (offline). Do not edit by hand.
 
-Pages checked (18): channel-home (channel), channel-posts (channel), channel-shorts (channel), channel-videos (channel), feed-history (history), feed-subscriptions (subscriptions), hashtag (hashtag), home-narrow (home), home (home), playlist (playlist), search-lofi (search), search-mrbeast (search), search-rice (search), shorts (shorts), watch-chapters (watch), watch-live (watch), watch-music (watch), watch-playlist (watch).
+Pages checked (20): channel-home-lofigirl (channel), channel-home-ltt (channel), channel-home (channel), channel-posts (channel), channel-shorts (channel), channel-videos (channel), feed-history (history), feed-subscriptions (subscriptions), hashtag (hashtag), home-narrow (home), home (home), playlist (playlist), search-lofi (search), search-mrbeast (search), search-rice (search), shorts (shorts), watch-chapters (watch), watch-live (watch), watch-music (watch), watch-playlist (watch).
 
 Source: exact DOM snapshots of a **logged-out** browser (`tests/e2e/artifacts/research/*.dom.json`). They carry no CSS, so the "covers more than 60 % of the screen" check only runs with `--live`. Signed-in-only UI (Create button, signed-in sidebar, home feed, subscriptions feed) is not in them.
 
@@ -10,11 +10,11 @@ Source: exact DOM snapshots of a **logged-out** browser (`tests/e2e/artifacts/re
 
 | | count |
 |---|---|
-| Settings with CSS | 130 |
+| Settings with CSS | 141 |
 | JS-only settings (no selector) | 12 |
-| Selectors checked | 396 |
-| ✅ matched | 201 |
-| ⚠️ 0 matches | 195 |
+| Selectors checked | 420 |
+| ✅ matched | 203 |
+| ⚠️ 0 matches | 217 |
 | ❌ invalid selector | 0 |
 | 🚫 matches something it must not | 0 |
 
@@ -24,15 +24,13 @@ A setting is ✅ when at least one of its selectors matched on an expected page,
 
 | Setting | Page | Selectors | Matched | Status |
 |---|---|---|---|---|
-| `yt.general.tempHideLogo` | all | 1 | 1 | ✅ |
-| `yt.general.tempMastheadLook=faded` | all | 1 | 1 | ✅ |
 | `yt.general.grayscale` | all | 1 | 1 | ✅ |
 | `yt.general.thumbnails=blur` | all | 2 | 2 | ✅ |
 | `yt.general.thumbnails=grayscale` | all | 2 | 2 | ✅ |
 | `yt.general.thumbnails=hide` | all | 1 | 1 | ✅ |
 | `yt.general.disableHoverPreview` | all | 3 | 2 | ✅ |
-| `yt.general.hideViewCounts` | all | 11 | 8 | ✅ |
-| `yt.general.hideUploadDates` | all | 6 | 4 | ✅ |
+| `yt.general.hideViewCounts` | all | 15 | 8 | ✅ |
+| `yt.general.hideUploadDates` | all | 8 | 6 | ✅ |
 | `yt.general.hideDurations` | all | 2 | 2 | ✅ |
 | `yt.general.hideChannelAvatars` | all | 4 | 4 | ✅ |
 | `yt.general.hideBadges` | all | 6 | 6 | ✅ |
@@ -43,6 +41,7 @@ A setting is ✅ when at least one of its selectors matched on an expected page,
 | `yt.general.hideMixes` | all | 4 | 0 | ⚠️ |
 | `yt.general.hidePlayables` | home | 4 | 0 | ⚠️ |
 | `yt.masthead.hideSearchSuggestions` | all | 2 | 1 | ✅ |
+| `yt.masthead.hideSearchHistory` | all | 1 | 0 | ⚠️ |
 | `yt.masthead.hideVoiceSearch` | all | 1 | 1 | ✅ |
 | `yt.masthead.hideSearchBar` | all | 3 | 3 | ✅ |
 | `yt.masthead.hideCreate` | all | 1 | 0 | ⚠️ |
@@ -153,15 +152,27 @@ A setting is ✅ when at least one of its selectors matched on an expected page,
 | `yt.subs.hideWatched` | subscriptions | 3 | 0 | ⚠️ |
 | `yt.channel.hideTrailer` | channel | 2 | 2 | ✅ |
 | `yt.channel.hideHomeShelves` | channel | 1 | 1 | ✅ |
+| `yt.channel.hideRowShorts` | channel | 4 | 2 | ✅ |
+| `yt.channel.hideRowPosts` | channel | 2 | 0 | ⚠️ |
+| `yt.channel.hideRowMembers` | channel | 2 | 0 | ⚠️ |
+| `yt.channel.hideRowLive` | channel | 2 | 0 | ⚠️ |
+| `yt.channel.hideRowPopular` | channel | 2 | 0 | ⚠️ |
+| `yt.channel.hideRowPlaylists` | channel | 2 | 0 | ⚠️ |
+| `yt.channel.hideRowChannels` | channel | 2 | 0 | ⚠️ |
 | `yt.channel.hideBanner` | channel | 3 | 2 | ✅ |
+| `yt.channel.hideJoinButton` | channel | 1 | 0 | ⚠️ |
 | `yt.channel.hideSubscriberCount` | channel | 2 | 2 | ✅ |
-| `yt.channel.hideShortsTab` | channel | 3 | 0 | ⚠️ |
+| `yt.channel.hideShortsTab` | channel | 1 | 0 | ⚠️ |
 | `yt.channel.hideLiveTab` | channel | 1 | 0 | ⚠️ |
 | `yt.channel.hidePodcastsTab` | channel | 1 | 0 | ⚠️ |
 | `yt.channel.hidePlaylistsTab` | channel | 1 | 0 | ⚠️ |
 | `yt.channel.hidePostsTab` | channel | 1 | 0 | ⚠️ |
 | `yt.channel.hideStoreTab` | channel | 1 | 0 | ⚠️ |
-| `yt.general.calmTitles` | all | – | – | JS (calm-titles) |
+| `yt.channel.hideShowsTab` | channel | 1 | 0 | ⚠️ |
+| `yt.channel.hideCoursesTab` | channel | 1 | 0 | ⚠️ |
+| `yt.channel.hideMembersTab` | channel | 1 | 0 | ⚠️ |
+| `yt.channel.hideReleasesTab` | channel | 1 | 0 | ⚠️ |
+| `yt.general.thumbnailFrame` | all | – | – | JS (thumbnail-frame) |
 | `yt.home.redirectUrl` | home | – | – | JS (home-feed) |
 | `yt.watch.disableAutoplay` | watch | – | – | JS (autoplay) |
 | `yt.watch.noAutoStart` | watch | – | – | JS (autoplay) |
@@ -178,43 +189,47 @@ A setting is ✅ when at least one of its selectors matched on an expected page,
 
 | Setting | Selector | Page | Matches | Status | Seen on / note |
 |---|---|---|---|---|---|
-| `yt.general.tempHideLogo` | `ytd-masthead #logo` | all | 36 | ✅ matched | channel-home 2, channel-posts 2, channel-shorts 2 |
-| `yt.general.tempMastheadLook=faded` | `rule: ytd-masthead` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
 | `yt.general.grayscale` | `:scope-on filter: grayscale(1) !important;` | all | 1 | ✅ matched | styles the page root |
-| `yt.general.thumbnails=blur` | `rule: :is(yt-thumbnail-view-model .ytThumbnailViewModelImage > img, ytd-thumbnail img, ytd-playlist-thumbnail img, yt-collection-thumbnail-view-model img, .ytp-modern-videowall-still-image, .ytp-videowall-still-image, .…` | all | 487 | ✅ matched | channel-home 12, channel-shorts 45, channel-videos 30 |
-| `yt.general.thumbnails=blur` | `rule: :is(yt-lockup-view-model, ytm-shorts-lockup-view-model, ytd-video-renderer, ytd-rich-grid-media, ytd-compact-video-renderer, ytd-grid-video-renderer, ytd-playlist-video-renderer, ytd-playlist-panel-video-renderer,…` | all | 484 | ✅ matched | channel-home 12, channel-shorts 45, channel-videos 30 |
-| `yt.general.thumbnails=grayscale` | `rule: :is(yt-thumbnail-view-model .ytThumbnailViewModelImage > img, ytd-thumbnail img, ytd-playlist-thumbnail img, yt-collection-thumbnail-view-model img, .ytp-modern-videowall-still-image, .ytp-videowall-still-image, .…` | all | 487 | ✅ matched | channel-home 12, channel-shorts 45, channel-videos 30 |
-| `yt.general.thumbnails=grayscale` | `rule: :is(yt-lockup-view-model, ytm-shorts-lockup-view-model, ytd-video-renderer, ytd-rich-grid-media, ytd-compact-video-renderer, ytd-grid-video-renderer, ytd-playlist-video-renderer, ytd-playlist-panel-video-renderer,…` | all | 484 | ✅ matched | channel-home 12, channel-shorts 45, channel-videos 30 |
-| `yt.general.thumbnails=hide` | `rule: :is(yt-thumbnail-view-model, ytd-thumbnail, ytd-playlist-thumbnail, yt-collection-thumbnail-view-model, .ytp-modern-videowall-still-image, .ytp-videowall-still-image, .ytp-ce-covering-image)` | all | 561 | ✅ matched | channel-home 14, channel-posts 2, channel-shorts 47 |
-| `yt.general.disableHoverPreview` | `ytd-app #video-preview` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.general.disableHoverPreview` | `ytd-video-preview` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.general.thumbnails=blur` | `rule: :is(yt-thumbnail-view-model .ytThumbnailViewModelImage > img, ytd-thumbnail img, ytd-playlist-thumbnail img, yt-collection-thumbnail-view-model img, .ytp-modern-videowall-still-image, .ytp-videowall-still-image, .…` | all | 565 | ✅ matched | channel-home-lofigirl 24, channel-home-ltt 54, channel-home 12 |
+| `yt.general.thumbnails=blur` | `rule: :is(yt-lockup-view-model, ytm-shorts-lockup-view-model, ytd-video-renderer, ytd-rich-grid-media, ytd-compact-video-renderer, ytd-grid-video-renderer, ytd-playlist-video-renderer, ytd-playlist-panel-video-renderer,…` | all | 562 | ✅ matched | channel-home-lofigirl 24, channel-home-ltt 54, channel-home 12 |
+| `yt.general.thumbnails=grayscale` | `rule: :is(yt-thumbnail-view-model .ytThumbnailViewModelImage > img, ytd-thumbnail img, ytd-playlist-thumbnail img, yt-collection-thumbnail-view-model img, .ytp-modern-videowall-still-image, .ytp-videowall-still-image, .…` | all | 565 | ✅ matched | channel-home-lofigirl 24, channel-home-ltt 54, channel-home 12 |
+| `yt.general.thumbnails=grayscale` | `rule: :is(yt-lockup-view-model, ytm-shorts-lockup-view-model, ytd-video-renderer, ytd-rich-grid-media, ytd-compact-video-renderer, ytd-grid-video-renderer, ytd-playlist-video-renderer, ytd-playlist-panel-video-renderer,…` | all | 562 | ✅ matched | channel-home-lofigirl 24, channel-home-ltt 54, channel-home 12 |
+| `yt.general.thumbnails=hide` | `rule: :is(yt-thumbnail-view-model, ytd-thumbnail, ytd-playlist-thumbnail, yt-collection-thumbnail-view-model, .ytp-modern-videowall-still-image, .ytp-videowall-still-image, .ytp-ce-covering-image)` | all | 649 | ✅ matched | channel-home-lofigirl 26, channel-home-ltt 62, channel-home 14 |
+| `yt.general.disableHoverPreview` | `ytd-app #video-preview` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.general.disableHoverPreview` | `ytd-video-preview` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.general.disableHoverPreview` | `ytd-thumbnail-overlay-loading-preview-renderer` | all | 0 | ⚠️ 0 matches |  |
-| `yt.general.hideViewCounts` | `yt-lockup-view-model .ytContentMetadataViewModelMetadataRow:has(> .ytContentMetadataViewModelDelimiter) > :nth-child(1 of .ytContentMetadataViewModelMetadataText)` | all | 190 | ✅ matched | channel-home 12, channel-videos 30, playlist 54 |
-| `yt.general.hideViewCounts` | `yt-lockup-view-model .ytContentMetadataViewModelMetadataRow:has(> .ytContentMetadataViewModelDelimiter) > .ytContentMetadataViewModelDelimiter` | all | 190 | ✅ matched | channel-home 12, channel-videos 30, playlist 54 |
-| `yt.general.hideViewCounts` | `yt-lockup-view-model .ytContentMetadataViewModelLeadingIcon` | all | 188 | ✅ matched | channel-home 12, channel-videos 30, playlist 54 |
-| `yt.general.hideViewCounts` | `yt-lockup-view-model:has(badge-shape.ytBadgeShapeThumbnailLive) .ytContentMetadataViewModelMetadataRow:nth-child(2 of .ytContentMetadataViewModelMetadataRow):not(:has(.ytContentMetadataViewModelBadge))` | all | 11 | ✅ matched | watch-chapters 5, watch-live 5, watch-music 1 |
-| `yt.general.hideViewCounts` | `.shortsLockupViewModelHostOutsideMetadataSubhead` | all | 90 | ✅ matched | channel-shorts 45, search-lofi 20, search-mrbeast 5 |
-| `yt.general.hideViewCounts` | `ytd-video-meta-block #metadata-line > span.inline-metadata-item:nth-of-type(1)` | all | 93 | ✅ matched | channel-home 1, hashtag 36, search-lofi 21 |
+| `yt.general.hideViewCounts` | `yt-lockup-view-model:not(:has(yt-collection-thumbnail-view-model)) .ytContentMetadataViewModelLeadingIcon` | all | 242 | ✅ matched | channel-home-lofigirl 18, channel-home-ltt 36, channel-home 12 |
+| `yt.general.hideViewCounts` | `yt-lockup-view-model:not(:has(yt-collection-thumbnail-view-model)) .ytContentMetadataViewModelLeadingIcon + .ytContentMetadataViewModelMetadataText` | all | 242 | ✅ matched | channel-home-lofigirl 18, channel-home-ltt 36, channel-home 12 |
+| `yt.general.hideViewCounts` | `yt-lockup-view-model:not(:has(yt-collection-thumbnail-view-model)) .ytContentMetadataViewModelLeadingIcon + .ytContentMetadataViewModelMetadataText + .ytContentMetadataViewModelDelimiter` | all | 241 | ✅ matched | channel-home-lofigirl 17, channel-home-ltt 36, channel-home 12 |
+| `yt.general.hideViewCounts` | `yt-lockup-view-model:not(:has(yt-collection-thumbnail-view-model)):not(:has(badge-shape.ytBadgeShapeThumbnailLive)):not(:has(.ytContentMetadataViewModelLeadingIcon)) .ytContentMetadataViewModelMetadataText:has(+ .ytCont…` | all | 0 | ⚠️ 0 matches |  |
+| `yt.general.hideViewCounts` | `yt-lockup-view-model:not(:has(yt-collection-thumbnail-view-model)):not(:has(badge-shape.ytBadgeShapeThumbnailLive)):not(:has(.ytContentMetadataViewModelLeadingIcon)) .ytContentMetadataViewModelMetadataText:has(+ .ytCont…` | all | 0 | ⚠️ 0 matches |  |
+| `yt.general.hideViewCounts` | `yt-lockup-view-model:has(badge-shape.ytBadgeShapeThumbnailLive) .ytContentMetadataViewModelMetadataRow:nth-child(2 of .ytContentMetadataViewModelMetadataRow):not(:has(.ytContentMetadataViewModelBadge))` | all | 18 | ✅ matched | channel-home-lofigirl 7, watch-chapters 5, watch-live 5 |
+| `yt.general.hideViewCounts` | `yt-lockup-view-model:has(badge-shape.ytBadgeShapeThumbnailLive) .ytContentMetadataViewModelMetadataRow:has(> .ytContentMetadataViewModelDelimiter) > .ytContentMetadataViewModelMetadataText:nth-last-child(1 of .ytContent…` | all | 0 | ⚠️ 0 matches |  |
+| `yt.general.hideViewCounts` | `yt-lockup-view-model:has(badge-shape.ytBadgeShapeThumbnailLive) .ytContentMetadataViewModelMetadataRow > .ytContentMetadataViewModelDelimiter:has(+ .ytContentMetadataViewModelMetadataText:nth-last-child(1 of .ytContentM…` | all | 0 | ⚠️ 0 matches |  |
+| `yt.general.hideViewCounts` | `.shortsLockupViewModelHostOutsideMetadataSubhead` | all | 96 | ✅ matched | channel-home-ltt 6, channel-shorts 45, search-lofi 20 |
+| `yt.general.hideViewCounts` | `ytd-video-meta-block #metadata-line > span.inline-metadata-item:nth-of-type(1)` | all | 95 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.general.hideViewCounts` | `ytd-rich-grid-media #metadata-line > span.inline-metadata-item:nth-of-type(1)` | all | 36 | ✅ matched | hashtag 36 |
 | `yt.general.hideViewCounts` | `ytd-grid-video-renderer #metadata-line > span.inline-metadata-item:nth-of-type(1)` | all | 0 | ⚠️ 0 matches |  |
 | `yt.general.hideViewCounts` | `ytd-compact-video-renderer #metadata-line > span.inline-metadata-item:nth-of-type(1)` | all | 0 | ⚠️ 0 matches |  |
 | `yt.general.hideViewCounts` | `ytd-playlist-video-renderer #video-info > span:nth-of-type(1)` | all | 0 | ⚠️ 0 matches |  |
-| `yt.general.hideViewCounts` | `rule: ytd-video-meta-block #metadata-line > span.inline-metadata-item:nth-of-type(2)::before` | all | 90 | ✅ matched | channel-home 1, hashtag 36, search-lofi 18 |
-| `yt.general.hideUploadDates` | `yt-lockup-view-model .ytContentMetadataViewModelMetadataRow:has(> .ytContentMetadataViewModelDelimiter) > .ytContentMetadataViewModelMetadataText.ytContentMetadataViewModelMetadataTextLastPart` | all | 190 | ✅ matched | channel-home 12, channel-videos 30, playlist 54 |
-| `yt.general.hideUploadDates` | `yt-lockup-view-model .ytContentMetadataViewModelMetadataRow:has(> .ytContentMetadataViewModelDelimiter) > .ytContentMetadataViewModelDelimiter` | all | 190 | ✅ matched | channel-home 12, channel-videos 30, playlist 54 |
-| `yt.general.hideUploadDates` | `ytd-video-meta-block #metadata-line > span.inline-metadata-item:nth-of-type(2)` | all | 90 | ✅ matched | channel-home 1, hashtag 36, search-lofi 18 |
+| `yt.general.hideViewCounts` | `rule: ytd-video-meta-block #metadata-line > span.inline-metadata-item:nth-of-type(2)::before` | all | 91 | ✅ matched | channel-home-ltt 1, channel-home 1, hashtag 36 |
+| `yt.general.hideUploadDates` | `yt-lockup-view-model:not(:has(yt-collection-thumbnail-view-model)):not(:has(badge-shape.ytBadgeShapeThumbnailLive)) .ytContentMetadataViewModelMetadataRow > .ytContentMetadataViewModelDelimiter + .ytContentMetadataViewM…` | all | 252 | ✅ matched | channel-home-lofigirl 21, channel-home-ltt 42, channel-home 12 |
+| `yt.general.hideUploadDates` | `yt-lockup-view-model:not(:has(yt-collection-thumbnail-view-model)):not(:has(badge-shape.ytBadgeShapeThumbnailLive)) .ytContentMetadataViewModelMetadataRow > .ytContentMetadataViewModelDelimiter:has(+ .ytContentMetadataV…` | all | 252 | ✅ matched | channel-home-lofigirl 21, channel-home-ltt 42, channel-home 12 |
+| `yt.general.hideUploadDates` | `ytd-video-meta-block #metadata-line > span.inline-metadata-item:nth-of-type(2)` | all | 91 | ✅ matched | channel-home-ltt 1, channel-home 1, hashtag 36 |
 | `yt.general.hideUploadDates` | `ytd-rich-grid-media #metadata-line > span.inline-metadata-item:nth-of-type(2)` | all | 36 | ✅ matched | hashtag 36 |
 | `yt.general.hideUploadDates` | `ytd-grid-video-renderer #metadata-line > span.inline-metadata-item:nth-of-type(2)` | all | 0 | ⚠️ 0 matches |  |
 | `yt.general.hideUploadDates` | `ytd-compact-video-renderer #metadata-line > span.inline-metadata-item:nth-of-type(2)` | all | 0 | ⚠️ 0 matches |  |
-| `yt.general.hideDurations` | `yt-thumbnail-bottom-overlay-view-model yt-thumbnail-badge-view-model` | all | 201 | ✅ matched | channel-home 12, channel-videos 30, playlist 54 |
+| `yt.general.hideUploadDates` | `rule: [data-at-peace~="yt.general.hideViewCounts"] yt-lockup-view-model:not(:has(yt-collection-thumbnail-view-model)) .ytContentMetadataViewModelMetadataRow > .ytContentMetadataViewModelDelimiter` | all | 252 | ✅ matched | channel-home-lofigirl 21, channel-home-ltt 42, channel-home 12 |
+| `yt.general.hideUploadDates` | `rule: [data-at-peace~="yt.general.hideViewCounts"] ytd-video-meta-block #byline-container > #separator` | all | 95 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.general.hideDurations` | `yt-thumbnail-bottom-overlay-view-model yt-thumbnail-badge-view-model` | all | 267 | ✅ matched | channel-home-lofigirl 24, channel-home-ltt 42, channel-home 12 |
 | `yt.general.hideDurations` | `ytd-thumbnail-overlay-time-status-renderer` | all | 181 | ✅ matched | hashtag 72, search-lofi 18, search-mrbeast 20 |
-| `yt.general.hideChannelAvatars` | `yt-lockup-view-model .ytLockupMetadataViewModelAvatar` | all | 169 | ✅ matched | channel-home 12, playlist 54, watch-chapters 26 |
+| `yt.general.hideChannelAvatars` | `yt-lockup-view-model .ytLockupMetadataViewModelAvatar` | all | 235 | ✅ matched | channel-home-lofigirl 24, channel-home-ltt 42, channel-home 12 |
 | `yt.general.hideChannelAvatars` | `ytd-video-renderer #channel-info > a#channel-thumbnail` | all | 56 | ✅ matched | search-lofi 21, search-mrbeast 20, search-rice 15 |
 | `yt.general.hideChannelAvatars` | `ytd-video-renderer #channel-info > #avatar` | all | 56 | ✅ matched | search-lofi 21, search-mrbeast 20, search-rice 15 |
 | `yt.general.hideChannelAvatars` | `ytd-rich-grid-media #avatar-container` | all | 36 | ✅ matched | hashtag 36 |
-| `yt.general.hideBadges` | `yt-lockup-view-model .ytContentMetadataViewModelBadge` | all | 17 | ✅ matched | channel-home 12, watch-music 3, watch-playlist 2 |
-| `yt.general.hideBadges` | `yt-lockup-view-model .ytContentMetadataViewModelIcon` | all | 94 | ✅ matched | channel-home 6, playlist 54, watch-chapters 8 |
-| `yt.general.hideBadges` | `yt-lockup-view-model yt-badge-view-model` | all | 17 | ✅ matched | channel-home 12, watch-music 3, watch-playlist 2 |
+| `yt.general.hideBadges` | `yt-lockup-view-model .ytContentMetadataViewModelBadge` | all | 32 | ✅ matched | channel-home-ltt 15, channel-home 12, watch-music 3 |
+| `yt.general.hideBadges` | `yt-lockup-view-model .ytContentMetadataViewModelIcon` | all | 143 | ✅ matched | channel-home-lofigirl 23, channel-home-ltt 26, channel-home 6 |
+| `yt.general.hideBadges` | `yt-lockup-view-model yt-badge-view-model` | all | 32 | ✅ matched | channel-home-ltt 15, channel-home 12, watch-music 3 |
 | `yt.general.hideBadges` | `ytd-video-renderer ytd-badge-supported-renderer` | all | 333 | ✅ matched | search-lofi 123, search-mrbeast 120, search-rice 90 |
 | `yt.general.hideBadges` | `ytd-video-renderer yt-badge-supported-renderer` | all | 333 | ✅ matched | search-lofi 123, search-mrbeast 120, search-rice 90 |
 | `yt.general.hideBadges` | `ytd-video-renderer #badges` | all | 56 | ✅ matched | search-lofi 21, search-mrbeast 20, search-rice 15 |
@@ -237,8 +252,8 @@ A setting is ✅ when at least one of its selectors matched on an expected page,
 | `yt.general.hideAds` | `ytd-action-companion-ad-renderer` | all | 0 | ⚠️ 0 matches |  |
 | `yt.general.hideAds` | `ytd-search-pyv-renderer` | all | 0 | ⚠️ 0 matches |  |
 | `yt.general.hideAds` | `ytd-compact-promoted-item-renderer` | all | 0 | ⚠️ 0 matches |  |
-| `yt.general.hideAds` | `#masthead-ad` | all | 16 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 2 |
-| `yt.general.hideAds` | `#player-ads` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.general.hideAds` | `#masthead-ad` | all | 18 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.general.hideAds` | `#player-ads` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.general.hideAds` | `ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-ads"]` | all | 4 | ✅ matched | watch-chapters 1, watch-live 1, watch-music 1 |
 | `yt.general.hideAds` | `#shorts-inner-container > .ytd-shorts:has(> .ytd-reel-video-renderer > ytd-ad-slot-renderer)` | all | 0 | ⚠️ 0 matches |  |
 | `yt.general.hidePremiumUpsells` | `ytd-mealbar-promo-renderer` | all | 0 | ⚠️ 0 matches |  |
@@ -255,53 +270,54 @@ A setting is ✅ when at least one of its selectors matched on an expected page,
 | `yt.general.hidePlayables` | `ytd-browse[page-subtype="home"] ytd-rich-section-renderer:has(ytd-rich-shelf-renderer a[href="/playables"])` | home | 0 | ⚠️ 0 matches |  |
 | `yt.general.hidePlayables` | `ytd-browse[page-subtype="home"] ytd-rich-shelf-renderer[has-rounded-box-art-thumbnail-style]` | home | 0 | ⚠️ 0 matches |  |
 | `yt.general.hidePlayables` | `ytd-browse[page-subtype="home"] ytd-mini-game-card-view-model` | home | 0 | ⚠️ 0 matches |  |
-| `yt.masthead.hideSearchSuggestions` | `yt-searchbox .ytSearchboxComponentSuggestionsContainer` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.masthead.hideSearchSuggestions` | `yt-searchbox .ytSearchboxComponentSuggestionsContainer` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.masthead.hideSearchSuggestions` | `div.sbdd_a` | all | 0 | ⚠️ 0 matches |  |
-| `yt.masthead.hideVoiceSearch` | `ytd-masthead #voice-search-button` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.masthead.hideSearchBar` | `ytd-masthead #center` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.masthead.hideSearchBar` | `ytd-masthead yt-searchbox` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.masthead.hideSearchBar` | `ytd-masthead #search-button-narrow` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.masthead.hideSearchHistory` | `yt-searchbox .ytSuggestionComponentSuggestion:has([class*="ytSuggestionComponentRemoveLink"])` | all | 0 | ⚠️ 0 matches | signed-in / signed-out UI |
+| `yt.masthead.hideVoiceSearch` | `ytd-masthead #voice-search-button` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.masthead.hideSearchBar` | `ytd-masthead #center` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.masthead.hideSearchBar` | `ytd-masthead yt-searchbox` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.masthead.hideSearchBar` | `ytd-masthead #search-button-narrow` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.masthead.hideCreate` | `ytd-masthead #buttons > :is(ytd-button-renderer, ytd-topbar-menu-button-renderer):has(+ ytd-notification-topbar-button-renderer)` | all | 0 | ⚠️ 0 matches | signed-in / signed-out UI |
 | `yt.masthead.hideNotifications` | `ytd-masthead ytd-notification-topbar-button-renderer` | all | 0 | ⚠️ 0 matches | signed-in / signed-out UI |
-| `yt.masthead.hideGuideButton` | `ytd-masthead #guide-button` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.masthead.hideAICompanion` | `ytd-masthead #ai-companion-button` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.masthead.hideCountryCode` | `ytd-topbar-logo-renderer #country-code` | all | 36 | ✅ matched | channel-home 2, channel-posts 2, channel-shorts 2 |
-| `yt.masthead.hideDoodle` | `ytd-masthead ytd-yoodle-renderer` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.masthead.hideGuideButton` | `ytd-masthead #guide-button` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.masthead.hideAICompanion` | `ytd-masthead #ai-companion-button` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.masthead.hideCountryCode` | `ytd-topbar-logo-renderer #country-code` | all | 40 | ✅ matched | channel-home-lofigirl 2, channel-home-ltt 2, channel-home 2 |
+| `yt.masthead.hideDoodle` | `ytd-masthead ytd-yoodle-renderer` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.masthead.hideDoodle` | `#big-yoodle` | all | 6 | ✅ matched | channel-shorts 1, channel-videos 1, hashtag 1 |
 | `yt.masthead.hideDoodle` | `rule: ytd-topbar-logo-renderer a#logo > div[hidden]` | all | 0 | ⚠️ 0 matches |  |
 | `yt.masthead.hideDoodle` | `rule: ytd-topbar-logo-renderer a#logo > div > ytd-logo[hidden]` | all | 0 | ⚠️ 0 matches |  |
-| `yt.masthead.hideMastheadAd` | `#masthead-ad` | all | 16 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 2 |
+| `yt.masthead.hideMastheadAd` | `#masthead-ad` | all | 18 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.masthead.hideMastheadAd` | `ytd-statement-banner-renderer` | all | 0 | ⚠️ 0 matches |  |
 | `yt.masthead.hideMastheadAd` | `ytd-brand-video-singleton-renderer` | all | 0 | ⚠️ 0 matches |  |
 | `yt.masthead.hideMastheadAd` | `ytd-brand-video-shelf-renderer` | all | 0 | ⚠️ 0 matches |  |
 | `yt.masthead.hideMastheadAd` | `ytd-primetime-promo-renderer` | all | 0 | ⚠️ 0 matches |  |
-| `yt.guide.hideAll` | `tp-yt-app-drawer#guide` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.guide.hideAll` | `ytd-mini-guide-renderer` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.guide.hideAll` | `ytd-masthead #guide-button` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.guide.hideAll` | `rule: ytd-app[guide-persistent-and-visible] ytd-page-manager#page-manager` | all | 13 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.guide.hideAll` | `tp-yt-app-drawer#guide` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.guide.hideAll` | `ytd-mini-guide-renderer` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.guide.hideAll` | `ytd-masthead #guide-button` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.guide.hideAll` | `rule: ytd-app[guide-persistent-and-visible] ytd-page-manager#page-manager` | all | 15 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.guide.hideAll` | `rule: ytd-app[mini-guide-visible] ytd-page-manager#page-manager` | all | 1 | ✅ matched | home-narrow 1 |
-| `yt.guide.hideMini` | `ytd-mini-guide-renderer` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.guide.hideMini` | `ytd-mini-guide-renderer` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.guide.hideMini` | `rule: ytd-app[mini-guide-visible] ytd-page-manager#page-manager` | all | 1 | ✅ matched | home-narrow 1 |
-| `yt.guide.hideHome` | `ytd-guide-entry-renderer:has(> a#endpoint[href="/"])` | all | 13 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.guide.hideHome` | `ytd-guide-entry-renderer:has(> a#endpoint[href="/"])` | all | 15 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.guide.hideHome` | `ytd-mini-guide-entry-renderer:has(a#endpoint[href="/"])` | all | 1 | ✅ matched | home-narrow 1 |
 | `yt.guide.hideHome` | `ytd-guide-entry-renderer[data-at-peace-entry="home"]` | all | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
 | `yt.guide.hideHome` | `ytd-mini-guide-entry-renderer[data-at-peace-entry="home"]` | all | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
-| `yt.guide.hideShorts` | `ytd-guide-entry-renderer[is-primary]:has(> a#endpoint:not([href]))` | all | 13 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.guide.hideShorts` | `ytd-guide-entry-renderer[is-primary]:has(> a#endpoint:not([href]))` | all | 15 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.guide.hideShorts` | `ytd-guide-entry-renderer:has(> a#endpoint[href="/shorts/"])` | all | 0 | ⚠️ 0 matches |  |
 | `yt.guide.hideShorts` | `ytd-mini-guide-entry-renderer:has(a#endpoint[href="/shorts/"])` | all | 1 | ✅ matched | home-narrow 1 |
 | `yt.guide.hideShorts` | `ytd-guide-entry-renderer[data-at-peace-entry="shorts"]` | all | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
 | `yt.guide.hideShorts` | `ytd-mini-guide-entry-renderer[data-at-peace-entry="shorts"]` | all | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
-| `yt.guide.hideSubscriptionsEntry` | `ytd-guide-entry-renderer:has(> a#endpoint[href="/feed/subscriptions"])` | all | 13 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.guide.hideSubscriptionsEntry` | `ytd-guide-entry-renderer:has(> a#endpoint[href="/feed/subscriptions"])` | all | 15 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.guide.hideSubscriptionsEntry` | `ytd-mini-guide-entry-renderer:has(a#endpoint[href="/feed/subscriptions"])` | all | 1 | ✅ matched | home-narrow 1 |
 | `yt.guide.hideSubscriptionsEntry` | `ytd-guide-entry-renderer[data-at-peace-entry="subscriptions"]` | all | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
 | `yt.guide.hideSubscriptionsEntry` | `ytd-mini-guide-entry-renderer[data-at-peace-entry="subscriptions"]` | all | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
-| `yt.guide.hideYouEntry` | `ytd-guide-entry-renderer:has(> a#endpoint[href="/feed/you"])` | all | 13 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.guide.hideYouEntry` | `ytd-guide-entry-renderer:has(> a#endpoint[href="/feed/you"])` | all | 15 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.guide.hideYouEntry` | `ytd-guide-entry-renderer:has(> a#endpoint[href="/feed/library"])` | all | 0 | ⚠️ 0 matches | signed-in / signed-out UI |
 | `yt.guide.hideYouEntry` | `ytd-mini-guide-entry-renderer:has(a#endpoint[href="/feed/you"])` | all | 1 | ✅ matched | home-narrow 1 |
 | `yt.guide.hideYouEntry` | `ytd-guide-collapsible-section-entry-renderer:has(a#endpoint[href="/feed/you"])` | all | 0 | ⚠️ 0 matches | signed-in / signed-out UI |
 | `yt.guide.hideYouEntry` | `ytd-guide-entry-renderer[data-at-peace-entry="you"]` | all | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
 | `yt.guide.hideYouEntry` | `ytd-mini-guide-entry-renderer[data-at-peace-entry="you"]` | all | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
-| `yt.guide.hideHistory` | `ytd-guide-entry-renderer:has(> a#endpoint[href="/feed/history"])` | all | 13 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.guide.hideHistory` | `ytd-guide-entry-renderer:has(> a#endpoint[href="/feed/history"])` | all | 15 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.guide.hideHistory` | `ytd-mini-guide-entry-renderer:has(a#endpoint[href="/feed/history"])` | all | 0 | ⚠️ 0 matches |  |
 | `yt.guide.hideHistory` | `ytd-guide-entry-renderer[data-at-peace-entry="history"]` | all | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
 | `yt.guide.hideHistory` | `ytd-mini-guide-entry-renderer[data-at-peace-entry="history"]` | all | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
@@ -325,21 +341,21 @@ A setting is ✅ when at least one of its selectors matched on an expected page,
 | `yt.guide.hideCourses` | `ytd-mini-guide-entry-renderer[data-at-peace-entry="courses"]` | all | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
 | `yt.guide.hideSubscriptionsSection` | `ytd-guide-section-renderer:has(a#endpoint[href="/feed/channels"])` | all | 0 | ⚠️ 0 matches |  |
 | `yt.guide.hideSubscriptionsSection` | `ytd-guide-section-renderer:has(> #items > ytd-guide-collapsible-entry-renderer a#endpoint[href^="/@"])` | all | 0 | ⚠️ 0 matches |  |
-| `yt.guide.hideExploreSection` | `ytd-guide-section-renderer:has(a#endpoint[href="/channel/UC-9-kyTW8ZkZNDHQJ6FgpwQ"])` | all | 13 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.guide.hideExploreSection` | `ytd-guide-section-renderer:has(a#endpoint[href="/channel/UC4R8DWoMoI7CAwX8_LjQHig"])` | all | 13 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.guide.hideExploreSection` | `ytd-guide-section-renderer:has(a#endpoint[href="/channel/UCkYQyvc_i9hXEo4xic9Hh2g"])` | all | 13 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.guide.hideExploreSection` | `ytd-guide-section-renderer:has(a#endpoint[href="/channel/UC-9-kyTW8ZkZNDHQJ6FgpwQ"])` | all | 15 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.guide.hideExploreSection` | `ytd-guide-section-renderer:has(a#endpoint[href="/channel/UC4R8DWoMoI7CAwX8_LjQHig"])` | all | 15 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.guide.hideExploreSection` | `ytd-guide-section-renderer:has(a#endpoint[href="/channel/UCkYQyvc_i9hXEo4xic9Hh2g"])` | all | 15 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.guide.hideExploreSection` | `ytd-guide-section-renderer:has(a#endpoint[href="/channel/UCOpNcN46UbXVtpKMrmU4Abg"])` | all | 0 | ⚠️ 0 matches |  |
 | `yt.guide.hideExploreSection` | `ytd-guide-section-renderer:has(a#endpoint[href="/channel/UCYfdidRxbB8Qhf0Nx7ioOYw"])` | all | 0 | ⚠️ 0 matches |  |
 | `yt.guide.hideExploreSection` | `ytd-guide-section-renderer:has(a#endpoint[href="/channel/UCEgdi0XIXXZ-qJOFPf4JSKw"])` | all | 0 | ⚠️ 0 matches |  |
 | `yt.guide.hideExploreSection` | `ytd-guide-section-renderer:has(a#endpoint[href="/feed/trending"])` | all | 0 | ⚠️ 0 matches |  |
-| `yt.guide.hideMoreFromYouTube` | `ytd-guide-section-renderer:has(a#endpoint[href*="youtubekids.com"])` | all | 13 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.guide.hideMoreFromYouTube` | `ytd-guide-section-renderer:has(a#endpoint[href*="tv.youtube.com"])` | all | 13 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.guide.hideMoreFromYouTube` | `ytd-guide-section-renderer:has(a#endpoint[href^="https://music.youtube.com"])` | all | 13 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.guide.hideMoreFromYouTube` | `ytd-guide-section-renderer:has(a#endpoint[href*="youtubekids.com"])` | all | 15 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.guide.hideMoreFromYouTube` | `ytd-guide-section-renderer:has(a#endpoint[href*="tv.youtube.com"])` | all | 15 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.guide.hideMoreFromYouTube` | `ytd-guide-section-renderer:has(a#endpoint[href^="https://music.youtube.com"])` | all | 15 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.guide.hideMoreFromYouTube` | `ytd-guide-section-renderer:has(a#endpoint[href="/premium"])` | all | 0 | ⚠️ 0 matches |  |
-| `yt.guide.hideSettingsSection` | `ytd-guide-section-renderer:has(a#endpoint[href="/reporthistory"])` | all | 13 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.guide.hideSettingsSection` | `ytd-guide-section-renderer:has(a#endpoint[href="/reporthistory"])` | all | 15 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.guide.hideSettingsSection` | `ytd-guide-section-renderer:has(a#endpoint[href="/account"])` | all | 0 | ⚠️ 0 matches |  |
-| `yt.guide.hideFooter` | `ytd-guide-renderer #footer` | all | 13 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.guide.hideSignInPromo` | `ytd-guide-signin-promo-renderer` | all | 13 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.guide.hideFooter` | `ytd-guide-renderer #footer` | all | 15 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.guide.hideSignInPromo` | `ytd-guide-signin-promo-renderer` | all | 15 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.home.feedMode=hide` | `ytd-browse[page-subtype="home"] #primary` | home | 2 | ✅ matched | home-narrow 1, home 1 |
 | `yt.home.feedMode=subscriptions` | `ytd-browse[page-subtype="home"] #primary` | home | 2 | ✅ matched | home-narrow 1, home 1 |
 | `yt.home.feedMode=watchLater` | `ytd-browse[page-subtype="home"] #primary` | home | 2 | ✅ matched | home-narrow 1, home 1 |
@@ -456,9 +472,9 @@ A setting is ✅ when at least one of its selectors matched on an expected page,
 | `yt.watch.hideInfoPanels` | `ytd-watch-flexy #clarify-box` | watch | 4 | ✅ matched | watch-chapters 1, watch-live 1, watch-music 1 |
 | `yt.watch.hideInfoPanels` | `ytd-info-panel-container-renderer` | watch | 0 | ⚠️ 0 matches |  |
 | `yt.watch.hideInfoPanels` | `ytd-clarification-renderer` | watch | 0 | ⚠️ 0 matches |  |
-| `yt.watch.hideAmbientMode` | `ytd-watch-flexy #cinematics-container` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.watch.hideAmbientMode` | `ytd-watch-flexy #cinematics` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.watch.hideAmbientMode` | `ytd-watch-flexy #cinematics-full-bleed-container` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.watch.hideAmbientMode` | `ytd-watch-flexy #cinematics-container` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.watch.hideAmbientMode` | `ytd-watch-flexy #cinematics` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.watch.hideAmbientMode` | `ytd-watch-flexy #cinematics-full-bleed-container` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.watch.hideAmbientMode` | `#cinematic-container.ytd-reel-video-renderer` | all | 1 | ✅ matched | shorts 1 |
 | `yt.watch.hideAmbientMode` | `#shorts-cinematic-container` | all | 1 | ✅ matched | shorts 1 |
 | `yt.watch.hideAmbientMode` | `#cinematic-shorts-scrim` | all | 1 | ✅ matched | shorts 1 |
@@ -466,27 +482,27 @@ A setting is ✅ when at least one of its selectors matched on an expected page,
 | `yt.player.hideEndscreenCards` | `.ytp-ce-element` | all | 0 | ⚠️ 0 matches |  |
 | `yt.player.hideEndscreenWall` | `.html5-endscreen` | all | 0 | ⚠️ 0 matches |  |
 | `yt.player.hideEndscreenWall` | `.ytp-endscreen-content` | all | 0 | ⚠️ 0 matches |  |
-| `yt.player.hideEndscreenWall` | `.ytp-fullscreen-grid` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.player.hideInfoCards` | `.ytp-cards-button` | all | 19 | ✅ matched | channel-home 2, channel-posts 1, channel-shorts 1 |
-| `yt.player.hideInfoCards` | `.ytp-cards-teaser` | all | 19 | ✅ matched | channel-home 2, channel-posts 1, channel-shorts 1 |
+| `yt.player.hideEndscreenWall` | `.ytp-fullscreen-grid` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.player.hideInfoCards` | `.ytp-cards-button` | all | 23 | ✅ matched | channel-home-lofigirl 2, channel-home-ltt 2, channel-home 2 |
+| `yt.player.hideInfoCards` | `.ytp-cards-teaser` | all | 23 | ✅ matched | channel-home-lofigirl 2, channel-home-ltt 2, channel-home 2 |
 | `yt.player.hidePauseOverlay` | `.ytp-pause-overlay` | all | 0 | ⚠️ 0 matches |  |
 | `yt.player.hidePauseOverlay` | `.ytp-pause-overlay-container` | all | 0 | ⚠️ 0 matches |  |
 | `yt.player.hideWatermark` | `.iv-branding` | all | 0 | ⚠️ 0 matches |  |
 | `yt.player.hideWatermark` | `.ytp-watermark` | all | 0 | ⚠️ 0 matches |  |
-| `yt.player.hidePaidPromotion` | `.ytp-paid-content-overlay` | all | 19 | ✅ matched | channel-home 2, channel-posts 1, channel-shorts 1 |
+| `yt.player.hidePaidPromotion` | `.ytp-paid-content-overlay` | all | 23 | ✅ matched | channel-home-lofigirl 2, channel-home-ltt 2, channel-home 2 |
 | `yt.player.hidePaidPromotion` | `.YtmPaidContentOverlayHost` | all | 0 | ⚠️ 0 matches |  |
-| `yt.player.hideAutoplayToggle` | `.ytp-autonav-toggle` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.player.hideAutoplayToggle` | `button.ytp-button[data-tooltip-target-id="ytp-autonav-toggle-button"]` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.player.hideNextButton` | `.ytp-next-button` | all | 19 | ✅ matched | channel-home 2, channel-posts 1, channel-shorts 1 |
+| `yt.player.hideAutoplayToggle` | `.ytp-autonav-toggle` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.player.hideAutoplayToggle` | `button.ytp-button[data-tooltip-target-id="ytp-autonav-toggle-button"]` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.player.hideNextButton` | `.ytp-next-button` | all | 23 | ✅ matched | channel-home-lofigirl 2, channel-home-ltt 2, channel-home 2 |
 | `yt.player.hideMiniplayerButton` | `.ytp-miniplayer-button` | all | 0 | ⚠️ 0 matches |  |
-| `yt.player.hideCastButton` | `.ytp-remote-button` | all | 19 | ✅ matched | channel-home 2, channel-posts 1, channel-shorts 1 |
-| `yt.player.hideSubtitlesButton` | `.ytp-subtitles-button` | all | 19 | ✅ matched | channel-home 2, channel-posts 1, channel-shorts 1 |
-| `yt.player.hideChapterTitle` | `.ytp-chapter-container` | all | 38 | ✅ matched | channel-home 4, channel-posts 2, channel-shorts 2 |
-| `yt.player.hideProgressPreviews` | `.ytp-tooltip-image` | all | 19 | ✅ matched | channel-home 2, channel-posts 1, channel-shorts 1 |
-| `yt.player.hideProgressPreviews` | `.ytp-storyboard-framepreview` | all | 19 | ✅ matched | channel-home 2, channel-posts 1, channel-shorts 1 |
-| `yt.player.hideProgressPreviews` | `.ytp-tooltip-bg` | all | 19 | ✅ matched | channel-home 2, channel-posts 1, channel-shorts 1 |
-| `yt.comments.hideAll` | `ytd-comments#comments` | all | 18 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.comments.hideAll` | `ytd-watch-flexy ytd-comments` | all | 21 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.player.hideCastButton` | `.ytp-remote-button` | all | 23 | ✅ matched | channel-home-lofigirl 2, channel-home-ltt 2, channel-home 2 |
+| `yt.player.hideSubtitlesButton` | `.ytp-subtitles-button` | all | 23 | ✅ matched | channel-home-lofigirl 2, channel-home-ltt 2, channel-home 2 |
+| `yt.player.hideChapterTitle` | `.ytp-chapter-container` | all | 46 | ✅ matched | channel-home-lofigirl 4, channel-home-ltt 4, channel-home 4 |
+| `yt.player.hideProgressPreviews` | `.ytp-tooltip-image` | all | 23 | ✅ matched | channel-home-lofigirl 2, channel-home-ltt 2, channel-home 2 |
+| `yt.player.hideProgressPreviews` | `.ytp-storyboard-framepreview` | all | 23 | ✅ matched | channel-home-lofigirl 2, channel-home-ltt 2, channel-home 2 |
+| `yt.player.hideProgressPreviews` | `.ytp-tooltip-bg` | all | 23 | ✅ matched | channel-home-lofigirl 2, channel-home-ltt 2, channel-home 2 |
+| `yt.comments.hideAll` | `ytd-comments#comments` | all | 20 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.comments.hideAll` | `ytd-watch-flexy ytd-comments` | all | 23 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.comments.hideAll` | `ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-comments-section"]` | all | 4 | ✅ matched | shorts 1, watch-chapters 1, watch-music 1 |
 | `yt.comments.hideAll` | `ytd-shorts reel-action-bar-view-model > button-view-model:nth-of-type(1)` | all | 1 | ✅ matched | shorts 1 |
 | `yt.comments.hideAll` | `ytd-reel-player-overlay-renderer #comments-button` | all | 0 | ⚠️ 0 matches |  |
@@ -558,19 +574,38 @@ A setting is ✅ when at least one of its selectors matched on an expected page,
 | `yt.subs.hideWatched` | `ytd-browse[page-subtype="subscriptions"] ytd-rich-item-renderer:has(yt-thumbnail-overlay-progress-bar-view-model, ytw-thumbnail-overlay-resume-playback-renderer, ytd-thumbnail-overlay-resume-playback-renderer)` | subscriptions | 0 | ⚠️ 0 matches |  |
 | `yt.subs.hideWatched` | `ytd-browse[page-subtype="subscriptions"] ytd-grid-video-renderer:has(yt-thumbnail-overlay-progress-bar-view-model, ytw-thumbnail-overlay-resume-playback-renderer, ytd-thumbnail-overlay-resume-playback-renderer)` | subscriptions | 0 | ⚠️ 0 matches |  |
 | `yt.subs.hideWatched` | `ytd-browse[page-subtype="subscriptions"] ytd-video-renderer:has(yt-thumbnail-overlay-progress-bar-view-model, ytw-thumbnail-overlay-resume-playback-renderer, ytd-thumbnail-overlay-resume-playback-renderer)` | subscriptions | 0 | ⚠️ 0 matches |  |
-| `yt.channel.hideTrailer` | `ytd-browse[page-subtype="channels"] ytd-item-section-renderer:has(> #contents > ytd-channel-video-player-renderer)` | channel | 1 | ✅ matched | channel-home 1 |
-| `yt.channel.hideTrailer` | `ytd-browse[page-subtype="channels"] ytd-channel-video-player-renderer` | channel | 1 | ✅ matched | channel-home 1 |
-| `yt.channel.hideHomeShelves` | `ytd-browse[page-subtype="channels"]:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"]) ytd-item-section-renderer:has(> #contents > :is(ytd-shelf-renderer, ytd-channel-video-player-…` | channel | 5 | ✅ matched | channel-home 5 |
-| `yt.channel.hideBanner` | `ytd-browse[page-subtype="channels"] #page-header-banner` | channel | 4 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.channel.hideBanner` | `ytd-browse[page-subtype="channels"] yt-image-banner-view-model` | channel | 4 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.channel.hideTrailer` | `ytd-browse[page-subtype="channels"] ytd-item-section-renderer:has(> #contents > ytd-channel-video-player-renderer)` | channel | 3 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.channel.hideTrailer` | `ytd-browse[page-subtype="channels"] ytd-channel-video-player-renderer` | channel | 3 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.channel.hideHomeShelves` | `ytd-browse[page-subtype="channels"]:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"]) ytd-item-section-renderer:has(> #contents > :is(ytd-shelf-renderer, ytd-channel-video-player-…` | channel | 23 | ✅ matched | channel-home-lofigirl 6, channel-home-ltt 12, channel-home 5 |
+| `yt.channel.hideRowShorts` | `ytd-browse[page-subtype="channels"]:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"]) ytd-item-section-renderer:has(> #contents > [data-at-peace-shelf="shorts"])` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideRowShorts` | `ytd-browse[page-subtype="channels"]:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"]) [data-at-peace-shelf="shorts"]` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideRowShorts` | `ytd-browse[page-subtype="channels"]:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"]) ytd-item-section-renderer:has(> #contents > ytd-reel-shelf-renderer)` | channel | 1 | ✅ matched | channel-home-ltt 1 |
+| `yt.channel.hideRowShorts` | `ytd-browse[page-subtype="channels"]:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"]) ytd-reel-shelf-renderer` | channel | 1 | ✅ matched | channel-home-ltt 1 |
+| `yt.channel.hideRowPosts` | `ytd-browse[page-subtype="channels"]:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"]) ytd-item-section-renderer:has(> #contents > [data-at-peace-shelf="posts"])` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideRowPosts` | `ytd-browse[page-subtype="channels"]:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"]) [data-at-peace-shelf="posts"]` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideRowMembers` | `ytd-browse[page-subtype="channels"]:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"]) ytd-item-section-renderer:has(> #contents > [data-at-peace-shelf="members"])` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideRowMembers` | `ytd-browse[page-subtype="channels"]:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"]) [data-at-peace-shelf="members"]` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideRowLive` | `ytd-browse[page-subtype="channels"]:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"]) ytd-item-section-renderer:has(> #contents > [data-at-peace-shelf="live"])` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideRowLive` | `ytd-browse[page-subtype="channels"]:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"]) [data-at-peace-shelf="live"]` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideRowPopular` | `ytd-browse[page-subtype="channels"]:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"]) ytd-item-section-renderer:has(> #contents > [data-at-peace-shelf="popular"])` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideRowPopular` | `ytd-browse[page-subtype="channels"]:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"]) [data-at-peace-shelf="popular"]` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideRowPlaylists` | `ytd-browse[page-subtype="channels"]:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"]) ytd-item-section-renderer:has(> #contents > [data-at-peace-shelf="playlists"])` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideRowPlaylists` | `ytd-browse[page-subtype="channels"]:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"]) [data-at-peace-shelf="playlists"]` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideRowChannels` | `ytd-browse[page-subtype="channels"]:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"]) ytd-item-section-renderer:has(> #contents > [data-at-peace-shelf="channels"])` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideRowChannels` | `ytd-browse[page-subtype="channels"]:has(yt-tab-group-shape [role="tablist"] > yt-tab-shape:first-child[aria-selected="true"]) [data-at-peace-shelf="channels"]` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideBanner` | `ytd-browse[page-subtype="channels"] #page-header-banner` | channel | 6 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.channel.hideBanner` | `ytd-browse[page-subtype="channels"] yt-image-banner-view-model` | channel | 6 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.channel.hideBanner` | `ytd-browse[page-subtype="channels"] .page-header-banner` | channel | 0 | ⚠️ 0 matches |  |
-| `yt.channel.hideSubscriberCount` | `ytd-browse[page-subtype="channels"] .ytPageHeaderViewModelContentMetadata .ytContentMetadataViewModelMetadataRow:has(> .ytContentMetadataViewModelDelimiter) > :nth-child(1 of .ytContentMetadataViewModelMetadataText)` | channel | 4 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
-| `yt.channel.hideSubscriberCount` | `ytd-browse[page-subtype="channels"] .ytPageHeaderViewModelContentMetadata .ytContentMetadataViewModelMetadataRow:has(> .ytContentMetadataViewModelDelimiter) > .ytContentMetadataViewModelDelimiter` | channel | 4 | ✅ matched | channel-home 1, channel-posts 1, channel-shorts 1 |
+| `yt.channel.hideJoinButton` | `ytd-browse[page-subtype="channels"] [data-at-peace-channel-action="join"]` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideSubscriberCount` | `ytd-browse[page-subtype="channels"] .ytPageHeaderViewModelContentMetadata .ytContentMetadataViewModelMetadataText:has(+ .ytContentMetadataViewModelDelimiter + .ytContentMetadataViewModelMetadataText:nth-last-child(1 of …` | channel | 6 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
+| `yt.channel.hideSubscriberCount` | `ytd-browse[page-subtype="channels"] .ytPageHeaderViewModelContentMetadata .ytContentMetadataViewModelMetadataText:has(+ .ytContentMetadataViewModelDelimiter + .ytContentMetadataViewModelMetadataText:nth-last-child(1 of …` | channel | 6 | ✅ matched | channel-home-lofigirl 1, channel-home-ltt 1, channel-home 1 |
 | `yt.channel.hideShortsTab` | `ytd-browse[page-subtype="channels"] yt-tab-shape[data-at-peace-tab="shorts"]` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
-| `yt.channel.hideShortsTab` | `ytd-browse[page-subtype="channels"] ytd-item-section-renderer:has(> #contents > ytd-reel-shelf-renderer)` | channel | 0 | ⚠️ 0 matches |  |
-| `yt.channel.hideShortsTab` | `ytd-browse[page-subtype="channels"] ytd-reel-shelf-renderer` | channel | 0 | ⚠️ 0 matches |  |
 | `yt.channel.hideLiveTab` | `ytd-browse[page-subtype="channels"] yt-tab-shape[data-at-peace-tab="streams"]` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
 | `yt.channel.hidePodcastsTab` | `ytd-browse[page-subtype="channels"] yt-tab-shape[data-at-peace-tab="podcasts"]` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
 | `yt.channel.hidePlaylistsTab` | `ytd-browse[page-subtype="channels"] yt-tab-shape[data-at-peace-tab="playlists"]` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
 | `yt.channel.hidePostsTab` | `ytd-browse[page-subtype="channels"] yt-tab-shape[data-at-peace-tab="posts"]` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
 | `yt.channel.hideStoreTab` | `ytd-browse[page-subtype="channels"] yt-tab-shape[data-at-peace-tab="store"]` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideShowsTab` | `ytd-browse[page-subtype="channels"] yt-tab-shape[data-at-peace-tab="shows"]` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideCoursesTab` | `ytd-browse[page-subtype="channels"] yt-tab-shape[data-at-peace-tab="courses"]` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideMembersTab` | `ytd-browse[page-subtype="channels"] yt-tab-shape[data-at-peace-tab="members"]` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
+| `yt.channel.hideReleasesTab` | `ytd-browse[page-subtype="channels"] yt-tab-shape[data-at-peace-tab="releases"]` | channel | 0 | ⚠️ 0 matches | set by the page bridge at runtime |
