@@ -12,6 +12,28 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 
 - Installed copies update themselves: Firefox and Zen check for a new signed version once a day.
 
+### Time's up
+
+- "Your N minutes are up." has no second sentence. On a video page it offers **Leave YouTube**,
+  **Finish this video** and **Breathe again**; elsewhere **Leave** and **Breathe again**.
+- **Esc** closes it: on a video page it means Finish this video, elsewhere Breathe again.
+- **Finish this video** hides it and keeps the video playing; it comes back when the video ends or when
+  you open another video or page.
+- **Breathe again** breathes right there, then asks how long to continue. No reload, and the video goes
+  on where it was.
+
+### Pause page
+
+- No address in the corner; "Press Esc to close" instead. "What did you come for?" is gone.
+- Shorter text on the pause and blocked pages, the hidden-home card ("Your home is hidden.") and the
+  element picker.
+
+### Removed
+
+- Custom CSS (the element picker covers hiding things), the pause's growing breath and its settings,
+  the "show count" and "time's up" switches (both always on), the picker's "Only this one", and stored
+  intentions. Settings for these are cleaned up on update.
+
 ## 0.1.0 - first release
 
 The first version: YouTube only, desktop (`www.youtube.com`), Firefox and Zen 140 or newer.
