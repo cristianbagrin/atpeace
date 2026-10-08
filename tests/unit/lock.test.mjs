@@ -288,7 +288,7 @@ describe('guardPatch', () => {
     assert.deepEqual(L.guardPatch({ 'pause.breathSeconds': 1 }, { 'pause.breathSeconds': 3 }, locked, NOW).allowed, true, '1 clamps to 3: no change');
   });
 
-  test('bulk "hide all" is always allowed, "show all" is always refused (for every tag)', () => {
+  test('a tag\'s targets (what presets are built from) only tighten; undoing them loosens, for every tag', () => {
     const on = {};
     for (const tag of AP.schema.KNOWN_TAGS) {
       const targets = AP.schema.bulkTargets(tag);

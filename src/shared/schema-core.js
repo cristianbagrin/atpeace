@@ -62,9 +62,10 @@
 //   AP.schema.compileRules(site) is the same output as an array (one entry = one CSS rule).
 //   A setting that has no `hide`/`rules`/`variants` must name the JS `feature` that reads it.
 //
-// TAGS (bulk actions): shorts recommendations comments ai metrics ads clutter player behaviour.
-//   Bulk "hide all <tag>" sets toggles to true and selects to `bulkValue` (default: the LAST
-//   option, so order select options from least hidden to most hidden).
+// TAGS (preset groups): shorts recommendations comments ai metrics ads clutter player behaviour.
+//   Built-in presets are recipes over tags (src/shared/presets.js): a tag sets its toggles to true
+//   and its selects to `bulkValue` (default: the LAST option, so order select options from least
+//   hidden to most hidden).
 //
 // REQUIRES      requires: 'pause.enabled'          the row is switched off until that setting is on
 //               requires: 'yt.home.feedMode=custom'  …until that select holds exactly this value
@@ -103,17 +104,16 @@
    * @property {number} [maxLength]   'text'/'textarea': longer input is rejected (defaults 1000 / 50000).
    * @property {number} [maxItems]    'list': extra items are dropped.
    * @property {string} [unit]        'seconds' | 'minutes' | '%' … (UI only)
-   * @property {string[]} [tags]      Bulk-action groups (see header).
+   * @property {string[]} [tags]      Preset groups (see header).
    * @property {string} [page]        Page type that scopes the CSS (YouTube: AP.yt.page.TYPES). Omit = all pages.
    * @property {string[]} [hide]      (toggle) selectors set to display:none when ON.
    * @property {Object<string,{hide?:string[], rules?:string[]}>} [variants]  (select) per-value CSS, key = option value.
    * @property {string[]} [rules]     (toggle) full CSS rules using the `:scope-on` placeholder.
-   * @property {string} [bulkValue]   (select) value the bulk "hide all" action sets (default: last option).
+   * @property {string} [bulkValue]   (select) value a preset's tag sets (default: last option).
    * @property {string} [feature]     JS feature that reads this setting (docs + validation).
    * @property {string} [requires]    Another setting that must be on for this to matter: 'id' (truthy / not the default),
    *                                  'id=value' (a select that must hold that value) or 'id!=value'. See parseRequires().
    * @property {boolean} [advanced]   Hidden behind "Show advanced".
-   * @property {boolean} [quick]      (unused since the popup shows every setting; kept so old definitions stay valid)
    * @property {boolean} [preset]     false = not part of presets (default true).
    * @property {boolean} [portable]   false = not exported / not imported (default true).
    * @property {string} [since]       Version added ('0.1.0').
@@ -157,7 +157,7 @@
   const KNOWN_KEYS = new Set([
     'id', 'section', 'group', 'label', 'description', 'type', 'default', 'options', 'min', 'max', 'step',
     'maxLength', 'maxItems', 'unit', 'tags', 'page', 'hide', 'variants', 'rules', 'bulkValue', 'feature',
-    'requires', 'advanced', 'quick', 'preset', 'portable', 'since', 'item', 'normalize',
+    'requires', 'advanced', 'preset', 'portable', 'since', 'item', 'normalize',
   ]);
   const DEFAULT_MAX_LENGTH = { text: 1000, textarea: 50_000 };
   const DEFAULT_ITEM_LENGTH = 500;
@@ -425,7 +425,7 @@
     return coerce(def, value).value;
   }
 
-  /** The value a bulk "hide all" action sets for a select. */
+  /** The value a preset's tag sets for a select. */
   function bulkValue(def) {
     return def.bulkValue ?? def.options?.at(-1)?.value;
   }
@@ -769,10 +769,9 @@
     if (def.unit !== undefined && typeof def.unit !== 'string') problems.push(`${id}: unit must be a string`);
     if (def.feature !== undefined && (typeof def.feature !== 'string' || def.feature === '')) problems.push(`${id}: feature must be a non-empty string`);
     if (def.since !== undefined && !(typeof def.since === 'string' && VERSION_RE.test(def.since))) problems.push(`${id}: since must look like "0.1.0"`);
-    for (const flag of ['advanced', 'quick', 'preset', 'portable']) {
+    for (const flag of ['advanced', 'preset', 'portable']) {
       if (def[flag] !== undefined && typeof def[flag] !== 'boolean') problems.push(`${id}: ${flag} must be a boolean`);
     }
-    if (def.quick === true && def.type !== 'toggle' && def.type !== 'select') problems.push(`${id}: only toggles and selects can be quick toggles`);
 
     if (!TYPES.includes(def.type)) {
       problems.push(`${id}: type must be one of ${TYPES.join(', ')}`);

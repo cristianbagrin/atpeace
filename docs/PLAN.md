@@ -4,8 +4,8 @@
 > every part of YouTube you don't want to see, and adds a little friction (a breath,
 > a timer, a schedule) between you and the feed.
 >
-> v1 scope: **YouTube only** (www.youtube.com, desktop). Architecture is ready for
-> more sites later (see [Future](#11-future-other-sites--ideas)).
+> Scope: **YouTube only** (www.youtube.com, desktop). The pause and block can also cover sites
+> the user adds, but no other site gets its own settings (see [Future](#11-future)).
 
 This document is the single source of truth for every agent working on the codebase.
 Read it fully before writing code. When something here conflicts with your instinct,
@@ -20,12 +20,12 @@ follow this document and raise the conflict in your report.
 | **Declutter** | ~150 granular toggles to hide any YouTube element (feeds, Shorts, comments, sidebar, buttons, metrics, AI features, player overlays…), thumbnail modes, grayscale, keyword/channel filters, custom hide rules via an element picker. | Untrap, SocialFocus, Unhook |
 | **Redirect** | Home → Subscriptions / Watch Later / custom; Shorts → normal player or blocked; channel → Videos tab. | Untrap |
 | **Behave** | Autoplay off, no auto-start, auto theater, default speed, dismiss "Still watching?". | Untrap Plus |
-| **Mindful Pause** | one-sec style breather: opening YouTube (or any site you add) shows a breathing screen, your open count, an optional intention prompt, then "Close it" or "Continue for N min". Session expiry brings the pause back. | one sec |
+| **Mindful Pause** | one-sec style breather: opening YouTube (or any site you add) shows a breathing screen and how many times you opened it today, then "Close" or "Continue for N min". When the time is up, an overlay offers Leave, Finish this video or Breathe again. | one sec |
 | **Focus** | One-click "Block YouTube for 25 min / 1 h / 4 h / rest of day", weekly schedules (block or apply a preset), daily time limit, local usage stats. | Untrap, one sec |
-| **Own it** | Presets (built-in + custom), import/export, settings lock (password or friction), keyboard shortcuts, onboarding. | Untrap, SocialFocus |
+| **Own it** | Presets (built-in + your own), every setting in the popup, import/export, settings lock (password or friction), keyboard shortcuts, onboarding. | Untrap, SocialFocus |
 
-Non-goals for v1: AI summaries/transcripts (explicitly unwanted), cloud sync / accounts,
-m.youtube.com and music.youtube.com, Instagram/X/LinkedIn, any network calls of our own.
+Non-goals: AI summaries/transcripts (explicitly unwanted), cloud sync / accounts,
+m.youtube.com and music.youtube.com, other social sites, custom CSS, any network calls of our own.
 
 Privacy: **nothing ever leaves the browser.** No analytics, no remote fonts, no remote code.
 Manifest declares `data_collection_permissions: { required: ["none"] }`.
@@ -78,7 +78,7 @@ at-peace/
         general.js             # master switch, theme, etc.
         pause.js               # Mindful Pause settings
         focus.js               # blocks, schedules, daily limit
-        advanced.js            # custom rules, custom CSS, lock, shortcuts
+        advanced.js            # picked rules, lock, debug
       presets.js               # built-in presets + helpers (§5.3)
       settings.js              # storage access: load/save/merge/migrate/subscribe/effective (§5)
       state.js                 # runtime state (sessions, blocks) + stats helpers (§5.4)
@@ -215,7 +215,7 @@ keep correct — mention every such edit in your report).
 ## 4. Settings schema (the heart of the extension)
 
 Every user-facing option is declared once, in a schema file. From the schema we derive:
-defaults, the options UI, popup quick toggles, presets, CSS hide rules, search, and validation.
+defaults, the options UI, the popup, presets, CSS hide rules, search, and validation.
 
 ### 4.1 Setting definition
 
@@ -234,8 +234,9 @@ defaults, the options UI, popup quick toggles, presets, CSS hide rules, search, 
  * @property {{value:string,label:string}[]} [options]   for 'select'
  * @property {number} [min] @property {number} [max] @property {number} [step]  for 'number'
  * @property {string} [unit]        'seconds' | 'minutes' | '%' … (UI only)
- * @property {string[]} [tags]      bulk-action groups: 'shorts','recommendations','comments',
- *                                  'ai','metrics','ads','clutter','player','behaviour'
+ * @property {string[]} [tags]      preset groups (built-in presets are recipes over tags):
+ *                                  'shorts','recommendations','comments','ai','metrics','ads',
+ *                                  'clutter','player','behaviour'
  * @property {string} [page]        YouTube page type that scopes the CSS (see §6.1). Omit = all pages.
  * @property {string[]} [hide]      (toggle) CSS selectors set to display:none when ON.
  * @property {Object<string,{hide?:string[], rules?:string[]}>} [variants]
@@ -247,7 +248,6 @@ defaults, the options UI, popup quick toggles, presets, CSS hide rules, search, 
  * @property {string} [requires]    Another setting id that must be truthy for this to matter
  *                                  (UI shows this row disabled otherwise).
  * @property {boolean} [advanced]   Hidden behind "Show advanced" in the UI.
- * @property {boolean} [quick]      Offered as a popup quick toggle.
  * @property {string} [since]       Version added (e.g. '0.1.0').
  */
 ```
@@ -342,7 +342,7 @@ timestamp, ignore beats closer than 25 s apart).
 Section order in the options page, with the settings each must contain. Selectors are
 researched in Phase 1 (`docs/youtube-dom.md`) and filled in by Phase 2. Defaults below are
 for the *Untouched* baseline (everything off) — the install default is the *Gentle* preset
-applied on first run. ★ = popup quick toggle candidate. Tags in brackets.
+applied on first run. Tags in brackets.
 
 ### 6.1 Page types (`AP.yt.page.detect(url)` → `data-at-peace-page`)
 
@@ -372,13 +372,13 @@ and `/gaming`, which now redirect to `/`).
 ### 6.3 Sections and settings
 
 **General** (`yt.general.*`)
-- master switch `general.enabled` ★ and `general.theme` (`light` | `dark` | `system`, default `light`) are cross-site and live in `src/shared/schema/general.js`
-- `grayscale` ★ — whole site in grayscale [behaviour]
-- `thumbnails` ★ select: `show` | `blur` (reveal on hover) | `grayscale` | `hide` [recommendations]
+- master switch `general.enabled` and `general.theme` (`light` | `dark` | `system`, default `light`) are cross-site and live in `src/shared/schema/general.js`
+- `grayscale` — whole site in grayscale [behaviour]
+- `thumbnails` select: `show` | `blur` (reveal on hover) | `grayscale` | `hide` [recommendations]
 - `disableHoverPreview` — no inline video playback when hovering thumbnails [behaviour]
 - `hideViewCounts` (feeds/cards) [metrics] · `hideUploadDates` [metrics] · `hideDurations` · `hideChannelAvatars` · `hideBadges` (New/4K/CC/Verified chips in cards)
 - `hideWatchedProgress` (red resume bar) · `hideWatched` (whole cards already watched)
-- `hideAds` ★ promoted/sponsored cards, masthead ad, in-feed ad slots, companion ads [ads]
+- `hideAds` promoted/sponsored cards, masthead ad, in-feed ad slots, companion ads [ads]
 - `hidePremiumUpsells` (Premium/Music/TV promos, mealbars) [ads]
 - `hideMixes` (YouTube "Mix" playlists in any feed) [recommendations]
 - `hidePlayables` [clutter] · `hideLiveBadgesAndPremieres`? (only if cheap)
@@ -392,27 +392,27 @@ and `/gaming`, which now redirect to `/`).
   sections: `hideSubscriptionsSection` (channel list) · `hideExploreSection` (Trending/Music/Gaming/News/…) · `hideMoreFromYouTube` · `hideSettingsSection` · `hideFooter` · `hideSignInPromo`
 
 **Home** (`yt.home.*`, page `home`)
-- `feedMode` ★ select: `show` | `hide` (calm placeholder, JS) | `subscriptions` | `watchLater` | `playlists` | `custom` (the last four redirect: DNR for full loads, JS for in-app navigation) [recommendations]
+- `feedMode` select: `show` | `hide` (calm placeholder, JS) | `subscriptions` | `watchLater` | `playlists` | `custom` (the last four redirect: DNR for full loads, JS for in-app navigation) [recommendations]
 - `redirectUrl` (text, requires feedMode=custom; validate same-origin youtube path or full https URL)
 - `hideChips` (category bar) · `hideShortsShelf` [shorts] · `hideNewsShelf` · `hidePostsShelf` (community posts) · `hideOtherShelves` (all rich sections: trending, explore topics, playables, "Previously watched"…) · `hideFeedNudge` (logged-out "try searching") · `limitRows`? (advanced, number; 0=off; only if CSS-only via nth-child is reliable)
 
 **Video page** (`yt.watch.*`, page `watch`)
-- Sidebar group: `hideRelated` ★ [recommendations] · `hideRelatedShorts` [shorts] · `hideRelatedChips` · `hideLiveChat` · `hidePlayerAds` [ads] · `hideShoppingShelf`/`hideMerch` · `hideTickets`
+- Sidebar group: `hideRelated` [recommendations] · `hideRelatedShorts` [shorts] · `hideRelatedChips` · `hideLiveChat` · `hidePlayerAds` [ads] · `hideShoppingShelf`/`hideMerch` · `hideTickets`
 - Below the video group: `hideHashtags` · `hideOwnerAvatar` · `hideSubscriberCount` [metrics] · `hideJoinButton` · `hideLikeCounts` [metrics] · `hideLikeButtons` · `hideShare` · `hideDownload` · `hideClip` · `hideThanks` · `hideSave` · `hideAsk` [ai] · `hideMoreActions` · `hideViewCount` [metrics] · `hideDescription` · `hideAISummary` [ai] · `hideChapters` (key moments carousel in description) · `hideDescriptionExtras` (music/transcript/podcast/game/people/places/courses cards) · `hideInfoPanels` (context / clarify boxes) · `hideFundraiser`
 - Comments live in their own section (below)
-- Behaviour group (JS): `disableAutoplay` ★ (autoplay-next off) [behaviour, recommendations] · `noAutoStart` (don't start playback on page open) · `autoTheater` · `defaultSpeed` select (`default`, 0.75, 1, 1.25, 1.5, 1.75, 2) · `dismissStillWatching` · `hideAmbientMode` (cinematics glow; CSS)
+- Behaviour group (JS): `disableAutoplay` (autoplay-next off) [behaviour, recommendations] · `noAutoStart` (don't start playback on page open) · `autoTheater` · `defaultSpeed` select (`default`, 0.75, 1, 1.25, 1.5, 1.75, 2) · `dismissStillWatching` · `hideAmbientMode` (cinematics glow; CSS)
 
 **Player** (`yt.player.*`, page `watch` — but player also appears in channel trailers/miniplayer: omit `page` where needed)
-- `hideEndscreenCards` (overlay cards in last 20 s) [recommendations] · `hideEndscreenWall` (grid of suggestions at the end) ★ [recommendations] · `hideInfoCards` · `hidePauseOverlay` (embed "More videos") · `hideWatermark` · `hidePaidPromotion` · `hideAutoplayToggle` · `hideNextButton` · `hideMiniplayerButton` · `hideCastButton` · `hideSubtitlesButton` (advanced) · `hideChapterTitle` · `hideProgressPreviews`? (storyboard thumbnails on hover, advanced)
+- `hideEndscreenCards` (overlay cards in last 20 s) [recommendations] · `hideEndscreenWall` (grid of suggestions at the end) [recommendations] · `hideInfoCards` · `hidePauseOverlay` (embed "More videos") · `hideWatermark` · `hidePaidPromotion` · `hideAutoplayToggle` · `hideNextButton` · `hideMiniplayerButton` · `hideCastButton` · `hideSubtitlesButton` (advanced) · `hideChapterTitle` · `hideProgressPreviews`? (storyboard thumbnails on hover, advanced)
 
 **Comments** (`yt.comments.*`, applies to watch + shorts + posts)
-- `hideAll` ★ [comments] · `hideTeaser` (comment teaser under description) · `hideCount` [metrics] · `hideAvatars` · `hideLikeCounts` [metrics] · `hideReplies` (collapse reply threads) · `hideCreatorHearts`? (advanced)
+- `hideAll` [comments] · `hideTeaser` (comment teaser under description) · `hideCount` [metrics] · `hideAvatars` · `hideLikeCounts` [metrics] · `hideReplies` (collapse reply threads) · `hideCreatorHearts`? (advanced)
 
 **Search** (`yt.search.*`, page `search`)
 - `hideShorts` [shorts] · `hideShelves` (People also watched / For you / Previously watched / Channels new to you / Latest from…) [recommendations] · `hideRelatedSearches` · `hideAds` [ads] · `hideSnippets` (description snippets) · `hideFilterChips` · `hideChannelResults`? (advanced)
 
 **Shorts** (`yt.shorts.*`)
-- `mode` ★ select: `allow` | `watch` (open Shorts in the normal player; DNR + JS) | `block` (calm "Shorts are off" page) [shorts]
+- `mode` select: `allow` | `watch` (open Shorts in the normal player; DNR + JS) | `block` (calm "Shorts are off" page) [shorts]
 - When allowed, on the Shorts player: `hideComments` `hideLikeCounts` (metrics) `hideRemix` `hideSubscribe` — keep small.
 
 **Subscriptions** (`yt.subs.*`, page `subscriptions`)
@@ -426,11 +426,13 @@ and `/gaming`, which now redirect to `/`).
 - Filtered cards get `data-at-peace-filtered` and are hidden by CSS. Matching is case-insensitive, diacritic-insensitive; regex compile errors are shown in the UI, never thrown at runtime.
 
 **Advanced** (`advanced.*`)
-- `customRules` (list of `{ id, selector, page|null, note, createdAt }` from the picker) · `customCss` (textarea, sanitized: no `@import`, no `url(` to remote) · `debug`.
+- `customRules` (list of `{ id, selector, page|null, note, createdAt }` from the picker) · `lock` · `debug`. There is no custom CSS: the picker covers hiding things.
 
-Bulk actions (options toolbar + popup): **Shorts**, **Recommendations**, **Comments**, **AI**,
-**Metrics**, **Ads**, **Clutter** → set every toggle with that tag ON/OFF (selects with that tag
-go to their "most hidden" value; define per setting via `bulkValue` in the def if needed).
+**Presets.** The tags above are what built-in presets are made of (`src/shared/presets.js`): a
+recipe lists tags and explicit values; a tag turns its toggles on and sets its selects to their
+"most hidden" value (`bulkValue` in the def, default: the last option). There is no "hide all"
+control in the popup or the options page: presets (built-in, or ones you save from the popup or
+the Presets section) are the way to change many settings at once.
 
 ---
 
@@ -444,7 +446,7 @@ AP.engine.start({ site: 'youtube', detectPage, features })
    into `document.documentElement` (re-insert if removed). Set `data-at-peace-page`.
 2. Load effective settings (async, a few ms). Write `data-at-peace` tokens.
    Also inject a second `<style id="at-peace-dynamic">` for dynamic CSS (custom rules,
-   custom CSS, numeric settings).
+   numeric settings).
 3. Subscribe to settings changes → recompute tokens, dynamic CSS, notify features.
 4. Navigation: listen to `yt-navigate-start`, `yt-navigate-finish`, `yt-page-data-updated`,
    `popstate`; also poll `location.href` cheaply on `yt-navigate-finish` fallbacks. Update
@@ -477,7 +479,7 @@ from storage on each event. Use `alarms` for anything in the future.
 
 ### 8.1 Message router (`messages.js` constants)
 
-`PAUSE_CONTINUE {siteKey, minutes, intention}`, `PAUSE_TURN_BACK {siteKey}`, `PAUSE_OPENED {siteKey}`,
+`PAUSE_CONTINUE {siteKey, minutes}`, `PAUSE_TURN_BACK {siteKey}`, `PAUSE_OPENED {siteKey}`,
 `FOCUS_START {minutes|untilEndOfDay, siteKeys}`, `FOCUS_END`, `HEARTBEAT {siteKey}`,
 `CLOSE_TAB` (closes `sender.tab.id`), `GET_STATUS` → `{ block, sessions, today stats, schedule }`,
 `OPEN_OPTIONS {section?}`, `START_PICKER`.
@@ -508,20 +510,22 @@ state change, alarm. Rule-id ranges and priorities:
 
 1. Navigation to a paused site with no active session → DNR → `pause.html#https://…`.
 2. Pause page: sends `PAUSE_OPENED` (stats.opens++), shows site, breathing animation
-   (`breathSeconds`, default 6, escalates `+escalateStep` s per open in the last hour if
-   enabled, capped at 30), then the open counter ("4th time today"), optional intention input,
-   and two actions: **Close {site}** (primary visual weight) → `PAUSE_TURN_BACK` then
-   history.back() if possible else `CLOSE_TAB`; **Continue for [5|10|15|30|60] min** (enabled only
+   (`breathSeconds`, default 6, always the same length), then the open counter ("4th time
+   today", always shown) and two actions: **Close {site}** (primary visual weight) → `PAUSE_TURN_BACK` then
+   history.back() if possible else `CLOSE_TAB` (Esc does the same); **Continue for [5|10|15|30|60] min** (enabled only
    after the breath) → `PAUSE_CONTINUE` → background stores `sessions[siteKey] = now+minutes`,
    removes the pause rule, sets alarm `session:<siteKey>`, replies → page does
    `location.replace(target)`.
 3. Other tabs sitting on a pause page for the same site update live (storage change) and offer
    "Unlocked — continue".
 4. Session expiry (alarm): background re-adds the rule. On YouTube, `session-guard.js` shows an
-   in-page overlay at expiry (pauses the video): "Your N minutes are up" → *Leave* (`CLOSE_TAB`)
-   / *Take a breath* (navigate to pause page with this URL). On user-added sites, `guard.js`
-   (registered dynamically with `scripting.registerContentScripts` once the user grants the
-   host permission) does the same with a minimal overlay.
+   in-page overlay at expiry (always on; pauses the video): "Your N minutes are up." → *Leave*
+   (`CLOSE_TAB`), *Breathe again* (breathes in place, no reload, then asks how long to continue)
+   and, on a video page, *Finish this video* (the overlay steps aside and returns when the video
+   ends or another page opens). Esc is *Finish this video* on a video page, *Breathe again*
+   elsewhere. On user-added sites, `guard.js` (registered dynamically with
+   `scripting.registerContentScripts` once the user grants the host permission) does the same
+   with the same overlay minus *Finish this video*.
 
 ### 8.4 Focus blocks, schedules, daily limit
 
@@ -541,8 +545,8 @@ state change, alarm. Rule-id ranges and priorities:
 
 ### 8.5 Commands (keyboard shortcuts)
 
-`toggle-enabled` (Alt+Shift+P), `focus-25` (Alt+Shift+F), `open-picker` (Alt+Shift+H).
-Users can rebind in about:addons.
+`toggle-enabled` (Alt+Shift+P; ⌥⇧P on macOS), `focus-25` (Alt+Shift+F), `open-picker` (Alt+Shift+H).
+Users can rebind in about:addons; the UI shows the key actually assigned, in Mac notation on macOS.
 
 ---
 
@@ -583,10 +587,10 @@ Review notes go to `docs/reviews/phase-N.md`.
 | **1 Selector research** | with 0 | Sonnet B | `docs/youtube-dom.md`, `tools/yt-probe.mjs` | Every setting in §6.3 has ≥1 selector with provenance (live-verified vs public source) and notes on legacy/new variants; screenshots of each page type |
 | **2a Schema core + settings + engine** | with 2b | Sonnet C | `src/shared/{schema-core,settings,state,presets}.js`, `src/shared/schema/*`, `src/content/engine.js`, `src/sites/youtube/{page,main}.js`, unit tests | Registry validation, CSS compiler, tokens, effective settings, migrations: unit-tested; engine applies tokens on live YouTube in E2E; SPA nav updates page attr |
 | **2b YouTube CSS catalog** | with 2a | Sonnet D | `src/sites/youtube/schema/*.js`, `tools/check-selectors.mjs` | All §6.3 settings defined; `validateRegistry()` clean; live coverage report shows each verifiable selector matching on the expected page and **nothing unintended** (spot screenshots) |
-| **3a Options + popup** | with 3b, 3c | Sonnet E | `src/pages/common/*`, `src/pages/options/*`, `src/pages/popup/*` | Every schema setting renders and saves; search; bulk actions; presets (apply/save/rename/delete); import/export/reset; theme; keyboard accessible; E2E screenshots |
-| **3b YouTube JS features** | with 3a, 3c | Sonnet F | `src/sites/youtube/features/*` (except session-guard, time-tracker), `src/sites/youtube/page-bridge.js` | Each feature verified on live YouTube in E2E (redirects, autoplay off, theater, speed, filters, thumbnails hover, calm titles, channel videos tab, home placeholder) |
+| **3a Options + popup** | with 3b, 3c | Sonnet E | `src/pages/common/*`, `src/pages/options/*`, `src/pages/popup/*` | Every schema setting renders and saves; search; presets (apply/save/rename/delete); import/export/reset; theme; keyboard accessible; E2E screenshots |
+| **3b YouTube JS features** | with 3a, 3c | Sonnet F | `src/sites/youtube/features/*` (except session-guard, time-tracker), `src/sites/youtube/page-bridge.js` | Each feature verified on live YouTube in E2E (redirects, autoplay off, theater, speed, filters, thumbnails hover, channel videos tab, home placeholder) |
 | **3c Mindful Pause + Focus + background** | with 3a, 3b | Sonnet G | `src/background/*`, `src/pages/{pause,blocked}/*`, `src/sites/youtube/features/{session-guard,time-tracker}.js`, `src/content/{overlay,guard}.js` | DNR rules compiler unit-tested; pause flow E2E (redirect → breathe → continue → YouTube loads; turn back closes/returns); focus block E2E; schedules pure-function tests; stats recorded |
-| **4 Power features** | partly parallel | Sonnet H/I | picker, custom rules/CSS, settings lock, welcome/onboarding, shortcuts | Picker E2E: pick an element → rule saved → element hidden after reload; lock blocks changes in options/popup; onboarding applies chosen preset |
+| **4 Power features** | partly parallel | Sonnet H/I | picker, custom rules, settings lock, welcome/onboarding, shortcuts | Picker E2E: pick an element → rule saved → element hidden after reload; lock blocks changes in options/popup; onboarding applies chosen preset |
 | **5 Hardening & ship** | — | Sonnet J + Opus | e2e/firefox suites, docs, CHANGELOG, PRIVACY, build | Full suites green in Chromium + real Firefox; `web-ext lint` 0 errors; `npm run build` produces zip; README covers Zen install + signing |
 
 ---
@@ -604,21 +608,12 @@ Review notes go to `docs/reviews/phase-N.md`.
 
 ---
 
-## 11. Future: other sites & ideas
+## 11. Future
 
-Architecture: each site = `src/sites/<site>/{schema/*, page.js, features/*, main.js}` + a
-content_scripts entry; engine, settings, pause, focus, stats are already site-agnostic
-(`siteKey`).
+YouTube is the only site with its own settings, and no other social site is planned (round 1
+feedback, `docs/feedback/round-1.md`). The engine, settings, pause, focus and stats stay
+site-agnostic (`siteKey`), so the pause and the blocks already work for sites the user adds.
 
-- **Instagram**: hide Feed (keep DMs), Stories tray, Reels tab & Reels in feed, Explore grid,
-  suggested posts/accounts, like counts; "DMs-only mode"; redirect `/` → `/direct/inbox/`.
-- **X / Twitter**: hide For You (force Following), trends, Who to follow, metrics, Explore,
-  Grok; "Read-only mode" (hide compose box); redirect home → a list.
-- **LinkedIn**: hide feed (keep Messaging/Jobs/Notifications), "Add to your feed", promoted
-  posts, news module, reactions counts; "Inbox-only mode".
-- **Reddit**: hide home/popular feeds, sidebars, trending, comment scores; open old.reddit.
-- **Cross-site ideas**: Mindful Pause for any site (already in v1); "intention journal"
-  (review what you said you came for vs. time spent); weekly calm report; "grayscale after N
-  minutes"; a gentle full-screen "time check" at 20 min; "delay feeds, not search" (feeds
-  appear only after 10 s of not searching); sync via Firefox Sync (storage.sync) with
-  conflict-free per-key storage.
+Ideas not scheduled: a weekly calm report; "grayscale after N minutes"; a gentle full-screen
+"time check" at 20 minutes; "delay feeds, not search" (feeds appear only after 10 s of not
+searching); sync via Firefox Sync (`storage.sync`) with conflict-free per-key storage.

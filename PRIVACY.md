@@ -39,7 +39,7 @@ guard use the page's `sessionStorage` for the current tab only; both are gone wh
 - **Usage stats:** Settings, then "Your week", then **Clear usage history…**. It also
   resets today's count against the daily limit, so it needs an unlock if the settings lock is on.
 - **Settings:** Settings, then Export / Import / Reset, then **Reset…**. Presets you saved stay; delete
-  them in the Presets dialog.
+  them in the Presets section.
 - **Everything:** remove the add-on in `about:addons`. Firefox deletes its storage with it.
 
 ## Backups

@@ -230,7 +230,7 @@ describe('validateValue', () => {
   });
 });
 
-describe('bulk actions', () => {
+describe('preset tags (bulkTargets)', () => {
   beforeEach(() => {
     S.define('yt.home', [
       toggle('yt.home.a', { tags: ['shorts'], hide: ['x'] }),
@@ -513,7 +513,6 @@ describe('validateRegistry', () => {
     ['maxItems on a number', 'yt.home', { id: 'yt.home.x', label: 'x', type: 'number', default: 1, maxItems: 3, feature: 'f' }, /maxItems only applies to lists/],
     ['item on a toggle', 'yt.home', toggle('yt.home.x', { item: () => 1, hide: ['a'] }), /item must be a function on a list/],
     ['normalize not a function', 'yt.home', toggle('yt.home.x', { normalize: 'x', hide: ['a'] }), /normalize must be a function/],
-    ['quick on a number', 'yt.home', { id: 'yt.home.x', label: 'x', type: 'number', default: 1, quick: true, feature: 'f' }, /only toggles and selects can be quick/],
     ['non-boolean flag', 'yt.home', toggle('yt.home.x', { hide: ['a'], advanced: 'yes' }), /advanced must be a boolean/],
     ['bad since', 'yt.home', toggle('yt.home.x', { hide: ['a'], since: '1.0' }), /since must look like/],
     ['bad id shape', 'yt.home', toggle('nodots', { hide: ['a'] }), /id must be dot-separated/],

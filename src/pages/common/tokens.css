@@ -100,7 +100,7 @@
      --ix-quiet    on --ix-ground                  5.1 : 1 (kicker, address, hints; never on --ix-raised)
      --ix-mint     on --ix-ground                 10.4 : 1, --ix-amber on --ix-ground 6.2 : 1
      --ix-on-mint  on --ix-mint                   12.9 : 1 (primary button text)
-     --ix-field-line on --ix-raised                3.3 : 1 (the intention field's boundary)
+     --ix-field-line on --ix-raised                3.3 : 1 (the blocked page's phrase field boundary)
      --ix-border and --ix-line are for outline buttons (their text names them) and hairlines. */
 html {
   --ix-ground: #16186F;

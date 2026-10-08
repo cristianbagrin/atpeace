@@ -137,7 +137,7 @@ test('options: a toggle, a select, a number and a word list save to storage; a b
   assert.deepEqual(await newErrors(since), []);
 });
 
-test('options: search, "/" and Escape, bulk chip', async () => {
+test('options: search, "/" and Escape; no "Hide all" bar', async () => {
   await ff.setStorage({ settings: {} });
   const since = await open(OPTIONS);
   const total = await run(() => [...document.querySelectorAll('.row')].filter((r) => r.offsetParent !== null).length);
@@ -153,13 +153,7 @@ test('options: search, "/" and Escape, bulk chip', async () => {
   await css('#search').sendKeys(Key.ESCAPE);
   await until(() => run(() => document.getElementById('search').value === '' && document.getElementById('results-note').hidden), { what: 'search cleared', retryErrors: true });
 
-  const targets = await run(() => globalThis.AtPeace.schema.bulkTargets('shorts'));
-  await css('.chip[aria-pressed]').click(); // the first chip is Shorts
-  await until(async () => {
-    const s = await settings();
-    return Object.entries(targets).every(([id, v]) => s[id] === v);
-  }, { what: 'every Shorts setting stored', retryErrors: true });
-  assert.equal(await css('.chip').getAttribute('data-state'), 'all');
+  assert.equal(await run(() => document.querySelectorAll('.chip, .chips').length), 0, 'the "Hide all" chip bar is gone');
   assert.deepEqual(await newErrors(since), []);
 });
 

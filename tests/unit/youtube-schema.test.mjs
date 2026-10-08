@@ -23,9 +23,6 @@ const EXPECTED = {
 };
 const EXPECTED_IDS = Object.entries(EXPECTED).flatMap(([section, names]) => names.map((n) => `yt.${section}.${n}`));
 
-/** Popup quick toggles (PLAN §6.3 stars). */
-const QUICK = ['yt.general.grayscale', 'yt.general.thumbnails', 'yt.general.hideAds', 'yt.home.feedMode', 'yt.watch.hideRelated', 'yt.watch.disableAutoplay', 'yt.player.hideEndscreenWall', 'yt.comments.hideAll', 'yt.shorts.mode'];
-
 /** Settings that may carry CSS without a `page:` although they sit in a page-specific section. */
 const UNSCOPED_IN_PAGE_SECTIONS = new Set(['yt.watch.hideAmbientMode']);
 const PLAYER_REACHING = new Set(['yt.general.thumbnails', 'yt.general.hidePremiumUpsells']);
@@ -152,18 +149,14 @@ describe('catalog shape', () => {
     assert.deepEqual(S.get('yt.filters.applyTo').default, ['home', 'search', 'watch', 'subscriptions']);
   });
 
-  test('popup quick toggles are exactly the starred settings', () => {
-    assert.deepEqual(catalog.filter((d) => d.quick).map((d) => d.id).sort(), [...QUICK].sort());
-  });
-
-  test('bulk actions: tagged selects land on a sensible value, never on a redirect or a blank', () => {
+  test('preset tags: tagged selects land on a sensible value, never on a redirect or a blank', () => {
     assert.equal(S.bulkValue(S.get('yt.home.feedMode')), 'hide');
     assert.equal(S.bulkValue(S.get('yt.general.thumbnails')), 'blur');
     assert.equal(S.bulkValue(S.get('yt.shorts.mode')), 'block');
     for (const tag of ['shorts', 'ads', 'ai', 'comments', 'metrics', 'recommendations', 'clutter']) {
       assert.ok(S.byTag(tag).length >= 3, `tag ${tag} has settings`);
     }
-    // Shorts that are allowed are not hidden by "comments"/"shorts" bulk accidentally: only shorts.mode carries the select.
+    // Shorts that are allowed are not hidden by the "comments"/"shorts" tags accidentally: only shorts.mode carries the select.
     assert.deepEqual(S.byTag('shorts').filter((d) => d.type === 'select').map((d) => d.id), ['yt.shorts.mode']);
     assert.ok(S.byTag('ads').length >= 5 && S.byTag('ai').length >= 4);
   });
@@ -379,10 +372,10 @@ describe('typed settings', () => {
     assert.deepEqual(S.parseRequires(def.requires), { id: 'yt.home.feedMode', op: '=', value: 'custom' });
   });
 
-  test('the selects offered in the popup carry short labels that fit, and keep their full label', () => {
-    const quickSelects = S.all().filter((d) => d.type === 'select' && d.quick === true);
-    assert.deepEqual(quickSelects.map((d) => d.id).sort(), ['yt.general.thumbnails', 'yt.home.feedMode', 'yt.shorts.mode']);
-    for (const def of quickSelects) {
+  test('the YouTube selects the popup shows carry short labels that fit, and keep their full label', () => {
+    const selects = catalog.filter((d) => d.type === 'select');
+    assert.ok(selects.length >= 3);
+    for (const def of selects) {
       for (const o of def.options) {
         assert.ok(typeof o.short === 'string' || o.label.length <= 12, `${def.id}/${o.value} needs a short label (label "${o.label}")`);
         assert.ok((o.short ?? o.label).length <= 16, `${def.id}/${o.value}`);

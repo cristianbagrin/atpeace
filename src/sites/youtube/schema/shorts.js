@@ -1,6 +1,6 @@
 // Shorts (PLAN §6.3, "Shorts"): what happens when you open a Short, and trimming its player.
 // Hiding Shorts elsewhere (sidebar entry, home/search/subscriptions/channel rows) lives in those
-// sections, tagged `shorts` so the "Shorts" bulk action finds them.
+// sections, tagged `shorts` so the presets that hide Shorts find them.
 (() => {
   'use strict';
   const AP = globalThis.AtPeace;
@@ -32,7 +32,6 @@
       page: 'shorts',
       variants: { watch: PLAYER_HIDDEN, block: PLAYER_HIDDEN },
       feature: 'shorts',
-      quick: true,
       since: '0.1.0',
     },
     {

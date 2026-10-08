@@ -105,7 +105,6 @@
       // On <html>, not <body>: a filter on an ordinary element becomes the containing block of
       // position:fixed children (masthead, miniplayer) and breaks them; the root element is exempt.
       rules: [':scope-on { filter: grayscale(1) !important; }'],
-      quick: true,
       since: '0.1.0',
     },
     {
@@ -120,7 +119,7 @@
         { value: 'grayscale', label: 'Grayscale until hovered', short: 'Grayscale' },
         { value: 'hide', label: 'Hide' },
       ],
-      // The bulk "Recommendations" action blurs; it does not blank every picture.
+      // Presets that hide recommendations blur; they do not blank every picture.
       bulkValue: 'blur',
       tags: ['recommendations'],
       variants: {
@@ -130,7 +129,6 @@
         // on the picture (length, LIVE, progress) go with it instead of floating over an empty box.
         hide: { rules: [`:scope-on ${boxes} { visibility: hidden !important; }`] },
       },
-      quick: true,
       since: '0.1.0',
     },
     {
@@ -316,7 +314,6 @@
         'ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-ads"]',
         '#shorts-inner-container > .ytd-shorts:has(> .ytd-reel-video-renderer > ytd-ad-slot-renderer)',
       ],
-      quick: true,
       since: '0.1.0',
     },
     {

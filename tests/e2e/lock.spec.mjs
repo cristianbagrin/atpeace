@@ -230,24 +230,12 @@ test('options: friction lock set up with a wait of 10 seconds; unlocking waits, 
   await p2.close();
 });
 
-test('options: bulk chips and presets that would show things again need the unlock; ones that hide more do not', async () => {
+test('options: a preset that would show things again needs the unlock; one that hides more does not', async () => {
   const lock = { mode: 'friction', waitSeconds: 10 };
   const page = await openOptions({ seed: { settings: { 'advanced.lock': lock } } });
-  // "Hide all Shorts" tightens: no prompt
-  await page.locator('.chip', { hasText: 'Shorts' }).click();
-  await until(async () => (await stored())['yt.shorts.mode'] === 'block');
-  assert.equal(await dialog(page).count(), 0);
-  // pressing it again would turn everything off: the unlock dialog opens; cancelling changes nothing
-  await page.locator('.chip', { hasText: 'Shorts' }).click();
-  await dialog(page).waitFor();
-  assert.match(await dialog(page).textContent(), /Type this to unlock/);
-  await dialog(page).getByRole('button', { name: 'Cancel' }).click();
-  await dialog(page).waitFor({ state: 'detached' });
-  assert.equal((await stored())['yt.shorts.mode'], 'block');
   // a preset that hides more goes through; one that shows more is refused until unlocked
   const preset = (name) => page.locator('#sec-presets .preset').filter({ has: page.locator('.preset-name', { hasText: new RegExp(`^${name}`) }) });
-  await preset('Deep work').getByRole('button', { name: 'Apply Deep work' }).click();
-  await dialog(page).getByRole('button', { name: 'Apply', exact: true }).click(); // a hand-made mix: the question comes first
+  await preset('Deep work').getByRole('button', { name: 'Apply Deep work' }).click(); // the settings are Untouched: no question, no unlock
   await until(async () => (await stored())['yt.home.feedMode'] === 'subscriptions');
   assert.equal(await dialog(page).count(), 0);
   await preset('Untouched').getByRole('button', { name: 'Apply Untouched' }).click(); // Deep work is in use: no question, straight to the unlock

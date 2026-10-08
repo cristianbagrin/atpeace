@@ -17,7 +17,8 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 - Every setting is in the popup, so YouTube changes in front of you: **This page** (the sections for
   the YouTube page you are on), **All** (every section, with a search) and **Focus** (blocks, the pause,
   limits and today). Lists, schedules and other editors open the settings page at that row.
-- The Shorts / Recommendations / Comments buttons are gone.
+- The Shorts / Recommendations / Comments buttons are gone, and so is the settings page's "Hide all" bar of
+  the same kind. Presets change many settings at once.
 - Your own presets: save the current settings as a preset from the popup, and apply, update, rename or
   delete them in the new **Presets** section of the settings.
 - Mac shortcuts ⌥⇧P (on / off), ⌥⇧F (block for 25 minutes) and ⌥⇧H (hide an element), shown in Mac

@@ -24,7 +24,7 @@
    * @property {string} name
    * @property {string} description
    * @property {string} [extends]   built-in preset whose values come first
-   * @property {string[]} tags      bulk tags whose targets are included
+   * @property {string[]} tags      tags whose targets are included
    * @property {Record<string, boolean|string|number>} set   explicit values (ids per PLAN §6.3)
    */
 

@@ -1,5 +1,5 @@
 // Options page E2E in Chromium: every setting has a control, values save as they change, search,
-// bulk chips, presets, backup round trip, theme, deep links, and light + dark screenshots.
+// presets, backup round trip, theme, deep links, and light + dark screenshots.
 import { test, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync } from 'node:fs';
@@ -276,47 +276,6 @@ test('search also finds advanced settings, labelled as such', async () => {
   await page.locator('#search').fill('debug');
   await page.waitForSelector('.row[data-id="advanced.debug"]:not([hidden])');
   assert.equal(await row(page, 'advanced.debug').locator('.row-tag').isVisible(), true);
-  await page.close();
-});
-
-test('bulk chips show all / partly / off and set every tagged setting', async () => {
-  const page = await openOptions();
-  const tag = 'shorts';
-  const chip = page.locator('.chip', { hasText: 'Shorts' });
-  const targets = await page.evaluate((t) => globalThis.AtPeace.schema.bulkTargets(t), tag);
-  assert.ok(Object.keys(targets).length >= 3);
-  assert.equal(await chip.getAttribute('data-state'), 'none');
-  assert.equal(await chip.getAttribute('aria-pressed'), 'false');
-
-  await chip.click();
-  await pageUntil(page, async (t) => {
-    const s = (await chrome.storage.local.get('settings')).settings ?? {};
-    return Object.entries(t).every(([id, v]) => s[id] === v);
-  }, targets);
-  assert.equal(await chip.getAttribute('data-state'), 'all');
-  assert.equal(await chip.getAttribute('aria-pressed'), 'true');
-  const stored = await settings();
-  for (const [id, v] of Object.entries(targets)) assert.equal(stored[id], v, id);
-
-  // the rows follow
-  const firstToggle = Object.keys(targets).find((id) => typeof targets[id] === 'boolean');
-  assert.equal(await row(page, firstToggle).locator('input.switch').isChecked(), true);
-
-  // turn one off: "partly"
-  await row(page, firstToggle).locator('input.switch').click();
-  await page.waitForFunction(() => document.querySelector('.chip[data-state="partly"]'));
-  assert.equal(await chip.getAttribute('aria-pressed'), 'mixed');
-
-  // from partly, a click turns everything on, and a second click turns everything off again
-  await chip.click();
-  await page.waitForFunction(() => document.querySelector('.chip[data-state="all"]'));
-  await chip.click();
-  await page.waitForFunction(() => document.querySelector('.chip[data-state="none"]'));
-  const after = await settings();
-  for (const id of Object.keys(targets)) {
-    const def = await page.evaluate((i) => globalThis.AtPeace.schema.get(i).default, id);
-    assert.equal(after[id], def, `${id} back to default`);
-  }
   await page.close();
 });
 

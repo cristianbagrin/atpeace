@@ -231,14 +231,6 @@ body.indigo a:not(.btn):hover {
   font-size: 13px;
 }
 
-.indigo .target {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
 .indigo .foot-hint {
   flex: none;
 }

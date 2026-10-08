@@ -30,7 +30,6 @@
         'ytd-shorts reel-action-bar-view-model > button-view-model:nth-of-type(1)',
         'ytd-reel-player-overlay-renderer #comments-button',
       ],
-      quick: true,
       since: '0.1.0',
     },
     {

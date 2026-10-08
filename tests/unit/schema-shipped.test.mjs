@@ -73,7 +73,6 @@ describe('general', () => {
     const enabled = S.get('general.enabled');
     assert.equal(enabled.type, 'toggle');
     assert.equal(enabled.default, true);
-    assert.equal(enabled.quick, true);
     const theme = S.get('general.theme');
     assert.equal(theme.default, 'light');
     assert.deepEqual(theme.options.map((o) => o.value), ['light', 'dark', 'system']);

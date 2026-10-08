@@ -23,11 +23,12 @@ playlists or a page of your own. Shorts can open in the normal player or be bloc
 their Videos tab.
 
 **Behave.** Turn autoplay off, stop videos from starting by themselves, open videos in theater mode,
-start every video at a speed you chose, skip "Are you still watching?", and calm TITLES THAT SHOUT.
+start every video at a speed you chose, and skip "Are you still watching?".
 
 **Mindful Pause.** Before YouTube (or any site you add) opens, a breathing screen shows how many times
-you opened it today and optionally asks what you came for. Then you choose **Close** or **Continue for N
-minutes**. When the minutes run out a gentle note appears and the video pauses.
+you opened it today. Then you choose **Close** or **Continue for N minutes**. When the minutes run out
+the video pauses and "Your N minutes are up." offers **Leave**, **Finish this video** or **Breathe
+again**.
 
 **Focus.** One click blocks YouTube for 25 minutes, an hour, four hours or the rest of the day. Weekly
 schedules block it or switch to a preset at set times. A daily limit blocks it once you reach your
@@ -37,8 +38,8 @@ popup shows the day's numbers.
 **Own it.** Four built-in presets (Gentle, Focused, Deep work, Untouched) and your own. Export, import
 and reset. A settings lock that asks for a password or a moment of waiting before anything can be shown
 again, while making YouTube quieter always works. A welcome page on first run, keyboard shortcuts
-(`Alt+Shift+P` on/off, `Alt+Shift+F` focus 25 minutes, `Alt+Shift+H` hide an element), and a light, dark
-or system theme.
+(`Alt+Shift+P` on/off, `Alt+Shift+F` focus 25 minutes, `Alt+Shift+H` hide an element; ⌥⇧ on a Mac), and a
+light, dark or system theme.
 
 ## Install in Zen (or Firefox)
 
@@ -66,11 +67,12 @@ could only be verified in a signed-in browser.
 
 ## Using it
 
-- The toolbar button opens the popup: master switch, quick toggles, bulk chips (Shorts,
-  Recommendations, Comments, ...), presets, a focus block, today's numbers and **Hide an element**.
+- The toolbar button opens the popup: the master switch, then **This page** (the settings for the YouTube
+  page you are on), **All** (every setting, with search) and **Focus** (blocks, the pause, today's
+  numbers). Presets, **Hide an element** and **Settings** are at the bottom.
 - **Settings** has every switch, grouped like YouTube's own layout, with search. Turn on **Show advanced**
-  for the rest. **Mindful Pause**, **Focus & limits**, **Advanced** (your hidden elements,
-  debug logs, the lock) and **Backup & reset** are sections too.
+  for the rest. **Presets** (built-in and your own), **Mindful Pause**, **Focus & limits**, **Advanced**
+  (your hidden elements, debug logs, the lock) and **Backup & reset** are sections too.
 - Settings apply to open YouTube tabs at once; no reload.
 
 ## Development
@@ -165,7 +167,7 @@ that the engine starts and stops with its settings.
 
 ### Add a setting
 
-Every option is declared once, in a schema file; the options page, the popup toggles, presets, search,
+Every option is declared once, in a schema file; the options page, the popup, presets, search,
 validation and the CSS all come from that declaration.
 
 1. Pick the section file in `src/sites/youtube/schema/` (or `src/shared/schema/` for cross-site
@@ -179,7 +181,7 @@ validation and the CSS all come from that declaration.
      description: 'One sentence about what disappears.',
      type: 'toggle',                       // toggle | select | number | text | textarea | list | object
      default: false,
-     tags: ['comments'],                   // bulk chips: shorts, recommendations, comments, ai, metrics, ads, clutter
+     tags: ['comments'],                   // preset groups: shorts, recommendations, comments, ai, metrics, ads, clutter
      page: 'watch',                        // optional: only on this page type
      hide: ['ytd-comments #example'],      // one selector per entry; set to display:none while on
      since: '0.2.0',

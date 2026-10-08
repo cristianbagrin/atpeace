@@ -36,7 +36,6 @@
       default: false,
       tags: ['recommendations', 'player'],
       hide: ['.html5-endscreen', '.ytp-endscreen-content', '.ytp-fullscreen-grid'],
-      quick: true,
       since: '0.1.0',
     },
     {

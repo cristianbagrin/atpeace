@@ -43,7 +43,6 @@
       description: 'A breathing screen before the sites below.',
       type: 'toggle',
       default: false,
-      quick: true,
       feature: 'pause',
     },
     {

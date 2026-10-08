@@ -53,7 +53,7 @@
         { value: 'playlists', label: 'Go to my playlists', short: 'Playlists' },
         { value: 'custom', label: 'Go to my own page', short: 'My own page' },
       ],
-      // "Hide everything recommended" empties the feed; it never picks a redirect you did not choose.
+      // Presets that hide recommendations empty the feed; they never pick a redirect you did not choose.
       bulkValue: 'hide',
       tags: ['recommendations'],
       page: 'home',
@@ -67,7 +67,6 @@
         custom: FEED_HIDDEN,
       },
       feature: 'home-feed',
-      quick: true,
       since: '0.1.0',
     },
     {

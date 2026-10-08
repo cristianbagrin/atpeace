@@ -201,6 +201,26 @@ export async function launchFirefox({ prefs = {} } = {}) {
     );
   }
 
+  // The extension opens its welcome tab a moment after a fresh install. If WebDriver opens a tab of its own (the
+  // extension tab above, used by every getStorage below) while that tab is still loading, Firefox sometimes drops
+  // the welcome tab's navigation and leaves a blank tab behind: seen on about 2 runs in 3, and it never happens
+  // when nothing else touches the tabs (the add-on itself does the same `tabs.create` every time). So first wait,
+  // from the browser's own side and without opening or switching anything, until the welcome page has loaded. A
+  // spec that cares whether it opened asserts that itself (lock.mjs); one that does not is not held up for long.
+  async function welcomeTabLoaded() {
+    await driver.setContext(firefox.Context.CHROME);
+    try {
+      return await driver.executeScript(() =>
+        Services.wm
+          .getMostRecentWindow('navigator:browser')
+          .gBrowser.tabs.some((tab) => tab.linkedBrowser.currentURI.spec.endsWith('/src/pages/welcome/welcome.html') && !tab.linkedBrowser.webProgress.isLoadingDocument),
+      );
+    } finally {
+      await driver.setContext(firefox.Context.CONTENT);
+    }
+  }
+  await until(welcomeTabLoaded, { what: 'the welcome tab to load', timeout: 15_000, retryErrors: true }).catch(() => undefined);
+
   // A fresh install is not finished when installAddon() resolves: onInstalled writes `meta` and applies the Gentle
   // preset (only if no settings exist yet) a moment later. A spec that sets its own settings first thing would race
   // it, so wait for that work to be done before handing the browser over.

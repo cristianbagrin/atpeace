@@ -96,7 +96,7 @@ describe('indigo moments (pause, blocked, session over)', () => {
     assert.ok(ratio(indigo['ix-on-mint'], indigo['ix-mint']) >= 7, `on-mint on mint ${ratio(indigo['ix-on-mint'], indigo['ix-mint'])}`);
   });
 
-  test('the intention field\'s boundary reaches 3:1 on the raised field and on the ground', () => {
+  test('the phrase field\'s boundary (blocked page) reaches 3:1 on the raised field and on the ground', () => {
     for (const ground of ['ix-raised', 'ix-ground']) assert.ok(ratio(indigo['ix-field-line'], indigo[ground]) >= 3, `field-line on ${ground} ${ratio(indigo['ix-field-line'], indigo[ground])}`);
   });
 });

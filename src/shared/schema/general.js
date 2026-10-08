@@ -19,7 +19,6 @@
       description: 'Switch it off and every site goes back to exactly how it was.',
       type: 'toggle',
       default: true,
-      quick: true,
       preset: false,
       feature: 'engine',
     },

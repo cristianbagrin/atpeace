@@ -44,7 +44,6 @@
         // Live chat hidden as well (its own setting): the column has nothing left either.
         `:scope-on[data-at-peace~="yt.watch.hideLiveChat"] ${RELATED_CHOSEN_OFF} #secondary { display: none !important; }`,
       ],
-      quick: true,
       since: '0.1.0',
     },
     {
@@ -453,7 +452,6 @@
       tags: ['behaviour', 'recommendations'],
       page: 'watch',
       feature: 'autoplay',
-      quick: true,
       since: '0.1.0',
     },
     {
@@ -486,7 +484,7 @@
       type: 'select',
       default: 'default',
       options: [
-        { value: 'default', label: 'Leave as YouTube sets it' },
+        { value: 'default', label: 'Leave as YouTube sets it', short: 'Default' },
         { value: '0.75', label: '0.75x' },
         { value: '1', label: '1x (normal)' },
         { value: '1.25', label: '1.25x' },
