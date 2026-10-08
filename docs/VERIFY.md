@@ -23,7 +23,9 @@ plays for at least a minute (any), and a channel you are subscribed to.
 5. Open `https://www.youtube.com/`. Click the toolbar puzzle-piece button; At Peace should be listed.
    The welcome page says to pin it: confirm that the wording ("Pin to Toolbar" beside At Peace) matches
    what Zen shows. Zen's menu may be named differently; note it if so.
-6. Open the settings (the popup's **All settings** button, or the extension's Options in `about:addons`). Everything below happens
+6. Open the popup: its tabs are **This page** (the sections for the page you are on), **All** (every section, with a search)
+   and **Focus**. Every setting can be changed there and the page behind it changes at once; **Edit** on a row opens the
+   full settings (also the popup's **Settings** button, or the extension's Options in `about:addons`). Everything below happens
    there and in the popup.
 
 Tip: keep the settings open in one tab and YouTube in another. Changes apply to YouTube at once, no
@@ -191,12 +193,13 @@ Shorts" and "Hide Subscribe on Shorts" there.
    dial, then "Continue?" with 5 min … 1 h; Continue starts a new session and the video goes on where
    it was.)
 2. Press **Close YouTube** on a fresh pause: the tab goes back or closes.
-3. Popup, under **Block YouTube for**, press **25 min**. Expect: open YouTube tabs turn into the same
+3. Popup, **Focus** tab, under **Block YouTube for**, press **25 min**. Expect: open YouTube tabs turn into the same
    indigo page, now saying "YouTube is closed for now." with a large countdown and the time it ends, and a
    new tab to YouTube does the same. End it with the early-exit control (it asks you to wait 30 seconds
    by default). Check that the countdown matches the clock. Afterwards the popup shows three stat tiles
    (time **on YouTube**, **opens**, **turned back**) that match what you just did.
-4. Keyboard shortcuts: **Alt+Shift+P** turns At Peace on and off, **Alt+Shift+F** starts a 25 minute
+4. Keyboard shortcuts (on a Mac ⌥⇧P, ⌥⇧F, ⌥⇧H: Option+Shift; the welcome page and the popup's tooltips show them in
+   that notation): **Alt+Shift+P** turns At Peace on and off, **Alt+Shift+F** starts a 25 minute
    block (end it right after), **Alt+Shift+H** starts "Hide an element" on a YouTube page (Esc leaves it).
    If Zen already uses one of these, the shortcut simply does nothing: rebind it in `about:addons`,
    gear, "Manage Extension Shortcuts", and note which one clashed.

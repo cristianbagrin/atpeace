@@ -137,6 +137,22 @@
       since: '0.1.0',
     },
     {
+      id: 'yt.general.thumbnailFrame',
+      group: 'Look',
+      label: 'Thumbnail picture',
+      type: 'select',
+      default: 'default',
+      options: [
+        { value: 'default', label: 'Original' },
+        { value: 'start', label: 'Start' },
+        { value: 'middle', label: 'Middle' },
+        { value: 'end', label: 'End' },
+      ],
+      // YouTube's own frames of the video (a quarter, half and three quarters in), set by the feature.
+      feature: 'thumbnail-frame',
+      since: '0.2.0',
+    },
+    {
       id: 'yt.general.disableHoverPreview',
       group: 'Look',
       label: 'Turn off hover previews',

@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { launch, close, getContext, setStorage, trackErrors, ARTIFACTS } from './harness.mjs';
 import { fixturesAvailable, installYouTubeFixtures } from './_yt-fixture.mjs';
 import { readFileSync } from 'node:fs';
-import { buildSearchDropdownInPage, visibleDropdownRowsInPage, attachShelfDataInPage, homeRowsInPage, addHeaderButtonInPage, headerButtonsInPage } from './_7b-pages.mjs';
+import { buildSearchDropdownInPage, visibleDropdownRowsInPage, attachShelfDataInPage, homeRowsInPage, addHeaderButtonInPage, headerButtonsInPage, thumbnailReportInPage } from './_7b-pages.mjs';
 
 const SHELVES = JSON.parse(readFileSync(join(import.meta.dirname, '..', 'fixtures', 'youtube', 'channel-shelves.json'), 'utf8'));
 
@@ -159,6 +159,205 @@ describe('channel pages: rows by type, the Join button, more tabs (item 10)', { 
     assert.deepEqual(await shown(), [['home', true], ['videos', true], ['shorts', true], ['streams', true], ['shows', false], ['podcasts', true], ['playlists', true], ['posts', true]]);
     await apply({ 'yt.channel.hideShowsTab': true, 'yt.channel.hideLiveTab': true, 'yt.channel.hidePodcastsTab': true });
     assert.deepEqual((await shown()).map(([, v]) => v), [true, true, true, false, false, false, true, true]);
+    await apply({});
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Thumbnail picture (item 6)
+// ---------------------------------------------------------------------------------------------
+
+const FRAME = { start: 'mq1', middle: 'mq2', end: 'mq3' };
+const frameUrl = (id, mode) => `https://i.ytimg.com/vi/${id}/${FRAME[mode]}.jpg`;
+const THUMB = 'yt.general.thumbnailFrame';
+
+const SURFACES = [
+  ['channel Videos tab (lockups)', '/@MrBeast/videos', 'channel-videos'],
+  ['search results (legacy ytd-video-renderer) and Shorts shelves', '/results?search_query=lofi', 'search-lofi'],
+  ['watch sidebar (lockups)', '/watch?v=n61ULEU7CO0', 'watch-chapters'],
+  ['watch page with a queue panel', '/watch?v=n61ULEU7CO0&list=PLx&fixture=watch-playlist', 'watch-playlist'],
+  ['channel Shorts tab', '/@MrBeast/shorts?fixture=channel-shorts', 'channel-shorts'],
+  ['hashtag page (legacy grid cards)', '/hashtag/cooking', 'hashtag'],
+  ['playlist page', '/playlist?list=PLx', 'playlist'],
+];
+
+describe('thumbnail picture (item 6)', { skip: fixturesAvailable(SURFACES.map((x) => x[2])) ? false : 'some research snapshots are not on this machine' }, () => {
+  let requested;
+  before(async () => {
+    await start();
+    requested = [];
+    getContext().on('request', (r) => {
+      if (r.url().startsWith('https://i.ytimg.com/')) requested.push(r.url());
+    });
+  });
+  after(async () => close());
+
+  for (const [label, url, snapshot] of SURFACES) {
+    test(`${label}: Start, Middle and End swap every card picture for YouTube's frame of that video, and Original puts the same pictures back`, async () => {
+      await open(`https://www.youtube.com${url}`);
+      await sleep(300);
+      const before = await page.evaluate(thumbnailReportInPage);
+      assert.ok(before.length >= 10, `${snapshot}: ${before.length} pictures`);
+      const eligible = before.filter((x) => x.id);
+      assert.ok(eligible.length >= 10, `${snapshot}: ${eligible.length} pictures with a video link`);
+      for (const mode of ['middle', 'start', 'end']) {
+        await apply({ [THUMB]: mode });
+        await page.waitForFunction((m) => document.querySelectorAll(`img[data-at-peace-thumb="${m}"]`).length > 5, FRAME[mode], { timeout: 10_000 });
+        await sleep(200);
+        const now = await page.evaluate(thumbnailReportInPage);
+        assert.equal(now.length, before.length);
+        for (let i = 0; i < now.length; i++) {
+          if (before[i].id) {
+            assert.equal(now[i].src, frameUrl(before[i].id, mode), `${snapshot} #${i}: ${mode}`);
+            assert.equal(now[i].mark, FRAME[mode]);
+            assert.equal(now[i].orig, before[i].src ?? '', 'the original is kept');
+            assert.equal(now[i].opacity, '1', 'and visible');
+          } else {
+            assert.equal(now[i].src, before[i].src, `${snapshot} #${i}: no single video, untouched`);
+          }
+        }
+        if (mode === 'middle') await page.screenshot({ path: join(SHOTS, `thumbs-${snapshot}-middle.png`) });
+      }
+      await apply({});
+      await page.waitForFunction(() => !document.querySelector('img[data-at-peace-thumb]'), null, { timeout: 10_000 });
+      const back = await page.evaluate(thumbnailReportInPage);
+      assert.deepEqual(back.map((x) => x.src), before.map((x) => x.src), `${snapshot}: Original puts every picture back`);
+      assert.equal(await page.evaluate(() => document.getElementById('at-peace-thumb-style')), null, 'and the style is gone');
+      assert.ok(requested.every((u) => /^https:\/\/i\.ytimg\.com\/vi\/[\w-]{11}\/mq[123]\.jpg$/.test(u)), 'only YouTube\'s own frame URLs were requested');
+    });
+  }
+
+  test('pictures that are not one video\'s stay: a playlist card, a Mix stack, an avatar, a card without a link', async () => {
+    await open('https://www.youtube.com/@MrBeast/videos');
+    await page.evaluate(() => {
+      const grid = document.querySelector('ytd-rich-item-renderer').parentElement;
+      const make = (name, html) => {
+        const el = document.createElement('div');
+        el.id = name;
+        el.innerHTML = html;
+        grid.append(el);
+      };
+      make('plist', '<yt-lockup-view-model><a href="/playlist?list=PLabcdefghijk"><yt-thumbnail-view-model><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw="></yt-thumbnail-view-model></a></yt-lockup-view-model>');
+      make('mix', '<yt-lockup-view-model><a href="/watch?v=abcdefghijk&list=RDabcdefghijk"><yt-collection-thumbnail-view-model><yt-thumbnail-view-model><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw="></yt-thumbnail-view-model></yt-collection-thumbnail-view-model></a></yt-lockup-view-model>');
+      make('radio', '<ytd-radio-renderer><a href="/watch?v=abcdefghijk&list=RDabcdefghijk"><ytd-thumbnail><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw="></ytd-thumbnail></a></ytd-radio-renderer>');
+      make('channel', '<yt-lockup-view-model><a href="/@MrBeast"><yt-thumbnail-view-model><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw="></yt-thumbnail-view-model></a></yt-lockup-view-model>');
+    });
+    await apply({ [THUMB]: 'middle' });
+    await page.waitForFunction(() => document.querySelectorAll('img[data-at-peace-thumb="mq2"]').length > 5, null, { timeout: 10_000 });
+    await sleep(300);
+    const info = await page.evaluate(() => ['plist', 'mix', 'radio', 'channel'].map((id) => { const img = document.querySelector(`#${id} img`); return [id, img.getAttribute('src'), img.getAttribute('data-at-peace-thumb'), getComputedStyle(img).opacity]; }));
+    for (const [id, src, mark, opacity] of info) {
+      assert.match(src, /^data:image\/gif/, `${id}: untouched`);
+      assert.equal(mark, 'skip', `${id}: left alone on purpose`);
+      assert.equal(opacity, '1', `${id}: and visible`);
+    }
+    await apply({});
+  });
+
+  test('YouTube changes the picture later (lazy src, a refresh, a card reused for another video): the frame follows, the new original is kept', async () => {
+    await open('https://www.youtube.com/@MrBeast/videos');
+    await apply({ [THUMB]: 'end' });
+    await page.waitForFunction(() => [...document.querySelectorAll('yt-thumbnail-view-model img')].every((i) => i.getAttribute('data-at-peace-thumb')), null, { timeout: 10_000 });
+    const out = await page.evaluate(async () => {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const lock = document.querySelector('yt-lockup-view-model');
+      const link = lock.querySelector('a[href*="/watch?v="]');
+      const img = lock.querySelector('yt-thumbnail-view-model img');
+      const idOf = () => new URL(link.getAttribute('href'), location.origin).searchParams.get('v');
+      const res = {};
+      // 1. YouTube sets src again (same video): the frame comes back, the original is the new one.
+      img.setAttribute('src', 'https://i.ytimg.com/vi/' + idOf() + '/hq720.jpg');
+      await wait(300);
+      res.again = [img.getAttribute('src').endsWith('/mq3.jpg'), img.getAttribute('data-at-peace-thumb-src')];
+      // 2. The card is reused for another video: new link, new src.
+      link.setAttribute('href', '/watch?v=AAAAAAAAAAA');
+      img.setAttribute('src', 'https://i.ytimg.com/vi/AAAAAAAAAAA/hq720.jpg');
+      await wait(300);
+      res.reused = [img.getAttribute('src'), img.getAttribute('data-at-peace-thumb-id'), img.getAttribute('data-at-peace-thumb-src')];
+      // 3. A picture with no src yet (lazy loading) gets its frame at once; YouTube's src arriving later is the original.
+      const lazy = document.createElement('div');
+      lazy.innerHTML = '<ytd-video-renderer><ytd-thumbnail><a href="/watch?v=BBBBBBBBBBB"><img></a></ytd-thumbnail></ytd-video-renderer>';
+      document.querySelector('ytd-rich-item-renderer').parentElement.append(lazy);
+      await wait(300);
+      const lazyImg = lazy.querySelector('img');
+      res.lazyBefore = lazyImg.getAttribute('src');
+      lazyImg.setAttribute('src', 'https://i.ytimg.com/vi/BBBBBBBBBBB/hq720.jpg');
+      await wait(300);
+      res.lazyAfter = [lazyImg.getAttribute('src'), lazyImg.getAttribute('data-at-peace-thumb-src')];
+      return res;
+    });
+    assert.equal(out.again[0], true, `the frame is back after YouTube set src again: ${JSON.stringify(out)}`);
+    assert.match(out.again[1], /\/hq720\.jpg$/, 'and the new picture is the original now');
+    assert.deepEqual(out.reused.slice(0, 2), ['https://i.ytimg.com/vi/AAAAAAAAAAA/mq3.jpg', 'AAAAAAAAAAA']);
+    assert.equal(out.reused[2], 'https://i.ytimg.com/vi/AAAAAAAAAAA/hq720.jpg');
+    assert.equal(out.lazyBefore, 'https://i.ytimg.com/vi/BBBBBBBBBBB/mq3.jpg');
+    assert.deepEqual(out.lazyAfter, ['https://i.ytimg.com/vi/BBBBBBBBBBB/mq3.jpg', 'https://i.ytimg.com/vi/BBBBBBBBBBB/hq720.jpg']);
+    await apply({});
+    assert.equal(await page.evaluate(() => document.querySelectorAll('img[data-at-peace-thumb]').length), 0);
+  });
+
+  test('a frame that does not load (a new video, a live stream) puts the original back, once, and is not asked for again', async () => {
+    await open('https://www.youtube.com/@MrBeast/videos');
+    const before = await page.evaluate(thumbnailReportInPage);
+    const missing = before[0].id;
+    await getContext().route(`https://i.ytimg.com/vi/${missing}/mq2.jpg`, (route) => route.fulfill({ status: 404, contentType: 'text/html', body: 'Not found' }));
+    requested.length = 0;
+    await apply({ [THUMB]: 'middle' });
+    await page.waitForFunction((id) => document.querySelector('img[data-at-peace-thumb="failed"]')?.getAttribute('data-at-peace-thumb-id') === id, missing, { timeout: 10_000 });
+    await sleep(500);
+    const now = await page.evaluate(thumbnailReportInPage);
+    assert.equal(now[0].src, before[0].src, 'the original is back');
+    assert.equal(now[0].mark, 'failed');
+    assert.equal(now[1].src, frameUrl(before[1].id, 'middle'), 'the others are frames');
+    assert.equal(requested.filter((u) => u.includes(`/${missing}/mq2.jpg`)).length, 1, 'asked once');
+    // another frame is tried (and loads: only mq2 is missing)
+    await apply({ [THUMB]: 'end' });
+    await page.waitForFunction(() => document.querySelectorAll('img[data-at-peace-thumb="mq3"]').length > 5, null, { timeout: 10_000 });
+    assert.equal((await page.evaluate(thumbnailReportInPage))[0].src, frameUrl(missing, 'end'));
+    await apply({});
+    await getContext().unroute(`https://i.ytimg.com/vi/${missing}/mq2.jpg`);
+  });
+
+  test('no flash: a card added later is transparent until its frame is set, never shows the original; the fail-safe shows a picture nobody handles', async () => {
+    await open('https://www.youtube.com/@MrBeast/videos');
+    await apply({ [THUMB]: 'middle' });
+    await page.waitForFunction(() => document.querySelectorAll('img[data-at-peace-thumb="mq2"]').length > 5, null, { timeout: 10_000 });
+    const out = await page.evaluate(async () => {
+      const samples = [];
+      const grid = document.querySelector('ytd-rich-item-renderer').parentElement;
+      const wrap = document.createElement('div');
+      wrap.innerHTML = '<ytd-rich-item-renderer><yt-lockup-view-model><a href="/watch?v=CCCCCCCCCCC"><yt-thumbnail-view-model><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw="></yt-thumbnail-view-model></a></yt-lockup-view-model></ytd-rich-item-renderer>';
+      grid.prepend(wrap);
+      const img = wrap.querySelector('img');
+      for (let i = 0; i < 20; i++) {
+        samples.push([img.getAttribute('src').startsWith('data:') ? 'original' : 'frame', getComputedStyle(img).opacity]);
+        await new Promise((r) => requestAnimationFrame(r));
+      }
+      // A card nobody can handle (no link yet): transparent first, shown by the fail-safe.
+      const orphan = document.createElement('div');
+      orphan.innerHTML = '<ytd-video-renderer><ytd-thumbnail><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw="></ytd-thumbnail></ytd-video-renderer>';
+      grid.prepend(orphan);
+      const oimg = orphan.querySelector('img');
+      await new Promise((r) => setTimeout(r, 300));
+      const early = getComputedStyle(oimg).opacity;
+      await new Promise((r) => setTimeout(r, 1500));
+      return { samples, early, late: getComputedStyle(oimg).opacity, orphanSrc: oimg.getAttribute('src').slice(0, 10) };
+    });
+    assert.ok(out.samples.length === 20);
+    assert.equal(out.samples.some(([src, opacity]) => src === 'original' && opacity !== '0'), false, `the original was never visible: ${JSON.stringify(out.samples.slice(0, 5))}`);
+    assert.equal(out.samples.at(-1)[0], 'frame');
+    assert.equal(out.early, '0', 'an unhandled picture waits, transparent');
+    assert.equal(out.late, '1', 'and the fail-safe shows it');
+    assert.equal(out.orphanSrc, 'data:image');
+    await apply({});
+    assert.deepEqual(ourErrors(), []);
+  });
+
+  test('the blur and grayscale options keep working on the frames', async () => {
+    await open('https://www.youtube.com/@MrBeast/videos');
+    await apply({ [THUMB]: 'middle', 'yt.general.thumbnails': 'blur' });
+    await page.waitForFunction(() => document.querySelectorAll('img[data-at-peace-thumb="mq2"]').length > 5, null, { timeout: 10_000 });
+    assert.match(await page.evaluate(() => getComputedStyle(document.querySelector('yt-thumbnail-view-model img[data-at-peace-thumb="mq2"]')).filter), /^blur\(14px\)/);
     await apply({});
   });
 });

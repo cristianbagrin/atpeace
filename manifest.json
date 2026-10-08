@@ -105,6 +105,7 @@
         "src/sites/youtube/features/channel-tab.js",
         "src/sites/youtube/features/filters.js",
         "src/sites/youtube/features/thumbnails-hover.js",
+        "src/sites/youtube/features/thumbnail-frame.js",
         "src/sites/youtube/features/search-suggestions.js",
         "src/sites/youtube/features/layout-nudge.js",
         "src/shared/breath.js",

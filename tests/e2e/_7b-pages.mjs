@@ -102,3 +102,32 @@ export function addHeaderButtonInPage({ data, label }) {
 export function headerButtonsInPage() {
   return [...document.querySelectorAll('ytd-browse[page-subtype="channels"] yt-page-header-view-model .ytFlexibleActionsViewModelAction')].map((w) => [w.getAttribute('data-at-peace-channel-action'), w.getClientRects().length > 0 && getComputedStyle(w).display !== 'none']);
 }
+
+/**
+ * Runs in the page: every thumbnail picture the feature may touch, with what it points at now.
+ * `id` = the video id of the card's own link (/watch?v=ID or /shorts/ID) or null.
+ */
+export function thumbnailReportInPage() {
+  const idOf = (href) => {
+    try {
+      const u = new URL(href, 'https://www.youtube.com');
+      const v = u.pathname === '/watch' ? u.searchParams.get('v') : /^\/shorts\/([\w-]+)/.exec(u.pathname)?.[1];
+      return v && /^[\w-]{11}$/.test(v) ? v : null;
+    } catch {
+      return null;
+    }
+  };
+  const CARD = 'yt-lockup-view-model, ytd-rich-item-renderer, ytd-video-renderer, ytd-compact-video-renderer, ytd-playlist-panel-video-renderer, ytm-shorts-lockup-view-model, ytd-playlist-video-renderer, ytd-grid-video-renderer, ytd-reel-item-renderer';
+  return [...document.querySelectorAll('yt-thumbnail-view-model img, ytd-thumbnail img')]
+    .filter((img) => !img.closest('[hidden]') && img.closest(CARD))
+    .map((img) => {
+      const link = img.closest('a[href]') ?? img.closest(CARD)?.querySelector('a[href*="/watch?v="], a[href*="/shorts/"]');
+      return {
+        id: link ? idOf(link.getAttribute('href')) : null,
+        src: img.getAttribute('src'),
+        mark: img.getAttribute('data-at-peace-thumb'),
+        orig: img.getAttribute('data-at-peace-thumb-src'),
+        opacity: getComputedStyle(img).opacity,
+      };
+    });
+}

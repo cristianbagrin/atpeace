@@ -172,7 +172,7 @@ test('popup: locked, refused with a note, the friction unlock is inline (wait, t
   await open(POPUP);
   await until(() => run(() => !document.querySelector('.lock-bar').hidden), { what: 'the lock bar', retryErrors: true });
   await click('#master input.switch');
-  await until(() => run(() => /That would show something again/.test(document.querySelector('.lock-bar').textContent)), { what: 'the refusal', retryErrors: true });
+  await until(() => run(() => document.querySelector('.lock-bar').classList.contains('is-flash') && /^Locked\./.test(document.querySelector('.lock-bar').textContent)), { what: 'the refusal', retryErrors: true });
   assert.equal(await run(() => document.querySelector('#master input.switch').checked), true);
   assert.equal((await settings())['general.enabled'], undefined);
   await shot('popup-refused');
@@ -194,6 +194,7 @@ test('popup: locked, refused with a note, the friction unlock is inline (wait, t
 test('options: "When I open YouTube" short labels in the popup, the redirect row waits for "my own page", clear usage history', async () => {
   await reset({ settings: { 'yt.home.feedMode': 'hide' }, stats: { [new Date().toISOString().slice(0, 10)]: { youtube: { activeSec: 120, opens: 2, turnedBack: 0, continued: 1, blockedHits: 0 } } } });
   await open(POPUP);
+  await run(() => document.querySelector('.grp[data-section="yt.home"] .grp-head').click());
   const labels = await run(() => [...document.querySelectorAll('.row[data-id="yt.home.feedMode"] option')].map((o) => o.textContent));
   assert.deepEqual(labels, ['Show feed', 'Calm page', 'Subscriptions', 'Watch later', 'Playlists', 'My own page']);
   await open(`${OPTIONS}#setting=yt.home.redirectUrl`);

@@ -192,8 +192,9 @@ test('options: the Presets section applies, saves, updates, renames and deletes 
   await driver.findElement(By.xpath(`${presetRow('Evening')}//button[normalize-space()="Update from current"]`)).click();
   await until(async () => (await ff.getStorage('customPresets')).customPresets[0].values['yt.general.grayscale'] === true, { what: 'the preset updated', retryErrors: true });
   await driver.findElement(By.xpath(`${presetRow('Evening')}//button[normalize-space()="Rename"]`)).click();
-  await css('#sec-presets .preset-form input[type="text"]').sendKeys(Key.chord(Key.CONTROL, 'a'), 'Wind-down', Key.ENTER);
-  console.log('renamed to', JSON.stringify((await ff.getStorage('customPresets')).customPresets?.[0]?.name));
+  const renameField = css('#sec-presets .preset-form input[type="text"]');
+  await renameField.clear();
+  await renameField.sendKeys('Wind-down', Key.ENTER);
   await until(async () => (await ff.getStorage('customPresets')).customPresets[0].name === 'Wind-down', { what: 'the preset renamed', retryErrors: true });
   await driver.findElement(By.xpath(`${presetRow('Wind-down')}//button[normalize-space()="Delete"]`)).click();
   await until(async () => ((await ff.getStorage('customPresets')).customPresets ?? []).length === 0, { what: 'the preset deleted', retryErrors: true });

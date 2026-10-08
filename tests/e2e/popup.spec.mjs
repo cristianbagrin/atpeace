@@ -851,6 +851,26 @@ test('shortcuts in the tooltips: Mac glyphs on a Mac, the assigned keys everywhe
   await win.close();
 });
 
+test('no tab renders a bare "true", "false", "null" or "undefined" as text (a boolean handed to replaceChildren would)', async () => {
+  const page = await openPopup({ seed: { settings: { 'advanced.lock': { mode: 'friction', waitSeconds: 10 }, 'yt.general.hideAds': true }, customPresets: [{ id: 'preset_a', name: 'A', values: {}, createdAt: 1 }] }, activeUrl: 'https://www.youtube.com/watch?v=abc' });
+  const bare = () =>
+    page.evaluate(() => {
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      const found = [];
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (/^(true|false|null|undefined|NaN|\[object Object\])$/.test(node.textContent.trim())) found.push(`${node.parentElement.localName}.${node.parentElement.className}: "${node.textContent}"`);
+      }
+      return found;
+    });
+  for (const name of ['This page', 'All', 'Focus']) {
+    await tab(page, name).click();
+    assert.deepEqual(await bare(), [], name);
+  }
+  await page.locator('#preset-select').selectOption('::new');
+  assert.deepEqual(await bare(), [], 'the preset name field');
+  await page.close();
+});
+
 test('the access banner shows when YouTube access is missing', async () => {
   const page = await openPopup({
     init: () => {

@@ -7,7 +7,6 @@
 //   AP.ui.watchTheme([effective])         apply now and whenever general.theme changes
 //   AP.ui.toast(message)                  a quiet line at the bottom of the page
 //   AP.ui.confirm(text, options)          native <dialog>; resolves true/false
-//   AP.ui.prompt(text, options)           native <dialog> with one text field; resolves string|null
 //   AP.ui.settingControl(def, value, onChange, options)   generic editor for one setting
 //   AP.ui.hostAccessBanner()              "grant access to youtube.com" banner (permission risk R2)
 //   AP.ui.loadShortcuts()                 the keyboard shortcuts as assigned now, in the platform's notation
@@ -210,28 +209,6 @@
       initialFocus: danger ? cancel : ok, // a destructive action is never the Enter default
     });
     return returnValue === 'confirm';
-  }
-
-  /**
-   * Asks for one line of text. Resolves the trimmed text, or null when cancelled.
-   * @param {string} text what is being asked
-   * @param {{ title?: string, value?: string, confirmLabel?: string, maxLength?: number, placeholder?: string }} [options]
-   * @returns {Promise<string|null>}
-   */
-  async function prompt(text, { title, value = '', confirmLabel = 'Save', maxLength = 60, placeholder } = {}) {
-    const fieldId = `dlg-field-${++dialogCount}`;
-    const input = h('input', { type: 'text', id: fieldId, maxlength: maxLength, required: true, autocomplete: 'off', spellcheck: false, placeholder, value });
-    input.required = true;
-    const ok = h('button', { type: 'submit', value: 'confirm', class: 'btn btn-primary' }, confirmLabel);
-    const cancel = h('button', { type: 'submit', value: 'cancel', class: 'btn', formnovalidate: true }, 'Cancel');
-    const { returnValue } = await openDialog({
-      title,
-      body: [h('label', { class: 'dialog-text', for: fieldId }, text), h('div', { class: 'dialog-field' }, input)],
-      actions: [cancel, ok],
-      initialFocus: input,
-    });
-    const answer = input.value.trim();
-    return returnValue === 'confirm' && answer !== '' ? answer : null;
   }
 
   // ---------------------------------------------------------------------------------------
@@ -690,5 +667,5 @@
     }
   }
 
-  Object.assign(ui, { h, dial, applyTheme, watchTheme, toast, openDialog, confirm, prompt, settingControl, controlKind, hostAccessBanner, loadShortcuts, SHORTCUTS_HELP, openSettings, lastPreset });
+  Object.assign(ui, { h, dial, applyTheme, watchTheme, toast, openDialog, confirm, settingControl, controlKind, hostAccessBanner, loadShortcuts, SHORTCUTS_HELP, openSettings, lastPreset });
 })();

@@ -8,7 +8,7 @@ import { loadAtPeace, installFakeBrowser, uninstallFakeBrowser, CORE_SCRIPTS, SC
 
 /** Every YouTube setting that must exist: section → ids without the "yt.<section>." prefix. Keep in sync on purpose. */
 const EXPECTED = {
-  general: ['grayscale', 'thumbnails', 'disableHoverPreview', 'hideViewCounts', 'hideUploadDates', 'hideDurations', 'hideChannelAvatars', 'hideBadges', 'hideWatchedProgress', 'hideWatched', 'hideAds', 'hidePremiumUpsells', 'hideMixes', 'hidePlayables'],
+  general: ['grayscale', 'thumbnails', 'thumbnailFrame', 'disableHoverPreview', 'hideViewCounts', 'hideUploadDates', 'hideDurations', 'hideChannelAvatars', 'hideBadges', 'hideWatchedProgress', 'hideWatched', 'hideAds', 'hidePremiumUpsells', 'hideMixes', 'hidePlayables'],
   masthead: ['hideSearchSuggestions', 'hideSearchHistory', 'hideVoiceSearch', 'hideSearchBar', 'hideCreate', 'hideNotifications', 'hideGuideButton', 'hideAICompanion', 'hideCountryCode', 'hideDoodle', 'hideMastheadAd'],
   guide: ['hideAll', 'hideMini', 'hideHome', 'hideShorts', 'hideSubscriptionsEntry', 'hideYouEntry', 'hideHistory', 'hidePlaylists', 'hideYourVideos', 'hideWatchLater', 'hideLiked', 'hideDownloads', 'hideCourses', 'hideSubscriptionsSection', 'hideExploreSection', 'hideMoreFromYouTube', 'hideSettingsSection', 'hideFooter', 'hideSignInPromo'],
   home: ['feedMode', 'redirectUrl', 'hideChips', 'hideShortsShelf', 'hideNewsShelf', 'hidePostsShelf', 'hideOtherShelves', 'hideFeedNudge'],

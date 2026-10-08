@@ -113,7 +113,7 @@
    * @property {string} [requires]    Another setting that must be on for this to matter: 'id' (truthy / not the default),
    *                                  'id=value' (a select that must hold that value) or 'id!=value'. See parseRequires().
    * @property {boolean} [advanced]   Hidden behind "Show advanced".
-   * @property {boolean} [quick]      Offered as a popup quick toggle.
+   * @property {boolean} [quick]      (unused since the popup shows every setting; kept so old definitions stay valid)
    * @property {boolean} [preset]     false = not part of presets (default true).
    * @property {boolean} [portable]   false = not exported / not imported (default true).
    * @property {string} [since]       Version added ('0.1.0').

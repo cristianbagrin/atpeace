@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import { loadAtPeace, installFakeBrowser, uninstallFakeBrowser, CORE_SCRIPTS, SCHEMA_SCRIPTS, ROOT } from './_load.mjs';
 
 const FEATURE_FILES = [
-  'bridge-tags', 'home-feed', 'shorts', 'autoplay', 'theater', 'speed', 'still-watching', 'channel-tab', 'filters', 'thumbnails-hover', 'search-suggestions', 'layout-nudge',
+  'bridge-tags', 'home-feed', 'shorts', 'autoplay', 'theater', 'speed', 'still-watching', 'channel-tab', 'filters', 'thumbnails-hover', 'thumbnail-frame', 'search-suggestions', 'layout-nudge',
 ].map((f) => `src/sites/youtube/features/${f}.js`);
 
 let AP;
@@ -303,6 +303,33 @@ function loadBridge({ player, onTimeout } = {}) {
 
 /** The vm has its own Object/Array prototypes: compare through JSON. */
 const plain = (value) => JSON.parse(JSON.stringify(value ?? null));
+
+describe('thumbnail frame (Phase 7b)', () => {
+  const T = () => AP.yt.thumbnailFrame;
+  test('the video id comes from the card link: /watch?v=ID and /shorts/ID, nothing else', () => {
+    assert.equal(T().videoIdFromHref('/watch?v=plN7JMbadRg'), 'plN7JMbadRg');
+    assert.equal(T().videoIdFromHref('/watch?v=plN7JMbadRg&list=PLabc&index=3&pp=xyz'), 'plN7JMbadRg');
+    assert.equal(T().videoIdFromHref('https://www.youtube.com/watch?v=C0STkNVChLI&t=30s'), 'C0STkNVChLI');
+    assert.equal(T().videoIdFromHref('/shorts/C0STkNVChLI'), 'C0STkNVChLI');
+    assert.equal(T().videoIdFromHref('/shorts/C0STkNVChLI?feature=share'), 'C0STkNVChLI');
+    for (const no of ['/playlist?list=PLabc', '/@MrBeast', '/channel/UCX6OQ3DkcsbYNE6H8uQQuVA', '/watch', '/watch?v=short', '/clip/Ugkx123456789', 'https://example.com/watch?v=plN7JMbadRg', '', null, undefined, 5]) {
+      assert.equal(T().videoIdFromHref(no), null, String(no));
+    }
+  });
+
+  test('the three frames are YouTube\'s own i.ytimg.com pictures, 16:9 (mq1 … mq3), never another host', () => {
+    assert.deepEqual({ ...T().FRAMES }, { start: 'mq1', middle: 'mq2', end: 'mq3' });
+    assert.equal(T().frameUrl('plN7JMbadRg', 'mq2'), 'https://i.ytimg.com/vi/plN7JMbadRg/mq2.jpg');
+    for (const f of Object.values(T().FRAMES)) assert.match(T().frameUrl('plN7JMbadRg', f), /^https:\/\/i\.ytimg\.com\/vi\/[\w-]{11}\/mq[123]\.jpg$/);
+  });
+
+  test('the setting is a select Original · Start · Middle · End whose first option is the default', () => {
+    const def = AP.schema.get('yt.general.thumbnailFrame');
+    assert.deepEqual(def.options.map((o) => o.label), ['Original', 'Start', 'Middle', 'End']);
+    assert.equal(def.default, def.options[0].value);
+    assert.equal(def.feature, 'thumbnail-frame');
+  });
+});
 
 describe('page bridge: tag mapping (data shapes observed live, 2026-10-04)', () => {
   let b;
