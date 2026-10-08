@@ -3,7 +3,7 @@
 Mozilla signs each version privately (unlisted: no public page on addons.mozilla.org). The signed `.xpi` goes to a small public repo, `cristianbagrin/at-peace-updates`, together with `updates.json`. Zen and Firefox read that file once a day and update by themselves. The source repo, `cristianbagrin/at-peace`, stays private.
 
 ```
-npm run release -- patch  ->  git push && git push origin v<version>  ->  GitHub Actions: check, sign, publish  ->  Zen updates
+npm run release -- patch  ->  git push  ->  GitHub Actions: check, sign, tag, publish  ->  Zen updates
 ```
 
 ## One-time setup (about 10 minutes, by you)
@@ -47,11 +47,11 @@ From then on Zen checks for updates itself, about once a day. To check now: `abo
 ## Shipping an update (what Claude does)
 
 1. Make the change. Add a line about it under `## Unreleased` in `CHANGELOG.md` (the release is refused without one). Commit.
-2. `npm run release -- patch`. Use `minor` for new settings or features, `major` for a break, or an exact `x.y.z`. It refuses on a dirty tree, runs lint, unit tests and `verify:package`, raises the version in `manifest.json`, `package.json` and `package-lock.json`, turns `Unreleased` into `## x.y.z — date`, and makes the commit `Release x.y.z` and the tag `vx.y.z`. It pushes nothing. `-- patch --dry-run` shows what it would do without changing anything.
-3. `git push && git push origin v<version>`. The tag starts **Release** (github.com/cristianbagrin/at-peace, **Actions**). It takes a few minutes:
-   - checks the tag matches the version, runs lint, tests and `verify:package`;
+2. `npm run release -- patch`. Use `minor` for new settings or features, `major` for a break, or an exact `x.y.z`. It refuses on a dirty tree, runs lint, unit tests and `verify:package`, raises the version in `manifest.json`, `package.json` and `package-lock.json`, turns `Unreleased` into `## x.y.z — date`, and makes the commit `Release x.y.z`. It pushes nothing. `-- patch --dry-run` shows what it would do without changing anything.
+3. `git push`. That publishes it, fully automatic: **Release** (github.com/cristianbagrin/at-peace, **Actions**) sees that `manifest.json` holds a version with no tag yet, set by a `Release x.y.z` commit, and takes a few minutes:
+   - checks out that commit, checks the versions agree, runs lint, tests and `verify:package`;
    - checks it can write to the updates repo (before Mozilla is involved);
-   - `web-ext sign --channel=unlisted` (waits up to 10 minutes for validation and 25 for approval);
+   - `web-ext sign --channel=unlisted` (waits up to 10 minutes for validation and 25 for approval), then tags the commit `vx.y.z`;
    - adds `xpi/at-peace-<version>.xpi` to `at-peace-updates` and rewrites `updates.json`;
    - creates a GitHub Release in the source repo with the signed file and the CHANGELOG notes;
    - checks that the two public URLs serve the new files.
@@ -63,7 +63,7 @@ GitHub Actions on a private repo uses the monthly free minutes of the account. A
 
 ## Troubleshooting
 
-**Signing rejected (validation errors).** The **Sign with Mozilla** step prints Mozilla's messages (a code, a file, a line). Fix the cause, commit, and release again with `npm run release -- patch`. Do not reuse the tag; the skipped version number does no harm. `npm run lint` runs `web-ext lint --self-hosted`, which is what Mozilla applies to unlisted add-ons. Plain `web-ext lint` also reports `MANIFEST_UPDATE_URL`; that error is expected, because `update_url` is only allowed when self-distributing. It must be signed with `--channel=unlisted`.
+**Signing rejected (validation errors).** The **Sign with Mozilla** step prints Mozilla's messages (a code, a file, a line). Fix the cause, commit, and release again with `npm run release -- patch`. No tag was made, but Mozilla may count the number as used; the skipped version number does no harm. `npm run lint` runs `web-ext lint --self-hosted`, which is what Mozilla applies to unlisted add-ons. Plain `web-ext lint` also reports `MANIFEST_UPDATE_URL`; that error is expected, because `update_url` is only allowed when self-distributing. It must be signed with `--channel=unlisted`.
 
 **"Version x.y.z already exists."** Mozilla has already seen that version (an earlier run signed it, or part of it). Do not re-run. Release the next patch. If the earlier run did sign it and a later step failed, see the next item.
 

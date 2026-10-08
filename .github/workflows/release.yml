@@ -1,31 +1,82 @@
 name: Release
 
-# Starts when a version tag is pushed (`npm run release -- patch`, then `git push && git push origin vX.Y.Z`).
-# Checks the code, has Mozilla sign it (unlisted), publishes the signed .xpi and updates.json to the public
+# Publishes a new version by itself. `npm run release -- patch` makes the commit "Release x.y.z"; pushing it is
+# all it takes (a tag vX.Y.Z pushed by hand also works). The first job looks whether manifest.json holds a
+# version that has no tag yet and was set by that "Release x.y.z" commit; if so the second job checks that
+# commit, has Mozilla sign it (unlisted), tags it, publishes the signed .xpi and updates.json to the public
 # updates repo so installed copies update themselves, and attaches the .xpi to a GitHub Release here.
 # Secrets and one-time setup: docs/RELEASING.md.
 on:
   push:
+    branches: ['**']
     tags: ['v*']
+    # Branch pushes start it only when the version can have changed (path filters do not apply to tags).
+    paths: ['manifest.json', '.github/workflows/release.yml']
 
 permissions:
-  contents: write # gh release create, in this repo only
-
-# One release at a time, and never cancel one halfway: a version Mozilla has signed cannot be signed again.
-concurrency:
-  group: release
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  release:
-    name: Sign and publish
+  decide:
+    name: New version?
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    env:
-      UPDATES_REPO: cristianbagrin/at-peace-updates
+    timeout-minutes: 5
+    outputs:
+      release: ${{ steps.decide.outputs.release }}
+      version: ${{ steps.decide.outputs.version }}
+      sha: ${{ steps.decide.outputs.sha }}
     steps:
       - name: Check out
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+
+      - name: Is there a version to publish?
+        id: decide
+        run: |
+          version="$(jq -r .version manifest.json)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+              echo "::error title=Tag and version differ::Tag $GITHUB_REF_NAME, manifest.json $version. Release with 'npm run release'."
+              exit 1
+            fi
+            { echo "sha=$GITHUB_SHA"; echo "release=true"; } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" > /dev/null; then
+            echo "Version $version is already published (tag v$version). Nothing to do."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          sha="$(git log -1 --format=%H -S"\"version\": \"$version\"" -- manifest.json)"
+          if [ -z "$sha" ] || [ "$(git log -1 --format=%s "$sha")" != "Release $version" ]; then
+            echo "::notice title=Not publishing::manifest.json is at $version with no tag, but the commit that set it is not \"Release $version\". A version is published from the commit 'npm run release' makes."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Publishing $version from $sha."
+          { echo "sha=$sha"; echo "release=true"; } >> "$GITHUB_OUTPUT"
+
+  release:
+    name: Sign and publish
+    needs: decide
+    if: needs.decide.outputs.release == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: write # the tag and gh release create, in this repo only
+    # One release at a time, and never cancel one halfway: a version Mozilla has signed cannot be signed again.
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    env:
+      UPDATES_REPO: cristianbagrin/at-peace-updates
+    steps:
+      - name: Check out the release commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ needs.decide.outputs.sha }}
 
       - name: Set up Node 22
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
@@ -33,15 +84,18 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Tag matches the version
+      - name: Versions agree
         id: version
+        env:
+          VERSION: ${{ needs.decide.outputs.version }}
         run: |
-          version="$(jq -r .version manifest.json)"
-          if [ "$GITHUB_REF_NAME" != "v$version" ] || [ "$(jq -r .version package.json)" != "$version" ]; then
-            echo "::error title=Tag and version differ::Tag $GITHUB_REF_NAME, manifest.json $version, package.json $(jq -r .version package.json). Release with 'npm run release', which keeps them equal."
-            exit 1
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          for f in manifest.json package.json; do
+            if [ "$(jq -r .version "$f")" != "$VERSION" ]; then
+              echo "::error title=Versions differ::$f says $(jq -r .version "$f"), expected $VERSION. Release with 'npm run release', which keeps them equal."
+              exit 1
+            fi
+          done
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       # The credentials can be three secrets or one, MOZILLA_GITHUB, holding all three (docs/RELEASING.md).
       - name: Check the secrets exist
@@ -130,6 +184,21 @@ jobs:
           path: dist/at-peace-${{ steps.version.outputs.version }}.xpi
           if-no-files-found: error
 
+      # The tag marks what was signed. Made here, after signing, so a version that failed validation can be
+      # released again under a new number without a stray tag.
+      - name: Tag the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          SHA: ${{ needs.decide.outputs.sha }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null; then
+            echo "Tag v$VERSION exists."
+          else
+            gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/v$VERSION" -f sha="$SHA" > /dev/null
+            echo "Tagged $SHA as v$VERSION."
+          fi
+
       - name: Publish to the updates repo
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -151,7 +220,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           node tools/release.mjs --notes "$VERSION" > "$RUNNER_TEMP/notes.md" || echo "At Peace $VERSION" > "$RUNNER_TEMP/notes.md"
-          gh release create "$GITHUB_REF_NAME" "dist/at-peace-$VERSION.xpi" \
+          gh release create "v$VERSION" "dist/at-peace-$VERSION.xpi" \
             --repo "$GITHUB_REPOSITORY" --verify-tag \
             --title "At Peace $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
 

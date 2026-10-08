@@ -294,7 +294,7 @@ describe('release: the script, end to end in a scratch repository', () => {
     return { dir, git, run, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
   }
 
-  test('a release bumps all three versions, rewrites the changelog, commits and tags (and does not push)', () => {
+  test('a release bumps all three versions, rewrites the changelog and commits (no tag, no push: the workflow tags)', () => {
     const s = scratch();
     try {
       const r = s.run('minor');
@@ -306,9 +306,9 @@ describe('release: the script, end to end in a scratch repository', () => {
       assert.match(changelog, /^# Changelog\n\n## Unreleased\n\n## 0\.2\.0 — \d{4}-\d{2}-\d{2}\n\n- Something changed\.\n\n## 0\.1\.0 - first release/);
       assert.equal(s.git('log', '-1', '--format=%s'), 'Release 0.2.0');
       assert.equal(s.git('status', '--porcelain'), '');
-      assert.equal(s.git('tag', '--list'), 'v0.2.0');
-      assert.equal(s.git('cat-file', '-t', 'v0.2.0'), 'tag');
-      assert.match(r.stdout, /git push && git push origin v0\.2\.0/);
+      assert.equal(s.git('tag', '--list'), '', 'the tag is made on GitHub by the release workflow');
+      assert.match(r.stdout, /Publish it with:\n\n {2}git push\n/);
+      assert.ok(!r.stdout.includes('git push origin'), 'no tag to push');
       assert.match(s.run('--notes', '0.2.0').stdout, /^- Something changed\.$/m);
     } finally {
       s.cleanup();
@@ -321,7 +321,8 @@ describe('release: the script, end to end in a scratch repository', () => {
       const r = s.run('patch', '--dry-run');
       assert.equal(r.status, 0, r.stdout + r.stderr);
       assert.match(r.stdout, /release 0\.1\.0 -> 0\.1\.1 \(dry run/);
-      assert.match(r.stdout, /git tag -a v0\.1\.1/);
+      assert.match(r.stdout, /git commit -m "Release 0\.1\.1"/);
+      assert.ok(!r.stdout.includes('git tag'));
       assert.match(r.stdout, /Nothing would stop a real run/);
       assert.equal(s.git('status', '--porcelain'), '');
       assert.equal(s.git('tag', '--list'), '');
@@ -471,9 +472,15 @@ describe('release: guards in the repository', () => {
     assert.ok(!ci.includes('secrets.'));
   });
 
-  test('release.yml: on version tags; checks, signs unlisted, publishes, releases', () => {
+  test('release.yml: publishes a new "Release x.y.z" commit (or a pushed tag); checks, signs unlisted, tags, publishes, releases', () => {
     const rel = read('.github/workflows/release.yml');
-    assert.match(rel, /^on:\n {2}push:\n {4}tags: \['v\*'\]/m);
+    assert.match(rel, /^on:\n {2}push:\n {4}branches: \['\*\*'\]\n {4}tags: \['v\*'\]\n(?: {4}#.*\n)? {4}paths: \['manifest\.json', '\.github\/workflows\/release\.yml'\]/m);
+    // the decide job: only a version with no tag yet, set by the "Release x.y.z" commit npm run release makes
+    assert.match(rel, /git ls-remote --exit-code --tags origin "refs\/tags\/v\$version"/);
+    assert.ok(rel.includes('!= "Release $version"'), 'only the release commit publishes');
+    assert.match(rel, /if: needs\.decide\.outputs\.release == 'true'/);
+    assert.match(rel, /ref: \$\{\{ needs\.decide\.outputs\.sha \}\}/, 'the release commit is what gets signed');
+    assert.match(rel, /^permissions:\n {2}contents: read$/m, 'write access only for the release job');
     assert.match(rel, /node-version: 22/);
     for (const cmd of ['npm ci', 'npm run lint', 'npm test', 'npm run verify:package']) assert.ok(rel.includes(`run: ${cmd}`), cmd);
     assert.match(rel, /web-ext sign --channel=unlisted/);
@@ -489,7 +496,7 @@ describe('release: guards in the repository', () => {
     assert.match(rel, /UPDATES_REPO: cristianbagrin\/at-peace-updates/);
     assert.match(rel, /cancel-in-progress: false/);
     // the order matters: access to the updates repo is checked before the version is spent at Mozilla
-    const order = ['Check access to the updates repo', 'Sign with Mozilla', 'Keep the signed file', 'Publish to the updates repo', 'GitHub Release'].map((n) => rel.indexOf(`name: ${n}`));
+    const order = ['Check access to the updates repo', 'Sign with Mozilla', 'Keep the signed file', 'Tag the release', 'Publish to the updates repo', 'GitHub Release'].map((n) => rel.indexOf(`name: ${n}`));
     assert.ok(order.every((i) => i > 0), `missing step: ${order}`);
     assert.deepEqual([...order].sort((a, b) => a - b), order);
     // nothing but the source tree may sit in the folder web-ext packs

@@ -6,10 +6,11 @@
 //
 // It refuses on a dirty tree, then runs lint, the unit tests and verify:package, bumps the version in
 // manifest.json, package.json and package-lock.json, turns "## Unreleased" in CHANGELOG.md into
-// "## x.y.z — YYYY-MM-DD" (leaving a new empty "## Unreleased"), checks the package again, commits
-// "Release x.y.z" and tags vx.y.z. It does not push: the operator runs `git push && git push origin vx.y.z`,
-// and the tag starts .github/workflows/release.yml. --dry-run changes nothing and runs no checks; it prints
-// what a real run would do and what would make it refuse.
+// "## x.y.z — YYYY-MM-DD" (leaving a new empty "## Unreleased"), checks the package again and commits
+// "Release x.y.z". It does not push. `git push` publishes it: .github/workflows/release.yml sees a version
+// with no tag yet whose commit is "Release x.y.z", tags vx.y.z on GitHub, has Mozilla sign it and publishes
+// it. --dry-run changes nothing and runs no checks; it prints what a real run would do and what would make
+// it refuse.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -215,8 +216,8 @@ async function main() {
       console.log(`  3. set the version to ${next} in manifest.json, package.json, package-lock.json`);
       console.log(`  4. CHANGELOG.md: "## Unreleased" becomes "## ${next} — ${date}", with a new empty "## Unreleased" above it`);
       console.log('  5. npm run verify:package again on the bumped files');
-      console.log(`  6. git commit -m "Release ${next}" (${FILES.join(', ')}), git tag -a v${next}`);
-      console.log(`  7. print: git push && git push origin v${next}   (it does not push)`);
+      console.log(`  6. git commit -m "Release ${next}" (${FILES.join(', ')})`);
+      console.log('  7. print: git push   (it does not push; the push publishes, see .github/workflows/release.yml)');
       if (changelog) console.log(`\nRelease notes (from CHANGELOG.md):\n\n${unreleasedNotes(original['CHANGELOG.md'])}`);
     }
     if (problems.length > 0) {
@@ -255,11 +256,10 @@ async function main() {
     process.exit(1);
   }
 
-  // --- commit and tag ---
+  // --- commit (the tag is made on GitHub by the release workflow) ---
   git('add', '--', ...FILES);
   git('commit', '-m', `Release ${next}`);
-  git('tag', '-a', `v${next}`, '-m', `Release ${next}`);
-  console.log(`\nReleased ${next} locally: commit "Release ${next}" and tag v${next}. Publish it with:\n\n  git push && git push origin v${next}\n`);
+  console.log(`\nReleased ${next} locally: commit "Release ${next}". Publish it with:\n\n  git push\n\nThe Release workflow then tags v${next} on GitHub, has Mozilla sign it and publishes it.\n`);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
