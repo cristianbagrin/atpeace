@@ -43,20 +43,14 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
+      # The credentials can be three secrets or one, MOZILLA_GITHUB, holding all three (docs/RELEASING.md).
       - name: Check the secrets exist
         env:
           AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
           AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
           UPDATES_REPO_TOKEN: ${{ secrets.UPDATES_REPO_TOKEN }}
-        run: |
-          missing=0
-          for name in AMO_JWT_ISSUER AMO_JWT_SECRET UPDATES_REPO_TOKEN; do
-            if [ -z "${!name}" ]; then
-              echo "::error title=Secret missing::Repository secret $name is not set. See docs/RELEASING.md, one-time setup."
-              missing=1
-            fi
-          done
-          exit "$missing"
+          MOZILLA_GITHUB: ${{ secrets.MOZILLA_GITHUB }}
+        run: node tools/check-release-setup.mjs --offline
 
       - name: Install
         run: npm ci
@@ -70,28 +64,36 @@ jobs:
       - name: Verify the package
         run: npm run verify:package
 
+      # Asks Mozilla whether the API credentials are accepted and checks the token can push, then hands the
+      # credentials to the steps below as AMO_ISSUER, AMO_SECRET and UPDATES_TOKEN (masked in the log).
+      - name: Load the release credentials
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+          UPDATES_REPO_TOKEN: ${{ secrets.UPDATES_REPO_TOKEN }}
+          MOZILLA_GITHUB: ${{ secrets.MOZILLA_GITHUB }}
+        run: node tools/check-release-setup.mjs --export
+
       # Before signing: a bad or read-only token must fail here, not after the version is used up at Mozilla.
       # The clone lives outside the workspace on purpose: web-ext packs everything under the source folder.
       - name: Check access to the updates repo
-        env:
-          UPDATES_REPO_TOKEN: ${{ secrets.UPDATES_REPO_TOKEN }}
         run: |
-          auth="$(printf 'x-access-token:%s' "$UPDATES_REPO_TOKEN" | base64 -w0)"
+          auth="$(printf 'x-access-token:%s' "$UPDATES_TOKEN" | base64 -w0)"
           echo "::add-mask::$auth"
           if ! git clone --depth 1 --branch main --config "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
                "https://github.com/$UPDATES_REPO.git" "$RUNNER_TEMP/updates"; then
-            echo "::error title=Cannot read the updates repo::Does $UPDATES_REPO exist, with a main branch (create it with a README), and can UPDATES_REPO_TOKEN read it? See docs/RELEASING.md."
+            echo "::error title=Cannot read the updates repo::Does $UPDATES_REPO exist, with a main branch (create it with a README), and can the token read it? See docs/RELEASING.md."
             exit 1
           fi
           if ! git -C "$RUNNER_TEMP/updates" push --dry-run origin HEAD:main; then
-            echo "::error title=Cannot push to the updates repo::UPDATES_REPO_TOKEN needs Contents: Read and write on $UPDATES_REPO, and must not have expired. See docs/RELEASING.md."
+            echo "::error title=Cannot push to the updates repo::The token needs Contents: Read and write on $UPDATES_REPO, and must not have expired. See docs/RELEASING.md."
             exit 1
           fi
 
       - name: Sign with Mozilla (unlisted)
         env:
-          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
-          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+          WEB_EXT_API_KEY: ${{ env.AMO_ISSUER }}
+          WEB_EXT_API_SECRET: ${{ env.AMO_SECRET }}
         run: |
           # Validation up to 10 minutes, approval up to 25. Unlisted versions are normally signed in a minute or two.
           if ! npx web-ext sign --channel=unlisted --timeout=600000 --approval-timeout=1500000 --no-input; then

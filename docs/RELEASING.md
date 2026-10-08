@@ -22,13 +22,15 @@ npm run release -- patch  ->  git push && git push origin v<version>  ->  GitHub
 - **Permissions**, **Repository permissions**, **Contents**: **Read and write**. Nothing else.
 - **Generate token** and copy it. It is shown once.
 
-**4. Three secrets on the source repo.** github.com/cristianbagrin/at-peace, **Settings**, **Secrets and variables**, **Actions**, **New repository secret**, three times:
+**4. The secrets on the source repo.** github.com/cristianbagrin/at-peace, **Settings**, **Secrets and variables**, **Actions**, **New repository secret**. Either one secret named `MOZILLA_GITHUB` holding all three values, one per line (labels such as `AMO_JWT_ISSUER:` in front are fine), or three secrets:
 
 | Name | Value |
 |---|---|
 | `AMO_JWT_ISSUER` | the JWT issuer from step 2 |
 | `AMO_JWT_SECRET` | the JWT secret from step 2 |
 | `UPDATES_REPO_TOKEN` | the token from step 3 |
+
+The values are told apart by their shape (`user:…`, 64 hex characters, `github_pat_…`); separate secrets win over `MOZILLA_GITHUB`. To check them without releasing anything: **Actions**, **Release setup check**, **Run workflow**. It asks Mozilla whether the key is accepted and checks the token can push, and never prints a value.
 
 Then push this repo to `cristianbagrin/at-peace` as usual. The workflows live in `.github/workflows/`. **Actions** must be enabled for the repo (it is by default).
 
@@ -74,11 +76,11 @@ git add -A && git commit -m "At Peace <version>" && git push
 
 **Timed out waiting for approval.** The submission is already at Mozilla. Open https://addons.mozilla.org/developers/addons, **At Peace**, and look at that version. When it is approved, download the signed file there and publish it as in the item above.
 
-**"Cannot push to the updates repo", "Cannot read the updates repo", or a 401/403 from GitHub.** The token expired, was deleted, or lacks **Contents: Read and write** on `at-peace-updates`. Make a new token (step 3), then **Settings**, **Secrets and variables**, **Actions**, `UPDATES_REPO_TOKEN`, the pencil, paste, **Update secret**. Then open the failed run and **Re-run failed jobs**. This check runs before signing, so the version is not used up.
+**"Cannot push to the updates repo", "Cannot read the updates repo", or a 401/403 from GitHub.** The token expired, was deleted, or lacks **Contents: Read and write** on `at-peace-updates`. Make a new token (step 3), then **Settings**, **Secrets and variables**, **Actions**, the secret that holds it (`MOZILLA_GITHUB` or `UPDATES_REPO_TOKEN`), the pencil, paste, **Update secret**. Then open the failed run and **Re-run failed jobs**. This check runs before signing, so the version is not used up.
 
-**A 401 from Mozilla.** The API credentials were revoked. Generate new ones (step 2) and update `AMO_JWT_ISSUER` and `AMO_JWT_SECRET`.
+**A 401 from Mozilla, or "refused by addons.mozilla.org".** The API credentials were revoked. Generate new ones (step 2) and put them in the secret (step 4).
 
-**"Secret ... is not set".** Add the secret named in the message (step 4).
+**"Missing: ..." in Check the secrets exist.** A credential was not found in any of the secrets; add it (step 4). Run **Release setup check** to see what each secret holds.
 
 **The last step says the files are not public.** Is `at-peace-updates` public? `raw.githubusercontent.com` can lag a few minutes; the step already waits 5 minutes. Re-run the failed job if it was only a delay.
 

@@ -407,6 +407,9 @@ describe('check-release-setup: tells what a secret holds without showing it', ()
 
   test('piecesOf splits a secret that holds several values (lines, NAME=value, quotes)', () => {
     assert.deepEqual(piecesOf(`AMO_JWT_ISSUER=${ISSUER}\nAMO_JWT_SECRET="${SECRET}"\n${TOKEN}\n`).map((p) => p.kind), ['mozilla-issuer', 'mozilla-secret', 'github-fine-grained-token']);
+    // labels before the value, with or without a space, are dropped; junk that is not a label is kept as unknown
+    assert.deepEqual(piecesOf(`AMO_JWT_ISSUER: ${ISSUER}\nAMO_JWT_SECRET:${SECRET}\nUPDATES_REPO_TOKEN = ${TOKEN}`).map((p) => p.kind), ['mozilla-issuer', 'mozilla-secret', 'github-fine-grained-token']);
+    assert.deepEqual(piecesOf('JWT issuer: user:1:2 x9!').map((p) => p.kind), ['mozilla-issuer', 'unknown']);
     assert.deepEqual(piecesOf(undefined), []);
     assert.deepEqual(piecesOf('  '), []);
   });
@@ -474,7 +477,12 @@ describe('release: guards in the repository', () => {
     assert.match(rel, /node-version: 22/);
     for (const cmd of ['npm ci', 'npm run lint', 'npm test', 'npm run verify:package']) assert.ok(rel.includes(`run: ${cmd}`), cmd);
     assert.match(rel, /web-ext sign --channel=unlisted/);
-    for (const secret of ['AMO_JWT_ISSUER', 'AMO_JWT_SECRET', 'UPDATES_REPO_TOKEN', 'GITHUB_TOKEN']) assert.ok(rel.includes(`secrets.${secret}`), secret);
+    for (const secret of ['AMO_JWT_ISSUER', 'AMO_JWT_SECRET', 'UPDATES_REPO_TOKEN', 'MOZILLA_GITHUB', 'GITHUB_TOKEN']) assert.ok(rel.includes(`secrets.${secret}`), secret);
+    // presence is checked before anything is installed; the credentials are tested and loaded only after the checks
+    const at = (text) => rel.indexOf(text);
+    assert.ok(at('check-release-setup.mjs --offline') > 0 && at('check-release-setup.mjs --offline') < at('run: npm ci'));
+    assert.ok(at('run: npm run verify:package') < at('check-release-setup.mjs --export') && at('check-release-setup.mjs --export') < at('name: Check access to the updates repo'));
+    assert.match(rel, /WEB_EXT_API_KEY: \$\{\{ env\.AMO_ISSUER \}\}/);
     assert.match(rel, /tools\/update-manifest\.mjs --file/);
     assert.match(rel, /gh release create/);
     assert.match(rel, /unzip -Z1 .*grep -vxE 'manifest\\\.json\|icons\|src\|META-INF'/, 'the signed package is checked for stray top-level entries');
