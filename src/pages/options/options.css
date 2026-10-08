@@ -109,10 +109,6 @@
   gap: 8px 10px;
 }
 
-.topbar-row + .topbar-row {
-  margin-top: 12px;
-}
-
 .search {
   position: relative;
   flex: 1 1 220px;
@@ -175,47 +171,6 @@
 
 .saved.is-visible {
   opacity: 1;
-}
-
-/* "Hide all" pills: on = filled, partly = outlined in the accent, off = white. */
-.chips {
-  gap: 6px;
-}
-
-.chips > .caps {
-  margin-right: 4px;
-  font-size: 12px;
-  font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-.chip {
-  min-height: 28px;
-  padding: 0 12px;
-  border: 1px solid var(--panel-line);
-  border-radius: var(--r-pill);
-  background: var(--panel);
-  color: var(--text);
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
-}
-
-.chip:hover {
-  border-color: var(--field-line);
-}
-
-.chip[data-state="partly"] {
-  border-color: var(--act);
-  color: var(--act);
-}
-
-.chip[data-state="all"] {
-  border-color: var(--act);
-  background: var(--act);
-  color: var(--on-act);
 }
 
 .notices > * + * {

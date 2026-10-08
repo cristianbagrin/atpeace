@@ -1,5 +1,5 @@
 // Options page. Everything on it is generated from the settings registry (AP.schema): sections
-// from AP.schema.sections(), one row per setting inside grouped panels, bulk pills from the tags.
+// from AP.schema.sections(), one row per setting inside grouped panels.
 // Values are saved the moment they change; nothing here knows a setting id apart from general.theme.
 import { buildRow, slug } from './rows.js';
 import { buildWeek } from './week.js';
@@ -38,8 +38,6 @@ const state = {
   query: '',
   showAdvanced: false,
   customPresets: [],
-  /** @type {Map<string, {button: HTMLElement, tag: string, label: string}>} */
-  chips: new Map(),
   /** @type {{ refresh: () => Promise<void> }|null} */
   week: null,
   /** @type {{ el: HTMLElement, refresh: (values: object, custom: object[]) => void }|null} */
@@ -84,10 +82,9 @@ async function saveSetting(def, value) {
   if (report.changed.length > 0) flashSaved();
 }
 
-/** Everything derived from the values: switched-off rows, pill states, counts, theme, preset name. */
+/** Everything derived from the values: switched-off rows, counts, theme, preset name. */
 function afterValuesChanged(changedIds) {
   refreshRequires();
-  refreshChips();
   refreshCounts();
   state.presets?.refresh(state.values, state.customPresets);
   if (changedIds.includes('general.theme')) AP.ui.applyTheme(state.values['general.theme']);
@@ -298,12 +295,6 @@ function buildTopbar() {
 
   els.saved = h('span', { class: 'saved', role: 'status', 'aria-live': 'polite' }, 'Saved');
 
-  const chips = AP.ui.BULK_TAGS.filter(([tag]) => Object.keys(AP.schema.bulkTargets(tag)).length > 0).map(([tag, label]) => {
-    const button = h('button', { type: 'button', class: 'chip', 'aria-pressed': 'false', onClick: () => toggleBulk(tag, label) }, label);
-    state.chips.set(tag, { button, tag, label });
-    return button;
-  });
-
   els.topbar.prepend(
     h(
       'div',
@@ -313,46 +304,7 @@ function buildTopbar() {
       h('label', { class: 'adv-toggle', for: 'show-advanced' }, els.advanced, 'Show advanced'),
       els.saved,
     ),
-    chips.length > 0 && h('div', { class: 'topbar-row chips', role: 'group', 'aria-label': 'Hide a whole kind of thing at once' }, h('span', { class: 'caps' }, 'Hide all'), chips),
   );
-}
-
-function refreshChips() {
-  for (const { button, tag, label } of state.chips.values()) {
-    const { state: s, on, total } = AP.ui.bulkState(tag, state.values);
-    button.dataset.state = s;
-    button.setAttribute('aria-pressed', s === 'all' ? 'true' : s === 'partly' ? 'mixed' : 'false');
-    button.title = s === 'all' ? `All ${total} are on. Click to turn them off.` : `${on} of ${total} are on. Click to turn them all on.`;
-    button.setAttribute('aria-label', `${label}: ${s === 'all' ? 'all on' : s === 'partly' ? `${on} of ${total} on` : 'off'}`);
-  }
-}
-
-async function toggleBulk(tag, label) {
-  try {
-    await applyBulk(tag, label);
-  } catch (err) {
-    AP.warn('bulk change failed', err);
-    AP.ui.toast('Could not save.');
-  }
-}
-
-async function applyBulk(tag, label) {
-  const patch = AP.ui.bulkPatch(tag, state.values);
-  let result = await AP.lock.save(patch);
-  // Switching a whole kind off shows things again: ask for the unlock, then do it.
-  if (!result.ok && (await AP.ui.requestUnlock())) result = await AP.lock.save(patch);
-  if (!result.ok) {
-    AP.ui.toast('Locked.');
-    return;
-  }
-  const { report } = result;
-  for (const id of report.changed) {
-    state.values[id] = patch[id];
-    state.rows.get(id)?.set(patch[id]);
-  }
-  afterValuesChanged(report.changed);
-  if (report.changed.length > 0) flashSaved();
-  AP.ui.toast(`${label}: ${AP.ui.bulkState(tag, state.values).state === 'all' ? 'all on' : 'all off'}`);
 }
 
 function refreshPresetLabel() {
@@ -489,7 +441,6 @@ async function init() {
   buildAbout();
 
   refreshRequires();
-  refreshChips();
   refreshCounts();
   state.presets.refresh(state.values, state.customPresets);
   refreshNotices();

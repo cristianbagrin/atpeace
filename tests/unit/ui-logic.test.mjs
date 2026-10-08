@@ -42,41 +42,6 @@ describe('time', () => {
   });
 });
 
-describe('bulk chips', () => {
-  const none = () => AP.schema.defaults();
-
-  test('state is none / partly / all against the tag targets', () => {
-    const targets = AP.schema.bulkTargets('shorts');
-    const ids = Object.keys(targets);
-    assert.ok(ids.length >= 3);
-    assert.equal(ui.bulkState('shorts', none()).state, 'none');
-
-    const some = { ...none(), [ids[0]]: targets[ids[0]] };
-    assert.deepEqual(ui.bulkState('shorts', some), { state: 'partly', on: 1, total: ids.length });
-
-    const all = { ...none(), ...targets };
-    assert.deepEqual(ui.bulkState('shorts', all), { state: 'all', on: ids.length, total: ids.length });
-  });
-
-  test('a select counts as on only at its bulk ("most hidden") value', () => {
-    const values = { ...none(), ...AP.schema.bulkTargets('shorts'), 'yt.shorts.mode': 'watch' };
-    assert.equal(ui.bulkState('shorts', values).state, 'partly');
-  });
-
-  test('a tag nothing carries is "empty"', () => {
-    assert.equal(ui.bulkState('player', none()).state, 'empty');
-  });
-
-  test('the patch turns everything on, or everything off when all is on already', () => {
-    const on = ui.bulkPatch('shorts', none());
-    assert.deepEqual(on, AP.schema.bulkTargets('shorts'));
-    const off = ui.bulkPatch('shorts', { ...none(), ...on });
-    assert.equal(off['yt.guide.hideShorts'], false);
-    assert.equal(off['yt.shorts.mode'], 'allow'); // the select's default
-    assert.deepEqual(Object.keys(off).sort(), Object.keys(on).sort());
-  });
-});
-
 describe('rows', () => {
   test('requires: a row is usable only while the setting it names is on, down the chain', () => {
     const values = AP.schema.defaults();

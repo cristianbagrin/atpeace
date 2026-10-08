@@ -50,51 +50,6 @@
   const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   // ---------------------------------------------------------------------------------------
-  // Bulk actions (Shorts, Recommendations, …)
-  // ---------------------------------------------------------------------------------------
-
-  /** Chips shown in the options toolbar and the popup, in order: [tag, label]. */
-  const BULK_TAGS = Object.freeze([
-    ['shorts', 'Shorts'],
-    ['recommendations', 'Recommendations'],
-    ['comments', 'Comments'],
-    ['ai', 'AI'],
-    ['metrics', 'Metrics'],
-    ['ads', 'Ads'],
-    ['clutter', 'Clutter'],
-  ]);
-
-  /**
-   * How much of a tag is "on" in `values`: a toggle is on when true, a select when it holds the
-   * tag's bulk ("most hidden") value.
-   * @param {string} tag
-   * @param {Record<string, any>} values
-   * @returns {{ state: 'all'|'partly'|'none'|'empty', on: number, total: number }}
-   */
-  function bulkState(tag, values) {
-    const targets = AP.schema.bulkTargets(tag);
-    const ids = Object.keys(targets);
-    if (ids.length === 0) return { state: 'empty', on: 0, total: 0 };
-    const on = ids.filter((id) => deepEqual(values?.[id], targets[id])).length;
-    return { state: on === ids.length ? 'all' : on === 0 ? 'none' : 'partly', on, total: ids.length };
-  }
-
-  /**
-   * The settings patch a click on a bulk chip makes: everything on, unless everything already
-   * is, in which case everything goes back off (toggles false, selects their default).
-   * @param {string} tag
-   * @param {Record<string, any>} values
-   * @returns {Record<string, boolean|string>}
-   */
-  function bulkPatch(tag, values) {
-    const targets = AP.schema.bulkTargets(tag);
-    if (bulkState(tag, values).state !== 'all') return targets;
-    const off = {};
-    for (const id of Object.keys(targets)) off[id] = AP.schema.get(id).type === 'toggle' ? false : AP.schema.get(id).default;
-    return off;
-  }
-
-  // ---------------------------------------------------------------------------------------
   // Rows
   // ---------------------------------------------------------------------------------------
 
@@ -650,15 +605,12 @@
   }
 
   Object.assign(ui, {
-    BULK_TAGS,
     FOCUS_PHRASE,
     formatDuration,
     formatClock,
     formatTimeOfDay,
     shortcutKeys,
     formatShortcut,
-    bulkState,
-    bulkPatch,
     requiresState,
     requiresHint,
     isStringList,
