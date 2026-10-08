@@ -8,6 +8,8 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 
 ## Unreleased
 
+## 0.2.0 — 2026-10-08
+
 ### Updates
 
 - Installed copies update themselves: Firefox and Zen check for a new signed version once a day.
