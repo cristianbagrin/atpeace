@@ -3,7 +3,7 @@
 Mozilla signs each version privately (unlisted: no public page on addons.mozilla.org). The signed `.xpi` goes to a small public repo, `cristianbagrin/at-peace-updates`, together with `updates.json`. Zen and Firefox read that file once a day and update by themselves. The source repo, `cristianbagrin/at-peace`, stays private.
 
 ```
-npm run release -- patch  ->  git push  ->  GitHub Actions: check, sign, tag, publish  ->  Zen updates
+npm run release -- patch  ->  git push  ->  GitHub Actions: check, sign, publish  ->  Zen updates
 ```
 
 ## One-time setup (about 10 minutes, by you)
@@ -40,7 +40,7 @@ Then push this repo to `cristianbagrin/at-peace` as usual. The workflows live in
 2. In Zen open `https://raw.githubusercontent.com/cristianbagrin/at-peace-updates/main/xpi/at-peace-<version>.xpi` (the newest file in the `xpi/` folder of `at-peace-updates`).
 3. Zen asks to add At Peace. Click **Add**. Done.
 
-If Zen downloads the file instead of asking, open `about:addons`, click the gear, **Install Add-on From File...** and pick the downloaded file. The same file is attached to the GitHub Release in the source repo (sign in to GitHub to download it; the repo is private).
+If Zen downloads the file instead of asking, open `about:addons`, click the gear, **Install Add-on From File...** and pick the downloaded file. The same file is kept on each release run's page in the source repo (**Actions**, **Release**, the run, **Artifacts**).
 
 From then on Zen checks for updates itself, about once a day. To check now: `about:addons`, the gear, **Check for Updates**. A version installed before this (a temporary add-on, or an unsigned build) has no update address; install the first signed one once, over it.
 
@@ -48,12 +48,11 @@ From then on Zen checks for updates itself, about once a day. To check now: `abo
 
 1. Make the change. Add a line about it under `## Unreleased` in `CHANGELOG.md` (the release is refused without one). Commit.
 2. `npm run release -- patch`. Use `minor` for new settings or features, `major` for a break, or an exact `x.y.z`. It refuses on a dirty tree, runs lint, unit tests and `verify:package`, raises the version in `manifest.json`, `package.json` and `package-lock.json`, turns `Unreleased` into `## x.y.z — date`, and makes the commit `Release x.y.z`. It pushes nothing. `-- patch --dry-run` shows what it would do without changing anything.
-3. `git push`. That publishes it, fully automatic: **Release** (github.com/cristianbagrin/at-peace, **Actions**) sees that `manifest.json` holds a version with no tag yet, set by a `Release x.y.z` commit, and takes a few minutes:
-   - checks out that commit, checks the versions agree, runs lint, tests and `verify:package`;
+3. `git push`. That publishes it, fully automatic: **Release** (github.com/cristianbagrin/at-peace, **Actions**) sees that `manifest.json` holds a version that the public `updates.json` does not list yet, set by a `Release x.y.z` commit, and takes a few minutes:
+   - checks the versions agree and that the extension files are exactly those of the `Release x.y.z` commit, runs lint, tests and `verify:package`;
    - checks it can write to the updates repo (before Mozilla is involved);
-   - `web-ext sign --channel=unlisted` (waits up to 10 minutes for validation and 25 for approval), then tags the commit `vx.y.z`;
+   - `web-ext sign --channel=unlisted` (waits up to 10 minutes for validation and 25 for approval); if Mozilla already signed this version in an earlier run, it downloads that file instead;
    - adds `xpi/at-peace-<version>.xpi` to `at-peace-updates` and rewrites `updates.json`;
-   - creates a GitHub Release in the source repo with the signed file and the CHANGELOG notes;
    - checks that the two public URLs serve the new files.
 4. Zen picks up the new version within a day, or at once with **Check for Updates**.
 
@@ -63,20 +62,13 @@ GitHub Actions on a private repo uses the monthly free minutes of the account. A
 
 ## Troubleshooting
 
-**Signing rejected (validation errors).** The **Sign with Mozilla** step prints Mozilla's messages (a code, a file, a line). Fix the cause, commit, and release again with `npm run release -- patch`. No tag was made, but Mozilla may count the number as used; the skipped version number does no harm. `npm run lint` runs `web-ext lint --self-hosted`, which is what Mozilla applies to unlisted add-ons. Plain `web-ext lint` also reports `MANIFEST_UPDATE_URL`; that error is expected, because `update_url` is only allowed when self-distributing. It must be signed with `--channel=unlisted`.
+**Signing rejected (validation errors).** The **Sign with Mozilla** step prints Mozilla's messages (a code, a file, a line). Fix the cause, commit, and release again with `npm run release -- patch`. Mozilla may count the number as used; the skipped version number does no harm. `npm run lint` runs `web-ext lint --self-hosted`, which is what Mozilla applies to unlisted add-ons. Plain `web-ext lint` also reports `MANIFEST_UPDATE_URL`; that error is expected, because `update_url` is only allowed when self-distributing. It must be signed with `--channel=unlisted`.
 
-**"Version x.y.z already exists."** Mozilla has already seen that version (an earlier run signed it, or part of it). Do not re-run. Release the next patch. If the earlier run did sign it and a later step failed, see the next item.
+**Signed, but not published** (the signing step is green, a later step is red). Fix the cause if it is on this side (for example the token, below), then open the run and **Re-run all jobs**. Mozilla does not sign a version twice, so the run downloads the file it already signed and carries on. The signed file is also kept on the run's page (**Artifacts**, `at-peace-<version>-signed`).
 
-**Signed, but not published** (the signing step is green, a later step is red). Mozilla will not sign that version again, so the signed file is kept: open the run's page, **Artifacts**, download `at-peace-<version>-signed`. Then, with `at-peace-updates` cloned and the unzipped file copied to `xpi/`:
+**"Waiting for Mozilla" or timed out waiting for approval.** The submission is at Mozilla but not signed yet. Re-run the job later; once Mozilla has signed it, the run downloads that file and publishes it. (https://addons.mozilla.org/developers/addons, **At Peace**, shows the version's state.)
 
-```sh
-node <path to at-peace>/tools/update-manifest.mjs --file updates.json --xpi xpi/at-peace-<version>.xpi --version <version>
-git add -A && git commit -m "At Peace <version>" && git push
-```
-
-**Timed out waiting for approval.** The submission is already at Mozilla. Open https://addons.mozilla.org/developers/addons, **At Peace**, and look at that version. When it is approved, download the signed file there and publish it as in the item above.
-
-**"Cannot push to the updates repo", "Cannot read the updates repo", or a 401/403 from GitHub.** The token expired, was deleted, or lacks **Contents: Read and write** on `at-peace-updates`. Make a new token (step 3), then **Settings**, **Secrets and variables**, **Actions**, the secret that holds it (`MOZILLA_GITHUB` or `UPDATES_REPO_TOKEN`), the pencil, paste, **Update secret**. Then open the failed run and **Re-run failed jobs**. This check runs before signing, so the version is not used up.
+**"Cannot push to the updates repo", "Cannot read the updates repo", or a 401/403 from GitHub.** The token expired, was deleted, or lacks **Contents: Read and write** on `at-peace-updates`. Make a new token (step 3), then **Settings**, **Secrets and variables**, **Actions**, the secret that holds it (`MOZILLA_GITHUB` or `UPDATES_REPO_TOKEN`), the pencil, paste, **Update secret**. Then open the failed run and **Re-run all jobs**.
 
 **A 401 from Mozilla, or "refused by addons.mozilla.org".** The API credentials were revoked. Generate new ones (step 2) and put them in the secret (step 4).
 

@@ -100,7 +100,7 @@ npm run test:firefox   # the same ideas in real headless Firefox (Selenium + gec
 | `npm run build` | `web-ext build`: `web-ext-artifacts/at-peace-<version>.zip` |
 | `npm run verify:package` | unzips the built package and checks that every file the manifest, pages and scripts refer to is inside, and that no dev files are |
 | `npm run sign` | `web-ext sign --channel=unlisted`, by hand (needs `WEB_EXT_API_KEY` and `WEB_EXT_API_SECRET`; see [docs/RELEASING.md](docs/RELEASING.md)) |
-| `npm run release -- patch` | cuts a version: checks, bumps the version, closes the CHANGELOG's "Unreleased", commits `Release x.y.z` (`minor`, `major`, `x.y.z`, `--dry-run` also work); then `git push` publishes it (the workflow tags, signs and publishes) |
+| `npm run release -- patch` | cuts a version: checks, bumps the version, closes the CHANGELOG's "Unreleased", commits `Release x.y.z` (`minor`, `major`, `x.y.z`, `--dry-run` also work); then `git push` publishes it (the Release workflow signs and publishes) |
 
 The PNG icons are generated from `icons/icon.svg` with `node tools/make-icons.mjs`.
 

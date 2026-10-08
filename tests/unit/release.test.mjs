@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { ROOT } from './_load.mjs';
 import { UPDATE_URL, addRelease, compareVersions as compareUpdateVersions, formatManifest, normalizeSha256, xpiLink } from '../../tools/update-manifest.mjs';
 import { SECRET_NAMES, amoJwt, kindOf, piecesOf, resolveCredentials } from '../../tools/check-release-setup.mjs';
+import { findSignedFile, versionsUrl } from '../../tools/amo-signed-file.mjs';
 import { bumpVersion, changelogSection, compareVersions, formatDate, parseVersion, rewriteChangelog, setJsonVersion, unreleasedNotes } from '../../tools/release.mjs';
 
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
@@ -440,6 +441,28 @@ describe('check-release-setup: tells what a secret holds without showing it', ()
   });
 });
 
+describe('amo-signed-file: reuses the file Mozilla already signed for a version', () => {
+  const HASH = 'ab'.repeat(32);
+  const v = (version, file) => ({ id: 1, version, channel: 'unlisted', file });
+
+  test('finds a signed (public) file and its sha256; v4 `files[0]` works too', () => {
+    const results = [v('0.1.9', { url: 'https://x/old.xpi', status: 'public', hash: `sha256:${'cd'.repeat(32)}` }), v('0.2.0', { url: 'https://x/a.xpi', status: 'public', hash: `sha256:${HASH}` })];
+    assert.deepEqual(findSignedFile(results, '0.2.0'), { state: 'signed', url: 'https://x/a.xpi', sha256: HASH });
+    assert.deepEqual(findSignedFile([{ version: '0.2.0', files: [{ url: 'https://x/b.xpi', status: 'public', hash: 'sha256:' + HASH.toUpperCase() }] }], '0.2.0'), { state: 'signed', url: 'https://x/b.xpi', sha256: HASH });
+  });
+
+  test('a missing version is signed normally; one still in review is not reused', () => {
+    assert.deepEqual(findSignedFile([v('0.1.9', { url: 'u', status: 'public' })], '0.2.0'), { state: 'missing' });
+    assert.deepEqual(findSignedFile([], '0.2.0'), { state: 'missing' });
+    assert.deepEqual(findSignedFile([v('0.2.0', { url: 'u', status: 'unreviewed' })], '0.2.0'), { state: 'unsigned', status: 'unreviewed' });
+    assert.deepEqual(findSignedFile([v('0.2.0', null)], '0.2.0'), { state: 'unsigned', status: 'no file' });
+  });
+
+  test('the version list asks for unlisted versions of the add-on by its id', () => {
+    assert.equal(versionsUrl('at-peace@cristianbagrin'), 'https://addons.mozilla.org/api/v5/addons/addon/at-peace%40cristianbagrin/versions/?filter=all_with_unlisted&page_size=50');
+  });
+});
+
 describe('release: guards in the repository', () => {
   const workflows = readdirSync(join(ROOT, '.github', 'workflows')).filter((f) => f.endsWith('.yml'));
 
@@ -472,31 +495,32 @@ describe('release: guards in the repository', () => {
     assert.ok(!ci.includes('secrets.'));
   });
 
-  test('release.yml: publishes a new "Release x.y.z" commit (or a pushed tag); checks, signs unlisted, tags, publishes, releases', () => {
+  test('release.yml: publishes a new "Release x.y.z" commit by itself; checks, signs unlisted (or reuses Mozilla\'s file), publishes', () => {
     const rel = read('.github/workflows/release.yml');
-    assert.match(rel, /^on:\n {2}push:\n {4}branches: \['\*\*'\]\n {4}tags: \['v\*'\]\n(?: {4}#.*\n)? {4}paths: \['manifest\.json', '\.github\/workflows\/release\.yml'\]/m);
-    // the decide job: only a version with no tag yet, set by the "Release x.y.z" commit npm run release makes
-    assert.match(rel, /git ls-remote --exit-code --tags origin "refs\/tags\/v\$version"/);
+    assert.match(rel, /^on:\n {2}push:\n {4}branches: \['\*\*'\]\n(?: {4}#.*\n)? {4}paths: \['manifest\.json', '\.github\/workflows\/release\.yml'\]\n {2}workflow_dispatch:/m);
+    // the decide job: only a version the public updates.json does not list yet, set by the "Release x.y.z" commit
+    assert.match(rel, /select\(\.version == \$v\)/);
     assert.ok(rel.includes('!= "Release $version"'), 'only the release commit publishes');
     assert.match(rel, /if: needs\.decide\.outputs\.release == 'true'/);
-    assert.match(rel, /ref: \$\{\{ needs\.decide\.outputs\.sha \}\}/, 'the release commit is what gets signed');
-    assert.match(rel, /^permissions:\n {2}contents: read$/m, 'write access only for the release job');
+    assert.ok(rel.includes('git diff --quiet "$RELEASE_SHA" HEAD -- manifest.json icons src'), 'what is signed is exactly the release commit\'s extension');
+    assert.match(rel, /^permissions:\n {2}contents: read$/m);
+    assert.ok(!/contents: write|gh release|git\/refs|GITHUB_TOKEN/.test(rel), 'no tags or GitHub Releases: a workflow token cannot tag here');
     assert.match(rel, /node-version: 22/);
     for (const cmd of ['npm ci', 'npm run lint', 'npm test', 'npm run verify:package']) assert.ok(rel.includes(`run: ${cmd}`), cmd);
     assert.match(rel, /web-ext sign --channel=unlisted/);
-    for (const secret of ['AMO_JWT_ISSUER', 'AMO_JWT_SECRET', 'UPDATES_REPO_TOKEN', 'MOZILLA_GITHUB', 'GITHUB_TOKEN']) assert.ok(rel.includes(`secrets.${secret}`), secret);
+    assert.ok(rel.indexOf('tools/amo-signed-file.mjs') > 0 && rel.indexOf('tools/amo-signed-file.mjs') < rel.indexOf('web-ext sign'), 'a version Mozilla already signed is fetched, not signed again');
+    for (const secret of ['AMO_JWT_ISSUER', 'AMO_JWT_SECRET', 'UPDATES_REPO_TOKEN', 'MOZILLA_GITHUB']) assert.ok(rel.includes(`secrets.${secret}`), secret);
     // presence is checked before anything is installed; the credentials are tested and loaded only after the checks
     const at = (text) => rel.indexOf(text);
     assert.ok(at('check-release-setup.mjs --offline') > 0 && at('check-release-setup.mjs --offline') < at('run: npm ci'));
     assert.ok(at('run: npm run verify:package') < at('check-release-setup.mjs --export') && at('check-release-setup.mjs --export') < at('name: Check access to the updates repo'));
     assert.match(rel, /WEB_EXT_API_KEY: \$\{\{ env\.AMO_ISSUER \}\}/);
     assert.match(rel, /tools\/update-manifest\.mjs --file/);
-    assert.match(rel, /gh release create/);
     assert.match(rel, /unzip -Z1 .*grep -vxE 'manifest\\\.json\|icons\|src\|META-INF'/, 'the signed package is checked for stray top-level entries');
     assert.match(rel, /UPDATES_REPO: cristianbagrin\/at-peace-updates/);
     assert.match(rel, /cancel-in-progress: false/);
     // the order matters: access to the updates repo is checked before the version is spent at Mozilla
-    const order = ['Check access to the updates repo', 'Sign with Mozilla', 'Keep the signed file', 'Tag the release', 'Publish to the updates repo', 'GitHub Release'].map((n) => rel.indexOf(`name: ${n}`));
+    const order = ['Check access to the updates repo', 'Sign with Mozilla', 'Keep the signed file', 'Publish to the updates repo', 'Check the public update files'].map((n) => rel.indexOf(`name: ${n}`));
     assert.ok(order.every((i) => i > 0), `missing step: ${order}`);
     assert.deepEqual([...order].sort((a, b) => a - b), order);
     // nothing but the source tree may sit in the folder web-ext packs

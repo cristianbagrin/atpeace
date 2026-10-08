@@ -1,20 +1,23 @@
 name: Release
 
 # Publishes a new version by itself. `npm run release -- patch` makes the commit "Release x.y.z"; pushing it is
-# all it takes (a tag vX.Y.Z pushed by hand also works). The first job looks whether manifest.json holds a
-# version that has no tag yet and was set by that "Release x.y.z" commit; if so the second job checks that
-# commit, has Mozilla sign it (unlisted), tags it, publishes the signed .xpi and updates.json to the public
-# updates repo so installed copies update themselves, and attaches the .xpi to a GitHub Release here.
-# Secrets and one-time setup: docs/RELEASING.md.
+# all it takes. The first job looks whether manifest.json holds a version that the public updates.json does not
+# list yet and that was set by such a "Release x.y.z" commit. If so, the second job checks the code, has Mozilla
+# sign it (unlisted; or fetches the file Mozilla already signed for that version, so a failed run can simply be
+# re-run) and publishes the signed .xpi and updates.json to the public updates repo, from which installed copies
+# update themselves. Secrets and one-time setup: docs/RELEASING.md.
 on:
   push:
     branches: ['**']
-    tags: ['v*']
-    # Branch pushes start it only when the version can have changed (path filters do not apply to tags).
+    # Only when the version can have changed (or this workflow did).
     paths: ['manifest.json', '.github/workflows/release.yml']
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+env:
+  UPDATES_REPO: cristianbagrin/at-peace-updates
 
 jobs:
   decide:
@@ -36,26 +39,20 @@ jobs:
         run: |
           version="$(jq -r .version manifest.json)"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          if [ "$GITHUB_REF_TYPE" = tag ]; then
-            if [ "$GITHUB_REF_NAME" != "v$version" ]; then
-              echo "::error title=Tag and version differ::Tag $GITHUB_REF_NAME, manifest.json $version. Release with 'npm run release'."
-              exit 1
-            fi
-            { echo "sha=$GITHUB_SHA"; echo "release=true"; } >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if git ls-remote --exit-code --tags origin "refs/tags/v$version" > /dev/null; then
-            echo "Version $version is already published (tag v$version). Nothing to do."
+          # The public repo is the record of what is published (read straight from git: no CDN delay).
+          git clone --quiet --depth 1 "https://github.com/$UPDATES_REPO.git" "$RUNNER_TEMP/published"
+          if [ -f "$RUNNER_TEMP/published/updates.json" ] && jq -e --arg v "$version" '[.addons[].updates[] | select(.version == $v)] | length > 0' "$RUNNER_TEMP/published/updates.json" > /dev/null; then
+            echo "Version $version is already published. Nothing to do."
             echo "release=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           sha="$(git log -1 --format=%H -S"\"version\": \"$version\"" -- manifest.json)"
           if [ -z "$sha" ] || [ "$(git log -1 --format=%s "$sha")" != "Release $version" ]; then
-            echo "::notice title=Not publishing::manifest.json is at $version with no tag, but the commit that set it is not \"Release $version\". A version is published from the commit 'npm run release' makes."
+            echo "::notice title=Not publishing::manifest.json is at $version, which is not published, but the commit that set it is not \"Release $version\". A version is published from the commit 'npm run release' makes."
             echo "release=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "Publishing $version from $sha."
+          echo "Publishing $version (set by $sha)."
           { echo "sha=$sha"; echo "release=true"; } >> "$GITHUB_OUTPUT"
 
   release:
@@ -64,19 +61,15 @@ jobs:
     if: needs.decide.outputs.release == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    permissions:
-      contents: write # the tag and gh release create, in this repo only
-    # One release at a time, and never cancel one halfway: a version Mozilla has signed cannot be signed again.
+    # One release at a time, and never cancel one halfway.
     concurrency:
       group: release
       cancel-in-progress: false
-    env:
-      UPDATES_REPO: cristianbagrin/at-peace-updates
     steps:
-      - name: Check out the release commit
+      - name: Check out
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
-          ref: ${{ needs.decide.outputs.sha }}
+          fetch-depth: 0
 
       - name: Set up Node 22
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
@@ -88,6 +81,7 @@ jobs:
         id: version
         env:
           VERSION: ${{ needs.decide.outputs.version }}
+          RELEASE_SHA: ${{ needs.decide.outputs.sha }}
         run: |
           for f in manifest.json package.json; do
             if [ "$(jq -r .version "$f")" != "$VERSION" ]; then
@@ -95,6 +89,11 @@ jobs:
               exit 1
             fi
           done
+          # Tools may be newer than the release commit; what gets signed must be exactly that commit's extension.
+          if ! git diff --quiet "$RELEASE_SHA" HEAD -- manifest.json icons src; then
+            echo "::error title=Changed after the release commit::manifest.json, icons/ or src/ changed after \"Release $VERSION\" ($RELEASE_SHA). Release those changes as a new version (npm run release -- patch)."
+            exit 1
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       # The credentials can be three secrets or one, MOZILLA_GITHUB, holding all three (docs/RELEASING.md).
@@ -148,10 +147,20 @@ jobs:
         env:
           WEB_EXT_API_KEY: ${{ env.AMO_ISSUER }}
           WEB_EXT_API_SECRET: ${{ env.AMO_SECRET }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
+          # A version Mozilla already signed (an earlier run that failed later) cannot be signed again: use that file.
+          code=0
+          node tools/amo-signed-file.mjs --version "$VERSION" --out "web-ext-artifacts/at-peace-$VERSION-signed.xpi" || code=$?
+          if [ "$code" = 0 ]; then exit 0; fi
+          if [ "$code" = 4 ]; then
+            echo "::error title=Waiting for Mozilla::Mozilla has $VERSION but has not signed it yet. Re-run this job once it is approved."
+            exit 1
+          fi
+          if [ "$code" != 3 ]; then exit 1; fi
           # Validation up to 10 minutes, approval up to 25. Unlisted versions are normally signed in a minute or two.
           if ! npx web-ext sign --channel=unlisted --timeout=600000 --approval-timeout=1500000 --no-input; then
-            echo "::error title=Mozilla did not sign this version::See the web-ext output above (validation errors, a version that already exists, or a timeout). docs/RELEASING.md, Troubleshooting."
+            echo "::error title=Mozilla did not sign this version::See the web-ext output above (validation errors or a timeout). docs/RELEASING.md, Troubleshooting."
             exit 1
           fi
 
@@ -184,21 +193,6 @@ jobs:
           path: dist/at-peace-${{ steps.version.outputs.version }}.xpi
           if-no-files-found: error
 
-      # The tag marks what was signed. Made here, after signing, so a version that failed validation can be
-      # released again under a new number without a stray tag.
-      - name: Tag the release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.version.outputs.version }}
-          SHA: ${{ needs.decide.outputs.sha }}
-        run: |
-          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null; then
-            echo "Tag v$VERSION exists."
-          else
-            gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/v$VERSION" -f sha="$SHA" > /dev/null
-            echo "Tagged $SHA as v$VERSION."
-          fi
-
       - name: Publish to the updates repo
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -213,16 +207,6 @@ jobs:
           git add xpi updates.json
           git diff --cached --quiet || git commit -m "At Peace $VERSION"
           git push origin HEAD:main
-
-      - name: GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          node tools/release.mjs --notes "$VERSION" > "$RUNNER_TEMP/notes.md" || echo "At Peace $VERSION" > "$RUNNER_TEMP/notes.md"
-          gh release create "v$VERSION" "dist/at-peace-$VERSION.xpi" \
-            --repo "$GITHUB_REPOSITORY" --verify-tag \
-            --title "At Peace $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
 
       # An installed copy only updates if these two public URLs serve what was just pushed.
       - name: Check the public update files
