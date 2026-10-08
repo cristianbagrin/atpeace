@@ -1,0 +1,36 @@
+name: Release setup check
+
+# Checks the secrets a release needs (docs/RELEASING.md, one-time setup) without signing anything:
+# asks Mozilla whether the API credentials are accepted and checks the token can push to the updates repo.
+# Runs when this check changes, or by hand (Actions, Release setup check, Run workflow).
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/release-check.yml
+      - tools/check-release-setup.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check release secrets
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Set up Node 22
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22
+
+      - name: Check the secrets
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+          UPDATES_REPO_TOKEN: ${{ secrets.UPDATES_REPO_TOKEN }}
+          MOZILLA_GITHUB: ${{ secrets.MOZILLA_GITHUB }}
+        run: node tools/check-release-setup.mjs
