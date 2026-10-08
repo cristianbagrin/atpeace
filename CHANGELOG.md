@@ -12,6 +12,18 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 
 - Installed copies update themselves: Firefox and Zen check for a new signed version once a day.
 
+### Popup
+
+- Every setting is in the popup, so YouTube changes in front of you: **This page** (the sections for
+  the YouTube page you are on), **All** (every section, with a search) and **Focus** (blocks, the pause,
+  limits and today). Lists, schedules and other editors open the settings page at that row.
+- The Shorts / Recommendations / Comments buttons are gone.
+- Your own presets: save the current settings as a preset from the popup, and apply, update, rename or
+  delete them in the new **Presets** section of the settings.
+- Mac shortcuts ⌥⇧P (on / off), ⌥⇧F (block for 25 minutes) and ⌥⇧H (hide an element), shown in Mac
+  notation.
+- Shorter text everywhere.
+
 ### YouTube
 
 - Fixed: "Hide view counts" hid the channel name and kept the number on some cards (signed-in home).
