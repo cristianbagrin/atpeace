@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ROOT } from './_load.mjs';
 import { UPDATE_URL, addRelease, compareVersions as compareUpdateVersions, formatManifest, normalizeSha256, xpiLink } from '../../tools/update-manifest.mjs';
+import { SECRET_NAMES, amoJwt, kindOf, piecesOf, resolveCredentials } from '../../tools/check-release-setup.mjs';
 import { bumpVersion, changelogSection, compareVersions, formatDate, parseVersion, rewriteChangelog, setJsonVersion, unreleasedNotes } from '../../tools/release.mjs';
 
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
@@ -391,11 +392,63 @@ describe('release: the script, end to end in a scratch repository', () => {
   });
 });
 
+describe('check-release-setup: tells what a secret holds without showing it', () => {
+  const ISSUER = 'user:12345678:123';
+  const SECRET = 'ab'.repeat(32);
+  const TOKEN = `github_pat_${'A1'.repeat(20)}`;
+
+  test('kindOf recognises each credential by shape only', () => {
+    assert.equal(kindOf(ISSUER), 'mozilla-issuer');
+    assert.equal(kindOf(SECRET), 'mozilla-secret');
+    assert.equal(kindOf(TOKEN), 'github-fine-grained-token');
+    assert.equal(kindOf(`ghp_${'x'.repeat(36)}`), 'github-classic-token');
+    for (const v of ['', 'hello', 'user:abc', 'ab'.repeat(31)]) assert.equal(kindOf(v), 'unknown', v);
+  });
+
+  test('piecesOf splits a secret that holds several values (lines, NAME=value, quotes)', () => {
+    assert.deepEqual(piecesOf(`AMO_JWT_ISSUER=${ISSUER}\nAMO_JWT_SECRET="${SECRET}"\n${TOKEN}\n`).map((p) => p.kind), ['mozilla-issuer', 'mozilla-secret', 'github-fine-grained-token']);
+    assert.deepEqual(piecesOf(undefined), []);
+    assert.deepEqual(piecesOf('  '), []);
+  });
+
+  test('resolveCredentials prefers the named secrets and reports where each came from', () => {
+    const named = resolveCredentials({ AMO_JWT_ISSUER: ISSUER, AMO_JWT_SECRET: SECRET, UPDATES_REPO_TOKEN: TOKEN, MOZILLA_GITHUB: `user:1:1 ${'cd'.repeat(32)}` });
+    assert.deepEqual(Object.fromEntries(Object.entries(named.found).map(([k, v]) => [k, v.from])), { issuer: 'AMO_JWT_ISSUER', secret: 'AMO_JWT_SECRET', token: 'UPDATES_REPO_TOKEN' });
+    assert.equal(named.found.issuer.value, ISSUER);
+    const combined = resolveCredentials({ MOZILLA_GITHUB: `${ISSUER}\n${SECRET}\n${TOKEN}` });
+    assert.deepEqual(Object.values(combined.found).map((v) => v.from), ['MOZILLA_GITHUB', 'MOZILLA_GITHUB', 'MOZILLA_GITHUB']);
+    assert.deepEqual(combined.report.map((r) => r.name), SECRET_NAMES);
+    // the report carries kinds, never values
+    assert.ok(!JSON.stringify(combined.report).includes(SECRET));
+    const none = resolveCredentials({});
+    assert.deepEqual(none.found, { issuer: null, secret: null, token: null });
+  });
+
+  test('amoJwt is an HS256 JWT that expires within Mozilla\'s 5-minute limit', () => {
+    const [head, body, sig] = amoJwt(ISSUER, SECRET, 1000).split('.');
+    assert.deepEqual(JSON.parse(Buffer.from(head, 'base64url')), { alg: 'HS256', typ: 'JWT' });
+    const claims = JSON.parse(Buffer.from(body, 'base64url'));
+    assert.equal(claims.iss, ISSUER);
+    assert.equal(claims.iat, 1000);
+    assert.ok(claims.exp > claims.iat && claims.exp - claims.iat <= 300);
+    assert.ok(claims.jti);
+    assert.match(sig, /^[\w-]{43}$/);
+  });
+});
+
 describe('release: guards in the repository', () => {
   const workflows = readdirSync(join(ROOT, '.github', 'workflows')).filter((f) => f.endsWith('.yml'));
 
-  test('both workflows exist', () => {
-    assert.deepEqual(workflows.sort(), ['ci.yml', 'release.yml']);
+  test('the three workflows exist', () => {
+    assert.deepEqual(workflows.sort(), ['ci.yml', 'release-check.yml', 'release.yml']);
+  });
+
+  test('release-check.yml: by hand or when it changes; read-only; runs the setup check', () => {
+    const check = read('.github/workflows/release-check.yml');
+    assert.match(check, /^on:\n {2}workflow_dispatch:\n {2}push:\n {4}paths:/m);
+    assert.match(check, /^permissions:\n {2}contents: read$/m);
+    assert.match(check, /run: node tools\/check-release-setup\.mjs/);
+    assert.ok(!/web-ext sign|git push(?! --dry-run)/.test(check), 'it never signs or publishes');
   });
 
   test('every action is pinned to a full commit SHA', () => {
