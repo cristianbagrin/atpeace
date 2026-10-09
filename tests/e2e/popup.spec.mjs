@@ -223,12 +223,11 @@ test('which groups were open is remembered too', async () => {
 // All
 // ---------------------------------------------------------------------------------------------
 
-test('All: every YouTube section is a group, the first open; the header says how many are hidden; General and Filters are there', async () => {
+test('All: every YouTube section is a group, the first open; the header says how many are hidden; and General are there', async () => {
   const page = await openPopup();
   const registry = await page.evaluate(() => globalThis.AtPeace.schema.sections({ site: 'youtube' }).filter((s) => s.site === 'youtube').map((s) => s.id));
   assert.deepEqual((await sections(page)).slice(0, -1), registry);
   assert.equal((await sections(page)).at(-1), 'general');
-  assert.ok(registry.includes('yt.filters'));
   const heads = page.locator('.grp-head');
   assert.equal(await heads.first().getAttribute('aria-expanded'), 'true');
   assert.equal(await heads.nth(1).getAttribute('aria-expanded'), 'false');
@@ -245,7 +244,7 @@ test('All: every YouTube section is a group, the first open; the header says how
 
 test('All: rows are the settings of the section: a switch for a toggle, a select for a choice, a number for a number, "Edit" for the rest', async () => {
   const page = await openPopup();
-  for (const section of ['yt.home', 'yt.filters', 'general']) await openGroup(page, section);
+  for (const section of ['yt.home', 'general']) await openGroup(page, section);
   const kinds = await page.evaluate(() => {
     const AP = globalThis.AtPeace;
     return AP.schema.all().filter((d) => document.querySelector(`.row[data-id="${d.id}"]`)).map((d) => ({ id: d.id, type: d.type, advanced: Boolean(d.advanced), hidden: document.querySelector(`.row[data-id="${d.id}"]`).hidden }));
@@ -260,7 +259,7 @@ test('All: rows are the settings of the section: a switch for a toggle, a select
     else assert.equal(await el.getByRole('button', { name: /^Edit / }).count(), 1, `${id} (${type}) is an Edit row`);
   }
   // the ones the brief names
-  for (const id of ['yt.filters.keywords', 'yt.filters.channels', 'advanced.customRules', 'advanced.lock']) assert.equal(await row(page, id).getByRole('button', { name: /^Edit / }).count(), 1, id);
+  for (const id of ['pause.sites', 'advanced.customRules', 'advanced.lock']) assert.equal(await row(page, id).getByRole('button', { name: /^Edit / }).count(), 1, id);
   assert.equal(await row(page, 'backup').getByRole('button', { name: 'Edit Backup & reset' }).count(), 1);
   assert.equal(await row(page, 'general.theme').locator('select').count(), 1);
   assert.equal(await row(page, 'general.enabled').count(), 0, 'the master switch is in the header, not repeated');
@@ -413,13 +412,13 @@ test('Edit opens the settings page at the row and the popup closes', async () =>
   // Chromium hides the address of an extension's own tabs, so a settings tab is made; Firefox reuses an open one
   // (tests/firefox/ui.mjs checks that). Either way the row is where the person lands.
   const page = await openPopup();
-  await openGroup(page, 'yt.filters');
+  await openGroup(page, 'general');
   const closed = page.waitForEvent('close', { timeout: 5000 });
-  await Promise.all([closed, clickThatClosesThePage(row(page, 'yt.filters.keywords').getByRole('button', { name: 'Edit Words to hide' }))]);
-  const options = await until(() => optionsTabs().find((p) => p.url().endsWith('#setting=yt.filters.keywords')), { what: 'a settings tab at the row' });
+  await Promise.all([closed, clickThatClosesThePage(row(page, 'advanced.customRules').getByRole('button', { name: 'Edit Elements I chose to hide' }))]);
+  const options = await until(() => optionsTabs().find((p) => p.url().endsWith('#setting=advanced.customRules')), { what: 'a settings tab at the row' });
   await options.waitForSelector('body[data-ready="true"]');
-  await options.waitForFunction(() => document.querySelector('.row[data-id="yt.filters.keywords"]')?.classList.contains('is-target'));
-  assert.equal(await options.evaluate(() => location.hash), '#setting=yt.filters.keywords');
+  await options.waitForFunction(() => document.querySelector('.row[data-id="advanced.customRules"]')?.classList.contains('is-target'));
+  assert.equal(await options.evaluate(() => location.hash), '#setting=advanced.customRules');
   await options.close();
 });
 
@@ -433,11 +432,11 @@ test('Edit follows a settings tab that is already open (where the browser shows 
   });
   const before = optionsTabs().length;
   const page = await openPopup({ urlTabs: [tabInfo] }); // what Firefox answers to tabs.query({ url })
-  await openGroup(page, 'yt.filters');
+  await openGroup(page, 'general');
   const closed = page.waitForEvent('close', { timeout: 5000 });
-  await Promise.all([closed, clickThatClosesThePage(row(page, 'yt.filters.channels').getByRole('button', { name: 'Edit Channels to hide' }))]);
-  await until(() => existing.url().endsWith('#setting=yt.filters.channels'), { what: 'the open settings tab to follow' });
-  await existing.waitForFunction(() => document.querySelector('.row[data-id="yt.filters.channels"]')?.classList.contains('is-target'));
+  await Promise.all([closed, clickThatClosesThePage(row(page, 'pause.sites').getByRole('button', { name: 'Edit Sites that get a pause' }))]);
+  await until(() => existing.url().endsWith('#setting=pause.sites'), { what: 'the open settings tab to follow' });
+  await existing.waitForFunction(() => document.querySelector('.row[data-id="pause.sites"]')?.classList.contains('is-target'));
   assert.equal(optionsTabs().length, before, 'no second settings tab');
   assert.deepEqual(existing.errors, []);
   await existing.close();
@@ -1006,7 +1005,7 @@ test('screenshots: each tab, light and dark (to tests/e2e/artifacts/round1/7a/)'
     await none.locator('input[type="search"]').fill('hide');
     await none.screenshot({ path: join(SHOTS, `popup-all-search-${theme}.png`) });
     await none.locator('input[type="search"]').press('Escape');
-    for (const section of ['yt.home', 'yt.filters', 'general']) await openGroup(none, section);
+    for (const section of ['yt.home', 'general']) await openGroup(none, section);
     await none.locator('.advanced-row').scrollIntoViewIfNeeded();
     await none.screenshot({ path: join(SHOTS, `popup-all-bottom-${theme}.png`) });
 

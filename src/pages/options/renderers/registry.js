@@ -19,8 +19,7 @@
 //                                     <label> and description are read with it
 //   }
 //
-// A renderer may also be picked by shape instead of by id (the word-list editor serves every
-// plain list of strings under `yt.filters.`):
+// A renderer may also be picked by shape instead of by id:
 //
 //   AP.optionsRendererMatchers.push({ test: (def) => boolean, renderer })
 //

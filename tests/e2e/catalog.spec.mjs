@@ -8,7 +8,7 @@
 //
 // Not covered here, on purpose (see the "coverage" test for the live list):
 //   * settings that depend on the page bridge (`feature: 'bridgeTags'`, Phase 3b),
-//   * JS-driven settings (feed redirects, autoplay, filters …: their own phases test them),
+//   * JS-driven settings (feed redirects, autoplay …: their own phases test them),
 //   * signed-in-only UI (Create button, signed-in sidebar, the home feed, the subscriptions feed).
 //     For two feed rules a SYNTHETIC card is added to the live page, which proves page scoping and
 //     selector logic but not that YouTube renders such a card.
@@ -720,9 +720,7 @@ test('coverage: every section of the catalog was exercised on the live site; the
   t.diagnostic(`bridge-tag settings (Phase 3b): ${bridge.length}`);
   t.diagnostic(`JS-only settings (their own phases): ${js.length}`);
   t.diagnostic(`CSS settings not hit by this run (signed-in only or absent from the sample pages): ${rest.join(', ')}`);
-  // Sections that only hold JS/bridge settings (Filters) are exempt.
-  const exempt = new Set(['yt.filters']);
-  assert.deepEqual(untestedSections.filter((s) => !exempt.has(s)), [], 'every section with CSS must have at least one live check');
+  assert.deepEqual(untestedSections, [], 'every section with CSS must have at least one live check');
 });
 
 /** The catalog, read through the same loader the unit tests use (Node side; the page never sees it). */

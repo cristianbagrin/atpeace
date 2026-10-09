@@ -36,7 +36,7 @@ export const SCHEMA_SCRIPTS = [
   'src/shared/schema/focus.js',
   'src/shared/schema/advanced.js',
   ...[
-    'general', 'masthead', 'guide', 'home', 'watch', 'player', 'comments', 'search', 'shorts', 'subscriptions', 'channel', 'filters',
+    'general', 'masthead', 'guide', 'home', 'watch', 'player', 'comments', 'search', 'shorts', 'subscriptions', 'channel',
   ].map((name) => `src/sites/youtube/schema/${name}.js`),
   'src/shared/presets.js',
   'src/shared/settings.js',

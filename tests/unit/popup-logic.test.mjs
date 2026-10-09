@@ -84,9 +84,9 @@ describe('isInlineSetting: a switch, a choice or a number is edited in the row; 
     for (const type of ['list', 'object', 'text', 'textarea']) assert.equal(ui.isInlineSetting({ type }), false, type);
   });
 
-  test('in the shipped catalog: lists, objects and text are "Edit" rows, the filters and the lock among them', () => {
+  test('in the shipped catalog: lists, objects and text are "Edit" rows, the pause sites, the schedules and the lock among them', () => {
     const edit = AP.schema.all().filter((d) => !ui.isInlineSetting(d)).map((d) => d.id);
-    for (const id of ['yt.filters.keywords', 'yt.filters.channels', 'yt.filters.applyTo', 'pause.sites', 'focus.schedules', 'advanced.customRules', 'advanced.lock']) {
+    for (const id of ['pause.sites', 'focus.schedules', 'advanced.customRules', 'advanced.lock']) {
       assert.ok(edit.includes(id), id);
     }
     for (const id of ['general.theme', 'pause.enabled', 'pause.breathSeconds', 'pause.sessionMinutes', 'focus.dailyMinutes', 'yt.home.feedMode']) {

@@ -64,15 +64,13 @@ describe('navCounts (the numbers beside the options navigation)', () => {
     for (const s of youtube()) assert.deepEqual([counts[s.id].on, counts[s.id].text], [0, '0'], s.id);
   });
 
-  test('a toggle counts when it is on, a select when it differs from its default, a list when it is not empty', () => {
+  test('a toggle counts when it is on, a select when it differs from its default', () => {
     const toggle = AP.schema.bySection('yt.comments').find((d) => d.type === 'toggle');
     const select = AP.schema.bySection('yt.general').find((d) => d.type === 'select');
-    const list = AP.schema.bySection('yt.filters').find((d) => d.type === 'list');
     const none = ui.navCounts(AP.settings.merge({}));
-    const some = ui.navCounts(AP.settings.merge({ [toggle.id]: true, [select.id]: select.options.at(-1).value, [list.id]: ['spoiler'] }));
+    const some = ui.navCounts(AP.settings.merge({ [toggle.id]: true, [select.id]: select.options.at(-1).value }));
     assert.equal(some['yt.comments'].on, none['yt.comments'].on + 1);
     assert.equal(some['yt.general'].on, none['yt.general'].on + 1);
-    assert.equal(some['yt.filters'].on, none['yt.filters'].on + 1);
     assert.equal(some['yt.comments'].text, String(some['yt.comments'].on));
     // a select left at its default does not count
     assert.equal(ui.navCounts(AP.settings.merge({ [select.id]: select.default }))['yt.general'].on, none['yt.general'].on);

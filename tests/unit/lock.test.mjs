@@ -135,20 +135,23 @@ describe('isLoosening: text', () => {
 });
 
 describe('isLoosening: lists', () => {
-  test('word filters: adding a word tightens; removing or changing one loosens', () => {
-    const id = 'yt.filters.keywords';
-    assert.equal(loosens(id, ['spoiler'], ['spoiler', 'drama']), false);
-    assert.equal(loosens(id, [], ['drama']), false);
-    assert.equal(loosens(id, ['spoiler', 'drama'], ['spoiler']), true);
-    assert.equal(loosens(id, ['spoiler'], ['spoilers']), true);
-    assert.equal(loosens(id, ['spoiler'], []), true);
-    assert.equal(loosens(id, ['a'], ['a']), false);
+  // No shipped setting is a plain list of words any more; the rule still covers one.
+  const words = { id: 'x.words', type: 'list', default: [] };
+  const wordsLoosen = (a, b) => L.isLoosening(words, a, b);
+
+  test('a list of words: adding one tightens; removing or changing one loosens', () => {
+    assert.equal(wordsLoosen(['spoiler'], ['spoiler', 'drama']), false);
+    assert.equal(wordsLoosen([], ['drama']), false);
+    assert.equal(wordsLoosen(['spoiler', 'drama'], ['spoiler']), true);
+    assert.equal(wordsLoosen(['spoiler'], ['spoilers']), true);
+    assert.equal(wordsLoosen(['spoiler'], []), true);
+    assert.equal(wordsLoosen(['a'], ['a']), false);
   });
 
   test('multi-select: removing an option loosens, adding one does not', () => {
-    const id = 'yt.filters.applyTo';
-    assert.equal(loosens(id, ['home', 'search'], ['home']), true);
-    assert.equal(loosens(id, ['home'], ['home', 'search']), false);
+    const multi = { id: 'x.multi', type: 'list', default: [], options: [{ value: 'home' }, { value: 'search' }] };
+    assert.equal(L.isLoosening(multi, ['home', 'search'], ['home']), true);
+    assert.equal(L.isLoosening(multi, ['home'], ['home', 'search']), false);
   });
 
   test('hidden elements: removing or editing a rule loosens, adding one does not', () => {
@@ -192,7 +195,7 @@ describe('isLoosening: lists', () => {
   });
 
   test('a list that is not a list is treated as loosening', () => {
-    assert.equal(loosens('yt.filters.keywords', ['a'], 'a'), true);
+    assert.equal(loosens('advanced.customRules', [], 'a'), true);
   });
 });
 

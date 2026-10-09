@@ -14,8 +14,7 @@ At Peace works on desktop `www.youtube.com`, in Firefox and Zen 140 or newer.
 **Declutter.** About 140 switches, each hiding one thing: the home feed, Shorts, comments, related
 videos, the sidebar, buttons under a video, view counts, upload dates, duration badges, ads and Premium
 promos, AI summaries, end screens, hover previews, and more. Thumbnails can be shown, blurred until you
-hover, grayscale until you hover, or hidden. The whole site can go grayscale. Filters hide videos by
-word or channel (plain text or `/regex/`) and comments by word. An element picker lets you click
+hover, grayscale until you hover, or hidden. The whole site can go grayscale. An element picker lets you click
 anything the settings missed and keeps it hidden.
 
 **Redirect.** Home can show a calm empty page or send you to Subscriptions, Watch later, your
@@ -142,7 +141,7 @@ src/
                          state, presets, lock, messages; schema/ holds the cross-site settings
   sites/youtube/
     schema/              the YouTube settings, one file per section (the catalog)
-    features/            JavaScript behaviours (autoplay, speed, filters, redirects...)
+    features/            JavaScript behaviours (autoplay, speed, redirects...)
     page.js, redirects.js, bridge-client.js, page-bridge.js (MAIN world), main.js
   content/               site-agnostic engine, overlay, element picker, guard
   background/            event page: message router, sessions, rules (DNR), stats, guards
@@ -162,7 +161,7 @@ At `document_start` the content script injects one stylesheet, compiled from the
 rule is gated by a token on `<html>`: `html[data-at-peace~="yt.comments.hideAll"] ytd-comments { display:
 none !important }`. Turning a setting on or off is one attribute write, so it is instant, works on content
 that loads later and survives YouTube's own navigation. Rules that belong to one kind of page are also
-gated by `data-at-peace-page`. Anything that needs logic (redirects, autoplay, filters) is a *feature*
+gated by `data-at-peace-page`. Anything that needs logic (redirects, autoplay) is a *feature*
 that the engine starts and stops with its settings.
 
 ### Add a setting

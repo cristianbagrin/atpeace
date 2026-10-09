@@ -8,6 +8,15 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 
 ## Unreleased
 
+## 0.2.1 — 2026-10-09
+
+- New: "Stop infinite scroll" on the home page (infinite scroll off).
+- New: toggles for things people hid by hand: the Subscribe button and the animated button on a video
+  page, the buttons under a channel's name, its links and its awards shelf. "Hide Ask (AI)" also hides
+  the ask block in the description.
+- Removed: Filters (hide videos by word or channel, hide comments by word). Your saved words are ignored
+  and every other setting stays as it was.
+
 ## 0.2.0 — 2026-10-08
 
 ### Updates
