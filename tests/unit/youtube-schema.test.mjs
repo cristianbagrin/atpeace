@@ -11,7 +11,7 @@ const EXPECTED = {
   general: ['grayscale', 'thumbnails', 'thumbnailFrame', 'disableHoverPreview', 'hideViewCounts', 'hideUploadDates', 'hideDurations', 'hideChannelAvatars', 'hideBadges', 'hideWatchedProgress', 'hideWatched', 'hideAds', 'hidePremiumUpsells', 'hideMixes', 'hidePlayables'],
   masthead: ['hideSearchSuggestions', 'hideSearchHistory', 'hideVoiceSearch', 'hideSearchBar', 'hideCreate', 'hideNotifications', 'hideGuideButton', 'hideAICompanion', 'hideCountryCode', 'hideDoodle', 'hideMastheadAd'],
   guide: ['hideAll', 'hideMini', 'hideHome', 'hideShorts', 'hideSubscriptionsEntry', 'hideYouEntry', 'hideHistory', 'hidePlaylists', 'hideYourVideos', 'hideWatchLater', 'hideLiked', 'hideDownloads', 'hideCourses', 'hideSubscriptionsSection', 'hideExploreSection', 'hideMoreFromYouTube', 'hideSettingsSection', 'hideFooter', 'hideSignInPromo'],
-  home: ['feedMode', 'redirectUrl', 'hideChips', 'hideShortsShelf', 'hideNewsShelf', 'hidePostsShelf', 'hideOtherShelves', 'hideFeedNudge'],
+  home: ['feedMode', 'redirectUrl', 'hideChips', 'hideShortsShelf', 'hideNewsShelf', 'hidePostsShelf', 'hideOtherShelves', 'disableInfiniteScroll', 'hideFeedNudge'],
   watch: ['hideRelated', 'hideRelatedShorts', 'hideRelatedChips', 'hideLiveChat', 'hidePlayerAds', 'hideShoppingShelf', 'hideMerch', 'hideTickets', 'hideFundraiser', 'hideHashtags', 'hideOwnerAvatar', 'hideSubscriberCount', 'hideJoinButton', 'hideLikeCounts', 'hideLikeButtons', 'hideShare', 'hideDownload', 'hideClip', 'hideThanks', 'hideSave', 'hideAsk', 'hideMoreActions', 'hideViewCount', 'hideUploadDate', 'hideDescription', 'hideAISummary', 'hideChapters', 'hideDescriptionExtras', 'hideInfoPanels', 'hideAmbientMode', 'disableAutoplay', 'noAutoStart', 'autoTheater', 'defaultSpeed', 'dismissStillWatching'],
   player: ['hideEndscreenCards', 'hideEndscreenWall', 'hideInfoCards', 'hidePauseOverlay', 'hideWatermark', 'hidePaidPromotion', 'hideAutoplayToggle', 'hideNextButton', 'hideMiniplayerButton', 'hideCastButton', 'hideSubtitlesButton', 'hideChapterTitle', 'hideProgressPreviews'],
   comments: ['hideAll', 'hideTeaser', 'hideCount', 'hideAvatars', 'hideLikeCounts', 'hideReplies', 'hideCreatorHearts'],
@@ -19,7 +19,6 @@ const EXPECTED = {
   shorts: ['mode', 'hideComments', 'hideLikeCounts', 'hideRemix', 'hideSubscribe'],
   subs: ['hideShorts', 'hidePosts', 'hideLive', 'hideUpcoming', 'hideWatched'],
   channel: ['openVideosTab', 'hideTrailer', 'hideHomeShelves', 'hideRowShorts', 'hideRowPosts', 'hideRowMembers', 'hideRowLive', 'hideRowPopular', 'hideRowPlaylists', 'hideRowChannels', 'hideBanner', 'hideJoinButton', 'hideSubscriberCount', 'hideShortsTab', 'hideLiveTab', 'hidePodcastsTab', 'hidePlaylistsTab', 'hidePostsTab', 'hideStoreTab', 'hideShowsTab', 'hideCoursesTab', 'hideMembersTab', 'hideReleasesTab'],
-  filters: ['keywords', 'channels', 'applyTo', 'commentKeywords'],
 };
 const EXPECTED_IDS = Object.entries(EXPECTED).flatMap(([section, names]) => names.map((n) => `yt.${section}.${n}`));
 
@@ -144,9 +143,8 @@ describe('catalog shape', () => {
         assert.equal(def.default, def.options[0].value, `${def.id}: the default must be the first option`);
         assert.ok(['show', 'allow', 'default', 'off'].includes(def.default), `${def.id}: default "${def.default}"`);
       }
-      if (def.type === 'list' && def.id !== 'yt.filters.applyTo') assert.deepEqual(def.default, [], def.id);
+      if (def.type === 'list') assert.deepEqual(def.default, [], def.id);
     }
-    assert.deepEqual(S.get('yt.filters.applyTo').default, ['home', 'search', 'watch', 'subscriptions']);
   });
 
   test('preset tags: tagged selects land on a sensible value, never on a redirect or a blank', () => {
@@ -389,11 +387,6 @@ describe('typed settings', () => {
     assert.deepEqual(def.options.map((o) => o.value), ['default', '0.75', '1', '1.25', '1.5', '1.75', '2']);
     assert.equal(S.validateValue(def, 1.5), '1.5');
     assert.equal(S.validateValue(def, '3'), 'default');
-  });
-
-  test('filter lists trim and de-duplicate; applyTo is a multi-select', () => {
-    assert.deepEqual(S.validateValue(S.get('yt.filters.keywords'), ['  spoiler ', 'spoiler', '', '/leak|rumou?r/i']), ['spoiler', '/leak|rumou?r/i']);
-    assert.deepEqual(S.validateValue(S.get('yt.filters.applyTo'), ['home', 'nonsense', 'home', 'search']), ['home', 'search']);
   });
 
   test('Shorts mode and feed mode offer the documented choices in least-hidden-first order', () => {

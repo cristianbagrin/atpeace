@@ -3,8 +3,7 @@
 // Two groups, each with its own browser:
 //   1. "on offline snapshots": www.youtube.com served from the Phase 1 DOM snapshots
 //      (tests/e2e/_yt-fixture.mjs, no traffic to Google). The extension runs exactly as on the real site
-//      (the URL matches), so this is where every behaviour is exercised with controlled content: filters
-//      against known titles, redirects, bridge tags from `.data` objects shaped like the ones observed live,
+//      (the URL matches), so this is where every behaviour is exercised with controlled content: redirects, bridge tags from `.data` objects shaped like the ones observed live,
 //      and a stand-in player (an object with the player API's methods) for autoplay / speed / theater.
 //   2. "on live youtube.com" (logged out): the same checks against the real site and its real data objects,
 //      paced (Google answers many page loads with a /sorry/ captcha; a captcha skips the rest of the group).
@@ -288,126 +287,6 @@ describe('on offline snapshots', { skip: haveFixtures ? false : 'tests/e2e/artif
       await page.evaluate(() => document.querySelector('#trailer-video').play());
       await sleep(500);
       assert.equal(await page.evaluate(() => document.querySelector('#trailer-video').paused), false);
-    });
-  });
-
-  describe('filters', () => {
-    const titlesOf = () => page.evaluate(() => [...document.querySelectorAll('ytd-video-renderer')].map((c) => ({ title: c.querySelector('a#video-title')?.getAttribute('title'), channel: c.querySelector('ytd-channel-name a')?.textContent.trim(), marked: c.hasAttribute('data-at-peace-filtered'), hidden: getComputedStyle(c).display === 'none' })));
-
-    test('keywords hide matching search results (case- and diacritic-insensitive); everything else stays', async () => {
-      await configure({});
-      await open(SEARCH);
-      const before = await titlesOf();
-      assert.ok(before.length >= 15 && before.every((c) => !c.marked));
-      const word = 'HALLOWEEN';
-      await configure({ 'yt.filters.keywords': [word] });
-      await waitFor(() => document.querySelector('ytd-video-renderer[data-at-peace-filtered]'));
-      const after = await titlesOf();
-      for (const card of after) {
-        const expected = card.title.toLowerCase().includes('halloween');
-        assert.equal(card.marked, expected, card.title);
-        assert.equal(card.hidden, expected, `${card.title}: hidden iff marked`);
-      }
-      assert.ok(after.some((c) => c.marked) && after.some((c) => !c.marked));
-    });
-
-    test('changing the list un-marks cards that no longer match; an empty list and the master switch clear everything', async () => {
-      await configure({ 'yt.filters.keywords': ['halloween'] });
-      await waitFor(() => document.querySelector('[data-at-peace-filtered]'));
-      await configure({ 'yt.filters.keywords': ['zzzz-never'] });
-      await waitFor(() => !document.querySelector('[data-at-peace-filtered]'));
-      await configure({ 'yt.filters.keywords': ['halloween'] });
-      await waitFor(() => document.querySelector('[data-at-peace-filtered]'));
-      await configure({ 'yt.filters.keywords': ['halloween'], 'general.enabled': false });
-      await waitFor(() => !document.querySelector('[data-at-peace-filtered]'));
-      await configure({ 'yt.filters.keywords': [] });
-      await sleep(200);
-      assert.equal(await page.evaluate(() => document.querySelectorAll('[data-at-peace-filtered]').length), 0);
-    });
-
-    test('/regex/flags lines work; an invalid one is ignored with one warning and breaks nothing', async () => {
-      page.errors.length = 0;
-      const warnings = [];
-      page.on('console', (m) => m.type() === 'warning' && m.text().includes('filter ignored') && warnings.push(m.text()));
-      await configure({ 'yt.filters.keywords': ['/^24\\/7/i', '/(unclosed/'] });
-      await waitFor(() => document.querySelector('[data-at-peace-filtered]'));
-      const marked = (await titlesOf()).filter((c) => c.marked).map((c) => c.title);
-      assert.ok(marked.length >= 1 && marked.every((t) => /^24\/7/i.test(t)), JSON.stringify(marked));
-      await configure({ 'yt.filters.keywords': ['/^24\\/7/i', '/(unclosed/', 'x'] }); // another change: still one warning
-      await sleep(300);
-      assert.equal(warnings.length, 1, warnings.join('|'));
-      assert.deepEqual(await ourErrors(), []);
-    });
-
-    test('channels: by name and by @handle (from the link); applyTo scopes the surface', async () => {
-      const channel = (await titlesOf()).find((c) => c.channel).channel;
-      await configure({ 'yt.filters.channels': [channel] });
-      await waitFor(() => document.querySelector('ytd-video-renderer[data-at-peace-filtered]'));
-      const byName = await titlesOf();
-      assert.ok(byName.filter((c) => c.channel === channel).every((c) => c.marked));
-      const id = await page.evaluate(() => document.querySelector('ytd-video-renderer ytd-channel-name a').getAttribute('href').split('/channel/')[1]);
-      await configure({ 'yt.filters.channels': [id] });
-      await waitFor(() => document.querySelector('ytd-video-renderer[data-at-peace-filtered]'));
-      assert.ok((await titlesOf()).some((c) => c.marked), 'a channel id matches through the channel link');
-      // a card whose channel link is a /@handle (as on pages that use handles)
-      await page.evaluate(() => {
-        const a = document.querySelectorAll('ytd-video-renderer ytd-channel-name a')[1];
-        a.setAttribute('href', '/@Some-Handle');
-        a.closest('ytd-video-renderer').id = 'handle-card';
-      });
-      await configure({ 'yt.filters.channels': ['@some-handle'] });
-      await waitFor(() => document.querySelector('#handle-card[data-at-peace-filtered]'));
-      assert.equal(await page.evaluate(() => document.querySelectorAll('ytd-video-renderer[data-at-peace-filtered]').length), 1, 'only the card with that handle');
-      await configure({ 'yt.filters.channels': ['@some-handle'], 'yt.filters.applyTo': ['home'] });
-      await waitFor(() => !document.querySelector('[data-at-peace-filtered]'));
-      await configure({ 'yt.filters.channels': ['@some-handle'], 'yt.filters.applyTo': ['search'] });
-      await waitFor(() => document.querySelector('#handle-card[data-at-peace-filtered]'));
-    });
-
-    test('cards that appear later (infinite scroll) and cards whose text arrives late are filtered too', async () => {
-      await configure({ 'yt.filters.keywords': ['late-arrival-keyword'] });
-      await sleep(300);
-      await page.evaluate(() => {
-        const list = document.querySelector('ytd-video-renderer').parentElement;
-        const card = document.querySelector('ytd-video-renderer').cloneNode(true);
-        const title = card.querySelector('a#video-title');
-        title.setAttribute('title', '');
-        title.querySelector('yt-formatted-string').textContent = '';
-        card.id = 'late-card';
-        list.append(card);
-        // the text arrives after the card was inserted
-        setTimeout(() => {
-          title.setAttribute('title', 'Something with LATE-arrival-Keyword inside');
-          title.querySelector('yt-formatted-string').textContent = 'Something with LATE-arrival-Keyword inside';
-        }, 500);
-      });
-      await waitFor(() => document.querySelector('#late-card[data-at-peace-filtered]'), null, 6000);
-    });
-
-    test('watch sidebar and comments (watch snapshot)', async () => {
-      await configure({});
-      await open(WATCH);
-      const sample = await page.evaluate(() => ({
-        related: [...document.querySelectorAll('#related yt-lockup-view-model a.ytLockupMetadataViewModelTitle')].map((a) => a.textContent.trim()),
-        comment: document.querySelector('ytd-comment-thread-renderer #content-text').textContent.trim(),
-      }));
-      const word = sample.related.find((t) => t.length > 8).split(/\s+/).find((w) => w.length > 5);
-      const commentWord = sample.comment.split(/\s+/).find((w) => w.length > 6);
-      await configure({ 'yt.filters.keywords': [word], 'yt.filters.commentKeywords': [commentWord] });
-      await waitFor(() => document.querySelector('#related yt-lockup-view-model[data-at-peace-filtered]'));
-      const state = await page.evaluate((w) => ({
-        cards: [...document.querySelectorAll('#related yt-lockup-view-model')].map((c) => [c.querySelector('a.ytLockupMetadataViewModelTitle').textContent.toLowerCase().includes(w.toLowerCase()), c.hasAttribute('data-at-peace-filtered'), getComputedStyle(c).display === 'none']),
-        threads: [...document.querySelectorAll('ytd-comment-thread-renderer')].map((c) => [c.querySelector('#content-text').textContent.toLowerCase().includes(w.toLowerCase()), c.hasAttribute('data-at-peace-filtered')]),
-      }), word);
-      for (const [match, marked, hidden] of state.cards) {
-        assert.equal(marked, match);
-        assert.equal(hidden, match);
-      }
-      assert.ok(state.cards.some(([m]) => m));
-      await waitFor((cw) => [...document.querySelectorAll('ytd-comment-thread-renderer')].some((c) => c.hasAttribute('data-at-peace-filtered') && c.querySelector('#content-text').textContent.toLowerCase().includes(cw.toLowerCase())), commentWord);
-      // watch is not in applyTo any more: the sidebar is shown again, comments still follow commentKeywords
-      await configure({ 'yt.filters.keywords': [word], 'yt.filters.commentKeywords': [commentWord], 'yt.filters.applyTo': ['home'] });
-      await waitFor(() => !document.querySelector('#related [data-at-peace-filtered]'));
     });
   });
 
@@ -803,34 +682,16 @@ describe('on live youtube.com (logged out)', () => {
     assert.deepEqual(await ourErrors(), []);
   });
 
-  live('search: filters, Shorts links and the Shorts click on the real results', async () => {
-    await configure({ 'yt.filters.keywords': ['lofi'], 'yt.shorts.mode': 'watch' });
+  live('search: Shorts links and the Shorts click on the real results', async () => {
+    await configure({ 'yt.shorts.mode': 'watch' });
     await paced(SEARCH);
     await waitFor(() => document.querySelectorAll('ytd-video-renderer').length >= 10);
-    await waitFor(() => document.querySelector('[data-at-peace-filtered]'));
-    // Cards are filled in progressively: wait until every card agrees with the filter (no card disagreeing for a moment).
-    const disagreeing = () =>
-      page.evaluate(() =>
-        [...document.querySelectorAll('ytd-video-renderer')]
-          .map((c) => [c.querySelector('a#video-title')?.getAttribute('title') ?? null, c.hasAttribute('data-at-peace-filtered'), getComputedStyle(c).display === 'none'])
-          .filter(([title, marked, hidden]) => title !== null && (marked !== title.toLowerCase().includes('lofi') || hidden !== marked)),
-      );
-    // (the list keeps growing for a moment while YouTube renders: judge it once the number of cards has settled)
-    let count = -1;
-    for (let stable = 0; stable < 3; ) {
-      await sleep(500);
-      const now = await page.evaluate(() => document.querySelectorAll('ytd-video-renderer').length);
-      stable = now === count ? stable + 1 : 0;
-      count = now;
-    }
-    await waitFor(() => [...document.querySelectorAll('ytd-video-renderer')].every((c) => { const t = c.querySelector('a#video-title')?.getAttribute('title'); return t == null || c.hasAttribute('data-at-peace-filtered') === t.toLowerCase().includes('lofi'); }), null, 6000).catch(() => null);
-    assert.deepEqual(await disagreeing(), [], 'every card agrees with the filter');
     const info = await page.evaluate(() => ({
       shortsLeft: document.querySelectorAll('a[href^="/shorts/"]').length,
       shortsRewritten: document.querySelectorAll('a[data-at-peace-href]').length,
     }));
     assert.equal(info.shortsLeft, 0);
-    await shot('live-search-filtered');
+    await shot('live-search-shorts');
     if (info.shortsRewritten > 0) {
       const requests = [];
       page.on('request', (r) => r.isNavigationRequest() && requests.push(r.url()));

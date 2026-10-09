@@ -170,28 +170,6 @@ test('a number out of range is explained inline and never saved; a good one is',
   await page.close();
 });
 
-test('word lists: one entry per line, a broken /regex/ is explained and not saved', async () => {
-  const page = await openOptions();
-  const id = await page.evaluate(() => globalThis.AtPeace.schema.all().find((d) => d.id.startsWith('yt.filters.') && d.type === 'list' && !d.options)?.id);
-  assert.ok(id, 'a filters word list exists');
-  const area = row(page, id).locator('textarea');
-
-  await area.fill('spoiler\n/(/\nleak');
-  const error = row(page, id).locator('.field-error');
-  await error.waitFor({ state: 'visible' });
-  assert.match(await error.textContent(), /Line 2: Not a valid regular expression/);
-  assert.equal(await area.getAttribute('aria-invalid'), 'true');
-  await area.blur();
-  await page.waitForTimeout(900);
-  assert.equal((await settings())[id], undefined, 'a broken pattern was stored');
-
-  await area.fill('spoiler\n/colou?r/i\n\nspoiler\nleak');
-  await area.blur();
-  await pageUntil(page, async (key) => JSON.stringify((await chrome.storage.local.get('settings')).settings?.[key]) === '["spoiler","/colou?r/i","leak"]', id);
-  assert.equal(await error.isVisible(), false);
-  await page.close();
-});
-
 test('a text setting the schema refuses is explained and not saved; a valid one is', async () => {
   // Whatever text setting the catalog has (today: the home-page redirect), with what it waits for switched on.
   const probe = await openOptions();
@@ -631,10 +609,6 @@ test('screenshots: light and dark, top / a long section / search', async () => {
     await page.screenshot({ path: join(SHOTS, `options-search-${theme}.png`) });
 
     await page.locator('#search').fill('');
-    await page.evaluate(() => document.querySelector('#sec-yt-filters')?.scrollIntoView());
-    await page.waitForTimeout(450);
-    await page.screenshot({ path: join(SHOTS, `options-filters-${theme}.png`) });
-
     await page.evaluate(() => document.querySelector('#sec-backup').scrollIntoView());
     await page.waitForTimeout(450);
     await page.screenshot({ path: join(SHOTS, `options-backup-${theme}.png`) });

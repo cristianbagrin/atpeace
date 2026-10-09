@@ -22,7 +22,6 @@ importScripts(
   '../sites/youtube/schema/shorts.js',
   '../sites/youtube/schema/subscriptions.js',
   '../sites/youtube/schema/channel.js',
-  '../sites/youtube/schema/filters.js',
   '../shared/presets.js',
   '../shared/settings.js',
   '../shared/state.js',

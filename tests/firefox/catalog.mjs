@@ -379,7 +379,7 @@ test('Video page with a playlist: hiding related videos keeps the playlist panel
 });
 
 // ---------------------------------------------------------------------------------------------
-// Search, Shorts, Subscriptions, Channel, Filters
+// Search, Shorts, Subscriptions, Channel
 // ---------------------------------------------------------------------------------------------
 
 test('Search results: descriptions and filter chips go; titles, thumbnails and channel names stay', { skip: skipUnless('search-lofi') }, async () => {
@@ -447,33 +447,6 @@ test('Channel pages: the banner and the subscriber count go; the name, the tabs 
     [`${channel} .ytPageHeaderViewModelContentMetadata .ytContentMetadataViewModelMetadataText:has(+ .ytContentMetadataViewModelDelimiter + .ytContentMetadataViewModelMetadataText:nth-last-child(1 of .ytContentMetadataViewModelMetadataText))`],
     [`${channel} .ytPageHeaderViewModelContentMetadata`, `${channel} h1`, `${channel} ytd-rich-item-renderer`],
   );
-});
-
-test('Filters: a channel filter hides that channel\'s results in the search and nothing else', { skip: skipUnless('search-lofi') }, async () => {
-  await open(PAGES.search);
-  await apply({});
-  // Pick the channel of the first result from the page itself, so the test follows whatever the snapshot holds.
-  const pick = await run(() => {
-    const names = [...document.querySelectorAll('ytd-search ytd-video-renderer')].map((card) => (card.querySelector('ytd-channel-name a, ytd-channel-name yt-formatted-string')?.textContent ?? '').trim());
-    const first = names.find(Boolean);
-    return { first, total: names.length, withFirst: names.filter((n) => n === first).length };
-  });
-  assert.ok(pick.first, 'the snapshot has channel names on its results');
-  assert.ok(pick.withFirst < pick.total, 'precondition: not every result is from that channel');
-  await apply({ 'yt.filters.channels': [pick.first], 'yt.filters.applyTo': ['search'] });
-  const hidden = await until(
-    () => run((name) => {
-      const cards = [...document.querySelectorAll('ytd-search ytd-video-renderer')];
-      const gone = cards.filter((c) => getComputedStyle(c).display === 'none');
-      const mine = cards.filter((c) => (c.querySelector('ytd-channel-name a, ytd-channel-name yt-formatted-string')?.textContent ?? '').trim() === name);
-      return gone.length > 0 && gone.every((c) => mine.includes(c)) && mine.every((c) => gone.includes(c)) ? { gone: gone.length, total: cards.length } : null;
-    }, pick.first),
-    { what: `the results of "${pick.first}" to be hidden`, retryErrors: true },
-  );
-  assert.equal(hidden.gone, pick.withFirst, 'exactly that channel\'s results are hidden');
-  assert.ok(hidden.total - hidden.gone > 0, 'the other results stay');
-  await apply({});
-  await until(() => run(() => [...document.querySelectorAll('ytd-search ytd-video-renderer')].every((c) => getComputedStyle(c).display !== 'none')), { what: 'the results to come back', retryErrors: true });
 });
 
 test('No errors from our code appeared in Firefox while doing all of the above', { skip: skipUnless('home') }, async () => {

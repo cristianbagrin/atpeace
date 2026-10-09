@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import { loadAtPeace, installFakeBrowser, uninstallFakeBrowser, CORE_SCRIPTS, SCHEMA_SCRIPTS, ROOT } from './_load.mjs';
 
 const FEATURE_FILES = [
-  'bridge-tags', 'home-feed', 'shorts', 'autoplay', 'theater', 'speed', 'still-watching', 'channel-tab', 'filters', 'thumbnails-hover', 'thumbnail-frame', 'search-suggestions', 'layout-nudge',
+  'bridge-tags', 'home-feed', 'shorts', 'autoplay', 'theater', 'speed', 'still-watching', 'channel-tab', 'thumbnails-hover', 'thumbnail-frame', 'search-suggestions', 'layout-nudge',
 ].map((f) => `src/sites/youtube/features/${f}.js`);
 
 let AP;
@@ -28,92 +28,6 @@ before(async () => {
   ]);
 });
 after(() => uninstallFakeBrowser());
-
-describe('filters: keyword matching', () => {
-  const F = () => AP.yt.filters;
-  const match = (lines, text) => F().matchesKeywords(F().compileKeywords(lines), text);
-
-  test('substring, case-insensitive', () => {
-    assert.equal(match(['spoiler'], 'The Big SPOILERS inside'), true);
-    assert.equal(match(['react'], 'Why I do not react'), true);
-    assert.equal(match(['react'], 'Rea ct'), false);
-    assert.equal(match([], 'anything'), false);
-    assert.equal(match(['x'], ''), false);
-  });
-
-  test('diacritic-insensitive in both directions', () => {
-    assert.equal(match(['creme brulee'], 'Crème Brûlée in 5 minutes'), true);
-    assert.equal(match(['crème'], 'CREME'), true);
-    assert.equal(match(['É'], 'e'), true);
-    assert.equal(match(['naïve'], 'Naive realism'), true);
-  });
-
-  test('/regex/flags lines', () => {
-    assert.equal(match(['/spoiler|leak/i'], 'Huge LEAK'), true);
-    assert.equal(match(['/^top \\d+/i'], 'Top 10 things'), true);
-    assert.equal(match(['/^top \\d+/i'], 'The top 10 things'), false);
-    assert.equal(match(['/foo/'], 'FOO'), false); // no i flag: case-sensitive, as written
-    assert.equal(match(['/foo/gi'], 'foo foo'), true); // g would make test() stateful: dropped
-    const compiled = F().compileKeywords(['/foo/gi']);
-    assert.equal(F().matchesKeywords(compiled, 'foo'), true);
-    assert.equal(F().matchesKeywords(compiled, 'foo'), true, 'repeated calls give the same answer');
-    assert.equal(match(['/Creme/'], 'Crème'), true, 'a regex also sees the text without accents');
-  });
-
-  test('invalid regexes are ignored and reported, never thrown', () => {
-    const compiled = F().compileKeywords(['/(unclosed/', '/ok/', '/x/z', 'plain']);
-    assert.deepEqual(compiled.invalid.map((i) => i.raw), ['/(unclosed/', '/x/z']);
-    assert.equal(compiled.regexes.length, 1);
-    assert.deepEqual(compiled.needles, ['plain']);
-    assert.equal(F().matchesKeywords(compiled, 'an OK day'), false); // /ok/ is case-sensitive
-    assert.equal(F().matchesKeywords(compiled, 'ok'), true);
-  });
-
-  test('a lone slash or a slash-containing phrase is plain text', () => {
-    assert.equal(match(['/'], 'AC/DC live'), true);
-    assert.equal(match(['and/or'], 'this and/or that'), true);
-  });
-
-  test('blank lines and non-array input are harmless', () => {
-    assert.deepEqual(F().compileKeywords(['', '   ']).needles, []);
-    assert.deepEqual(F().compileKeywords(null).needles, []);
-    assert.deepEqual(F().compileKeywords(['  Padded  ']).needles, ['padded']);
-  });
-});
-
-describe('filters: channels', () => {
-  const F = () => AP.yt.filters;
-  const hit = (lines, channel) => F().matchesChannel(F().compileChannels(lines), channel);
-
-  test('by name (exact, ignoring case and accents), by @handle, by channel id', () => {
-    assert.equal(hit(['MrBeast'], { name: 'mrbeast' }), true);
-    assert.equal(hit(['MrBeast'], { name: 'MrBeast Gaming' }), false, 'a name is matched whole, not as a substring');
-    assert.equal(hit(['Cuisine Française'], { name: 'cuisine francaise' }), true);
-    assert.equal(hit(['@MKBHD'], { name: 'Marques', handles: ['mkbhd'] }), true);
-    assert.equal(hit(['@mkbhd'], { name: 'Marques', handles: ['other'] }), false);
-    assert.equal(hit(['UCBJycsmduvYEL83R_U4JriQ'], { name: 'x', ids: ['UCBJycsmduvYEL83R_U4JriQ'] }), true);
-    assert.equal(hit([], { name: 'x' }), false);
-  });
-
-  test('a /regex/ line applies to the name and to @handle', () => {
-    assert.equal(hit(['/^news/i'], { name: 'News Today' }), true);
-    assert.equal(hit(['/^@news/i'], { name: 'x', handles: ['newsroom'] }), true);
-    assert.equal(hit(['/^news/i'], { name: 'Daily news' }), false);
-  });
-
-  test('channelFromHref reads handles and ids from every link form', () => {
-    const c = F().channelFromHref;
-    assert.deepEqual(c('/@MrBeast'), { handle: 'mrbeast' });
-    assert.deepEqual(c('/@MrBeast/videos'), { handle: 'mrbeast' });
-    assert.deepEqual(c('https://www.youtube.com/@Gordon%20Ramsay?x=1'), { handle: 'gordon ramsay' });
-    assert.deepEqual(c('/channel/UCBJycsmduvYEL83R_U4JriQ'), { id: 'UCBJycsmduvYEL83R_U4JriQ' });
-    assert.deepEqual(c('/@%E3%81%82'), { handle: 'あ' });
-    assert.equal(c('/watch?v=abcdefghijk'), null);
-    assert.equal(c('/c/Foo'), null);
-    assert.equal(c('/@'), null);
-    assert.equal(c(null), null);
-  });
-});
 
 describe('redirect interceptor loop guard', () => {
   const memoryStorage = () => {
@@ -259,13 +173,6 @@ describe('feature registry', () => {
 
   test('layout nudge only names layout settings that exist', () => {
     for (const id of AP.yt.layoutNudge.LAYOUT_SETTINGS) assert.ok(AP.schema.get(id), id);
-  });
-
-  test('engine activity rule: a filters feature with empty lists is inactive, with a keyword it is active', () => {
-    const f = AP.yt.features.find((x) => x.id === 'filters');
-    assert.equal(AP.engine.isFeatureActive(f, { settings: { 'yt.filters.keywords': [], 'yt.filters.applyTo': ['home'] } }), false);
-    assert.equal(AP.engine.isFeatureActive(f, { settings: { 'yt.filters.keywords': ['x'] } }), true);
-    assert.equal(AP.engine.isFeatureActive(f, { settings: { 'yt.filters.keywords': ['  '], 'yt.filters.channels': [] } }), false);
   });
 });
 

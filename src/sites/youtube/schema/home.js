@@ -168,6 +168,20 @@
       since: '0.1.0',
     },
     {
+      id: 'yt.home.disableInfiniteScroll',
+      group: 'Rows on the page',
+      label: 'Stop the feed from loading more',
+      description: 'The home feed ends after the first screens.',
+      type: 'toggle',
+      default: false,
+      tags: ['recommendations'],
+      page: 'home',
+      // YouTube loads the next batch when the continuation spinner at the end of the grid scrolls into
+      // view. Hidden, it never intersects the viewport, so no more cards are fetched.
+      hide: [`${GRID} > #contents > ytd-continuation-item-renderer`],
+      since: '0.2.0',
+    },
+    {
       id: 'yt.home.hideFeedNudge',
       group: 'Rows on the page',
       label: 'Hide "Try searching to get started"',

@@ -8,6 +8,10 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 
 ## Unreleased
 
+- New: "Stop the feed from loading more" on the home page (infinite scroll off).
+- Removed: Filters (hide videos by word or channel, hide comments by word). Your saved words are ignored
+  and every other setting stays as it was.
+
 ## 0.2.0 — 2026-10-08
 
 ### Updates

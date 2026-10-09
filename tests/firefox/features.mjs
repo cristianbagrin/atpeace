@@ -3,7 +3,7 @@
 //
 // Two groups, each with its own browser (one resolves www.youtube.com to localhost, the other must not):
 //   1. OFFLINE: pages rebuilt from the Phase 1 snapshots and served by a local http server
-//      (tests/e2e/_yt-fixture.mjs): home placeholder, filters, the keyboard / hover guards.
+//      (tests/e2e/_yt-fixture.mjs): home placeholder, the keyboard / hover guards.
 //      Skipped without the snapshots (tests/e2e/artifacts/research is local only).
 //   2. LIVE youtube.com, logged out, paced (Google answers bursts with a /sorry/ captcha: a captcha skips
 //      the test): the bridge on the real data objects (guide entries, channel tabs, the buttons under the
@@ -132,23 +132,6 @@ describe('offline snapshots', { skip: HAVE ? false : 'research snapshots are abs
     await t.shot('firefox-home-placeholder');
     await t.driver.actions({ async: true }).move({ x: Math.round(info.x + 200), y: Math.round(info.y + info.h / 2) }).click().perform();
     assert.notEqual(await t.run(() => document.activeElement?.getAttribute('name')), 'search_query', 'clicking the card does not steal the focus');
-  });
-
-  test('filters: keywords hide matching results, a regex line works, an invalid one is ignored, un-matching un-marks', async () => {
-    await t.configure({});
-    await t.open(url('/results?search_query=lofi'), { fixture: true });
-    await t.configure({ 'yt.filters.keywords': ['HALLOWEEN', '/(unclosed/'] });
-    await t.until(() => t.run(() => document.querySelector('ytd-video-renderer[data-at-peace-filtered]')), 'marked cards');
-    const cards = await t.run(() => [...document.querySelectorAll('ytd-video-renderer')].map((c) => [c.querySelector('a#video-title').getAttribute('title').toLowerCase().includes('halloween'), c.hasAttribute('data-at-peace-filtered'), getComputedStyle(c).display === 'none']));
-    for (const [match, marked, hidden] of cards) {
-      assert.equal(marked, match);
-      assert.equal(hidden, match);
-    }
-    assert.ok(cards.some(([m]) => m) && cards.some(([m]) => !m));
-    await t.configure({ 'yt.filters.keywords': ['/^24\\/7/i'] });
-    await t.until(() => t.run(() => [...document.querySelectorAll('ytd-video-renderer[data-at-peace-filtered]')].every((c) => /^24\/7/i.test(c.querySelector('a#video-title').getAttribute('title'))) && document.querySelector('ytd-video-renderer[data-at-peace-filtered]')), 'regex marks');
-    await t.configure({});
-    await t.until(() => t.run(() => document.querySelectorAll('[data-at-peace-filtered]').length === 0), 'marks cleared');
   });
 
   test('Shorts links are rewritten to /watch?v=ID (and restored); the bridge announces itself in the page world', async () => {
@@ -298,29 +281,12 @@ describe('live youtube.com (logged out)', () => {
     assert.equal(await t.driver.getCurrentUrl(), 'https://www.youtube.com/feed/subscriptions');
   });
 
-  live('search: filters, Short links and a click on a Short (the in-app interceptor) in Firefox', async () => {
-    await t.configure({ 'yt.filters.keywords': ['lofi'], 'yt.shorts.mode': 'watch' });
+  live('search: Short links and a click on a Short (the in-app interceptor) in Firefox', async () => {
+    await t.configure({ 'yt.shorts.mode': 'watch' });
     await paced(SEARCH);
     await t.until(() => t.run(() => document.querySelectorAll('ytd-video-renderer').length >= 10), 'results');
-    await t.until(() => t.run(() => document.querySelector('[data-at-peace-filtered]')), 'filtered cards');
-    const wrongCards = () =>
-      t.run(() => {
-        const cards = [...document.querySelectorAll('ytd-video-renderer')].map((c) => [c.querySelector('a#video-title')?.getAttribute('title') ?? null, c.hasAttribute('data-at-peace-filtered'), getComputedStyle(c).display === 'none']);
-        return { total: cards.length, wrong: cards.filter(([title, marked, hidden]) => title !== null && (marked !== title.toLowerCase().includes('lofi') || hidden !== marked)) };
-      });
-    // (the list keeps growing for a moment while YouTube renders: judge it once the number of cards has settled)
-    let count = -1;
-    for (let stable = 0; stable < 3; ) {
-      await sleep(500);
-      const { total } = await wrongCards();
-      stable = total === count ? stable + 1 : 0;
-      count = total;
-    }
-    await t.until(async () => (await wrongCards()).wrong.length === 0, 'every card agreeing with the filter', 6000).catch(() => null);
-    const { total, wrong } = await wrongCards();
-    assert.deepEqual(wrong, [], `cards that disagree with the filter (of ${total})`);
     assert.equal(await t.run(() => document.querySelectorAll('a[href^="/shorts/"]').length), 0);
-    await t.shot('firefox-live-search-filtered');
+    await t.shot('firefox-live-search-shorts');
     const id = await t.run(() => document.querySelector('a[data-at-peace-href]')?.getAttribute('data-at-peace-href')?.split('/shorts/')[1]?.split(/[?&#]/)[0] ?? null);
     if (id) {
       await t.run(() => document.querySelector('a[data-at-peace-href]').click());

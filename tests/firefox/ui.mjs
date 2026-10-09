@@ -82,14 +82,13 @@ test('options: builds from the registry in Firefox, one working row per setting,
   assert.deepEqual(await newErrors(since), []);
 });
 
-test('options: a toggle, a select, a number and a word list save to storage; a bad value is explained, not saved', async () => {
+test('options: a toggle, a select and a number save to storage; a bad value is explained, not saved', async () => {
   await ff.setStorage({ settings: {} });
   const since = await open(OPTIONS);
   const ids = await run(() => {
     const AP = globalThis.AtPeace;
     return {
       toggle: AP.schema.byTag('shorts').find((d) => d.type === 'toggle' && !d.requires).id,
-      list: AP.schema.all().find((d) => d.id.startsWith('yt.filters.') && d.type === 'list' && !d.options).id,
     };
   });
 
@@ -123,17 +122,6 @@ test('options: a toggle, a select, a number and a word list save to storage; a b
   await css('h1').click();
   await until(async () => (await settings())['pause.breathSeconds'] === 11, { what: 'breath seconds stored', retryErrors: true });
 
-  // word list with a broken regex line, then a good one
-  const area = css(`.row[data-id="${ids.list}"] textarea`);
-  await area.sendKeys('spoiler', Key.ENTER, '/(/');
-  await until(() => run((id) => /Line 2: Not a valid regular expression/.test(document.querySelector(`.row[data-id="${id}"] .field-error`)?.textContent ?? ''), ids.list), { what: 'the regex error', retryErrors: true });
-  await sleep(900);
-  assert.equal((await settings())[ids.list], undefined);
-  await area.clear();
-  await area.sendKeys('spoiler', Key.ENTER, '/colou?r/i');
-  await css('h1').click();
-  await until(async () => JSON.stringify((await settings())[ids.list]) === '["spoiler","/colou?r/i"]', { what: 'the word list stored', retryErrors: true });
-  await shot('options-filters-dark');
   assert.deepEqual(await newErrors(since), []);
 });
 
@@ -375,13 +363,13 @@ test('popup: Edit follows the settings tab that is open (Firefox shows an extens
   await driver.switchTo().newWindow('tab');
   const popupHandle = await driver.getWindowHandle();
   await open(POPUP);
-  await css('.grp[data-section="yt.filters"] .grp-head').click();
+  await css('.grp[data-section="general"] .grp-head').click();
   const tabsBefore = (await driver.getAllWindowHandles()).length;
-  await css(`${row('yt.filters.keywords')} button.edit`).click();
+  await css(`${row('advanced.customRules')} button.edit`).click();
   // The popup would close itself; in a tab it stays, and the settings tab has moved to the row.
   await driver.switchTo().window(optionsHandle);
-  await until(() => run(() => location.hash === '#setting=yt.filters.keywords'), { what: 'the settings tab to follow', retryErrors: true });
-  await until(() => run(() => document.querySelector('.row[data-id="yt.filters.keywords"]')?.classList.contains('is-target')), { what: 'the row highlighted', retryErrors: true });
+  await until(() => run(() => location.hash === '#setting=advanced.customRules'), { what: 'the settings tab to follow', retryErrors: true });
+  await until(() => run(() => document.querySelector('.row[data-id="advanced.customRules"]')?.classList.contains('is-target')), { what: 'the row highlighted', retryErrors: true });
   assert.ok((await driver.getAllWindowHandles()).length <= tabsBefore, 'no second settings tab');
   await shot('options-at-row-from-popup');
   // The popup closes itself after "Edit" (it is a tab here, so Firefox lets it).

@@ -69,7 +69,7 @@ describe('options custom editors', () => {
   });
 
   test('the stubs other phases overwrite exist', () => {
-    for (const f of ['pause-sites.js', 'schedules.js', 'custom-rules.js', 'word-list.js']) {
+    for (const f of ['pause-sites.js', 'schedules.js', 'custom-rules.js']) {
       assert.ok(existsSync(join(ROOT, 'src/pages/options/renderers', f)), f);
     }
   });
