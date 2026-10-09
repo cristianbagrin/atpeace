@@ -8,7 +8,7 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 
 ## Unreleased
 
-- New: "Stop the feed from loading more" on the home page (infinite scroll off).
+- New: "Stop infinite scroll" on the home page (infinite scroll off).
 - New: toggles for things people hid by hand: the Subscribe button and the animated button on a video
   page, the buttons under a channel's name, its links and its awards shelf. "Hide Ask (AI)" also hides
   the ask block in the description.

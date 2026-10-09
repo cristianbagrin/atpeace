@@ -170,7 +170,7 @@
     {
       id: 'yt.home.disableInfiniteScroll',
       group: 'Rows on the page',
-      label: 'Stop the feed from loading more',
+      label: 'Stop infinite scroll',
       description: 'The home feed ends after the first screens.',
       type: 'toggle',
       default: false,
