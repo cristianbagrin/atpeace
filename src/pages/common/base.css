@@ -1,7 +1,9 @@
 /* Shared base for every At Peace page: reset, type and the Dial components (buttons, switch,
    segmented control, fields, dialog, toast). System UI type only: weight and size carry the
    hierarchy, numbers are tabular. Flat: 1px borders, no gradients, no glows; the only shadows are
-   the switch knob and the surfaces that float (dialog, toast). Visible focus everywhere. */
+   the switch knob, the chosen tile of a segmented control and the surfaces that float (dialog,
+   toast). Visible focus everywhere. Every control answers on press (pointer-down), not on release:
+   buttons sink a little, the switch knob stretches the way a finger would pull it. */
 
 *,
 *::before,
@@ -197,12 +199,17 @@ a:hover {
   font-weight: 600;
   line-height: 1.3;
   cursor: pointer;
-  transition: background-color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+  transition: background-color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease), transform var(--t-quick) var(--ease);
 }
 
 .btn:hover:not(:disabled) {
   background: var(--ground);
   border-color: var(--field-line);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+  transition-duration: 60ms;
 }
 
 .btn:disabled {
@@ -250,6 +257,12 @@ a:hover {
   text-underline-offset: 3px;
 }
 
+/* A link-like button does not move when pressed; it dims instead. */
+.btn-quiet:active:not(:disabled) {
+  transform: none;
+  opacity: 0.6;
+}
+
 .btn-quiet.btn-danger {
   color: var(--danger);
   border-color: transparent;
@@ -292,6 +305,11 @@ a.btn {
 .seg > button[aria-pressed="true"] {
   background: var(--panel);
   color: var(--act);
+  box-shadow: var(--tile-shadow);
+}
+
+.seg > button:active:not(:disabled):not([aria-pressed="true"]) {
+  background: color-mix(in srgb, var(--panel) 50%, transparent);
 }
 
 .seg > button:disabled {
@@ -331,7 +349,7 @@ input[type="checkbox"].switch::before {
   border-radius: 50%;
   background: #FFFFFF;
   box-shadow: 0 1px 2px rgb(16 18 63 / 0.25);
-  transition: transform var(--t-quick) var(--ease);
+  transition: transform var(--t-quick) var(--ease), width var(--t-quick) var(--ease);
 }
 
 input[type="checkbox"].switch:checked {
@@ -340,6 +358,15 @@ input[type="checkbox"].switch:checked {
 
 input[type="checkbox"].switch:checked::before {
   transform: translateX(14px);
+}
+
+/* Pressed, the knob stretches toward where it will go (and back from the end it sits at). */
+input[type="checkbox"].switch:active:not(:disabled)::before {
+  width: 20px;
+}
+
+input[type="checkbox"].switch:checked:active:not(:disabled)::before {
+  transform: translateX(10px);
 }
 
 input[type="checkbox"].switch:disabled {
@@ -542,6 +569,26 @@ dialog.dialog::backdrop {
   background: var(--veil);
 }
 
+/* A dialog arrives as a surface (a little scale, a fade), and its veil fades in with it. */
+dialog.dialog[open] {
+  transition: opacity var(--t-quick) var(--ease), transform var(--t-quick) var(--ease);
+}
+
+dialog.dialog[open]::backdrop {
+  transition: opacity var(--t-quick) var(--ease);
+}
+
+@starting-style {
+  dialog.dialog[open] {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  dialog.dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
+
 dialog.dialog > form {
   display: block;
 }
@@ -690,7 +737,18 @@ dialog.dialog > form {
   color: var(--danger);
 }
 
+/* More contrast asked for: panel edges become real boundaries. */
+@media (prefers-contrast: more) {
+  :root {
+    --panel-line: var(--field-line);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .btn:active:not(:disabled) {
+    transform: none;
+  }
+
   *,
   *::before,
   *::after {
@@ -699,4 +757,13 @@ dialog.dialog > form {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ------------------------------------------------------------------ press feedback on whole rows
+   A toggle row is one big target (its label stretches over it): pressing it tints the row at once,
+   before the switch flips on release. */
+
+.row.is-toggle:not(.is-disabled):active,
+.grp-head:active {
+  background: color-mix(in srgb, var(--ground) 70%, var(--panel));
 }

@@ -150,6 +150,10 @@ These need a video to actually play. Settings, **Video page**, "Playback". Turn 
    (a short flash of the first frame is fine). Press the play button or space: it plays and is not
    paused again. Open another video by clicking it: that one should start normally because you
    asked for it. Fail: `yt.watch.noAutoStart`.
+   Then turn on **Keep playing through a playlist** too and open an album or any playlist (a link with
+   `&list=`). Expect: the first video waits for you; press play, then skip to near the end. The next
+   video of the playlist starts by itself, and so do the ones after it. Open a video outside the
+   playlist: it waits again. Fail: `yt.watch.playlistAutoStart`.
 3. **Open videos in theater mode.** Open a video. Expect: the wide layout (video across the page, details
    below). Switch to the normal size yourself: it stays that way for that video. Fail:
    `yt.watch.autoTheater`.
@@ -166,6 +170,14 @@ These need a video to actually play. Settings, **Video page**, "Playback". Turn 
 7. **Turn off hover previews** (Settings, **All of YouTube**): on the home page point at a thumbnail and
    wait three seconds. Expect: no moving preview and no preview sound. The buttons that appear on a
    thumbnail (Watch later, Add to queue) still work. Fail: `yt.general.disableHoverPreview`.
+
+## 6b. Search results as a grid (1 minute)
+
+Settings, **Search results**: turn on "Show results as a grid". Search for something with a channel
+(e.g. a musician). Expect: results are cards in rows (picture on top, title and channel below, no
+description), the channel card, "Latest from" and Shorts rows span the whole width, and no card stands
+alone in a row before a full-width one. Make the window narrow: fewer cards per row, never a
+horizontal scroll. Fail: `yt.search.gridLayout`.
 
 ## 7. Ads (1 minute, only if you see ads; they often appear when signed out of Premium)
 

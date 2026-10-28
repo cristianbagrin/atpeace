@@ -21,8 +21,9 @@ anything the settings missed and keeps it hidden.
 playlists or a page of your own. Shorts can open in the normal player or be blocked. Channels can open on
 their Videos tab.
 
-**Behave.** Turn autoplay off, stop videos from starting by themselves, open videos in theater mode,
-start every video at a speed you chose, and skip "Are you still watching?".
+**Behave.** Turn autoplay off, stop videos from starting by themselves (while a playlist you started
+keeps playing, if you like), open videos in theater mode, start every video at a speed you chose, skip
+"Are you still watching?", and show search results as a grid like the home page.
 
 **Mindful Pause.** Before YouTube (or any site you add) opens, a breathing screen shows how many times
 you opened it today. Then you choose **Close** or **Continue for N minutes**. When the minutes run out

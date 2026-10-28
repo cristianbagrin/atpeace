@@ -8,6 +8,16 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 
 ## Unreleased
 
+- New: "Show results as a grid" (Search results) lays results out in rows of cards, like the home page.
+- New: "Keep playing through a playlist" (Video page, with "Do not start videos by themselves"): once
+  you press play in a playlist, the next videos start by themselves, so an album plays through.
+  Single videos still wait for you.
+- Popup and settings: controls answer the moment you press them (buttons sink a little, the switch knob
+  stretches), the chosen tab lifts off its track (in dark too), dialogs fade and scale in, and the
+  settings bar is frosted so rows scroll under it instead of being cut off. Fixed the unit next to a
+  number in the popup ("6 seconds") touching its field, and the pause-sites list now lines up with the
+  rows around it. More contrast is honoured on panel edges.
+
 ## 0.2.1 — 2026-10-09
 
 - New: "Stop infinite scroll" on the home page (infinite scroll off).

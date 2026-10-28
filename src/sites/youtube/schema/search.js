@@ -12,7 +12,42 @@
     order: 170,
   });
 
+  // Grid layout: the result lists become grids of home-style cards (picture on top, text below).
+  // Lists are the results column and the vertical list inside a "Latest from X" shelf; anything
+  // that is not a video or a playlist card (channels, shelves, Shorts rows, ads) spans the whole row.
+  const LISTS = 'ytd-search :is(ytd-item-section-renderer > #contents, ytd-vertical-list-renderer > #items)';
+  const CARDS = 'ytd-video-renderer, yt-lockup-view-model, ytd-playlist-renderer, ytd-radio-renderer';
+  const VIDEO = `${LISTS} > ytd-video-renderer`;
+  const LOCKUP = `${LISTS} > yt-lockup-view-model`;
+  const GRID_RULES = [
+    // `dense` lets the next card fill a hole left before a full-width row, so no card stands alone.
+    `:scope-on ${LISTS} { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); grid-auto-flow: row dense; gap: 24px 16px; align-items: start; }`,
+    `:scope-on ${LISTS} > :not(${CARDS}) { grid-column: 1 / -1; min-width: 0; }`,
+    `:scope-on ${LISTS} > :is(${CARDS}) { grid-column: auto; min-width: 0; margin-top: 0 !important; }`,
+    `:scope-on ${VIDEO} #dismissible { flex-direction: column !important; }`,
+    `:scope-on ${VIDEO} ytd-thumbnail.ytd-video-renderer { flex: none !important; width: 100% !important; min-width: 0 !important; max-width: none !important; margin: 0 0 12px !important; }`,
+    `:scope-on ${VIDEO} .text-wrapper { max-width: none !important; }`,
+    `:scope-on ${VIDEO} #video-title { font-size: 1.6rem !important; line-height: 2.2rem !important; max-height: 4.4rem !important; -webkit-line-clamp: 2 !important; }`,
+    `:scope-on ${VIDEO} #channel-info { padding: 4px 0 0 !important; }`,
+    // A card has no room for the description or the chapters row (home cards have neither).
+    `:scope-on ${VIDEO} :is(.metadata-snippet-container, .metadata-snippet-container-one-line, #description-text, #expandable-metadata) { display: none !important; }`,
+    `:scope-on ${LOCKUP} .ytLockupViewModelHorizontal { flex-direction: column !important; }`,
+    `:scope-on ${LOCKUP} .ytLockupViewModelContentImage { width: 100% !important; max-width: none !important; margin: 0 0 12px !important; }`,
+    `:scope-on ${LOCKUP} .ytLockupMetadataViewModelTitle { font-size: 1.6rem !important; line-height: 2.2rem !important; }`,
+  ];
+
   AP.schema.define('yt.search', [
+    {
+      id: 'yt.search.gridLayout',
+      group: 'Layout',
+      label: 'Show results as a grid',
+      description: 'Cards in rows, like the home page.',
+      type: 'toggle',
+      default: false,
+      page: 'search',
+      rules: GRID_RULES,
+      since: '0.3.0',
+    },
     {
       id: 'yt.search.hideShorts',
       group: 'Extras between results',

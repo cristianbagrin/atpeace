@@ -81,6 +81,16 @@ describe('decision functions', () => {
     assert.equal(f({ videoId: 'a', handledFor: null, intentAt: 1500, navStartedAt: 1000 }), false, 'the user pressed play after the navigation began');
     assert.equal(f({ videoId: 'a', handledFor: null, intentAt: 900, navStartedAt: 1000 }), true, 'a click before the navigation (the link that led here) is not play');
     assert.equal(f({ videoId: null, handledFor: null, intentAt: 0, navStartedAt: 0 }), false);
+    assert.equal(f({ videoId: 'b', handledFor: 'a', intentAt: 0, navStartedAt: 1000, inStartedList: true }), false, 'the next video of a playlist the user started');
+    assert.equal(f({ videoId: 'b', handledFor: 'a', intentAt: 0, navStartedAt: 1000, inStartedList: false }), true, 'a playlist the user has not started yet');
+  });
+
+  test('autoplay: the playlist a watch URL carries', () => {
+    const { listIdOf } = AP.yt.autoplay;
+    assert.equal(listIdOf('https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=OLAK5uy_kXyz-12&index=2'), 'OLAK5uy_kXyz-12');
+    assert.equal(listIdOf('/watch?v=dQw4w9WgXcQ&list=PLabc'), 'PLabc');
+    assert.equal(listIdOf('/watch?v=dQw4w9WgXcQ'), null);
+    assert.equal(listIdOf('/watch?v=dQw4w9WgXcQ&list=<x>'), null);
   });
 
   test('theater: click only a watch page that is ready and not in theater', () => {
