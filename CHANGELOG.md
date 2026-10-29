@@ -8,6 +8,10 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 
 ## Unreleased
 
+## 0.3.2 — 2026-10-29
+
+- Same as 0.3.0, as a new version number for the addons.mozilla.org listing.
+
 ## 0.3.1 — 2026-10-29
 
 - Same as 0.3.0, as the version for the public addons.mozilla.org listing (a version number can be used
