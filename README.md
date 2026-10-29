@@ -230,6 +230,7 @@ statement, what is stored and how to clear it: [PRIVACY.md](PRIVACY.md).
 - [docs/PERFORMANCE.md](docs/PERFORMANCE.md): what it costs on a page.
 - [docs/IDEAS.md](docs/IDEAS.md): what could come next.
 - [docs/RELEASING.md](docs/RELEASING.md): signing, auto-updates and how to ship a version.
+- [docs/PUBLISHING.md](docs/PUBLISHING.md): putting it on addons.mozilla.org (the public listing).
 - [CHANGELOG.md](CHANGELOG.md).
 
 ## Licence

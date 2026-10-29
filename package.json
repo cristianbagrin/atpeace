@@ -1,6 +1,6 @@
 {
   "name": "at-peace",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A calm, intentional YouTube: hide what you don't want to see and add a little friction between you and the feed.",
   "private": true,
   "license": "UNLICENSED",
@@ -19,6 +19,7 @@
     "build": "web-ext build",
     "verify:package": "npm run build --silent && node tools/verify-package.mjs",
     "sign": "web-ext sign --channel=unlisted",
+    "build:listed": "node tools/build-listed.mjs",
     "release": "node tools/release.mjs"
   },
   "devDependencies": {

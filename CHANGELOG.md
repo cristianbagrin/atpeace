@@ -8,6 +8,11 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 
 ## Unreleased
 
+## 0.3.1 — 2026-10-29
+
+- Same as 0.3.0, as the version for the public addons.mozilla.org listing (a version number can be used
+  only once across the listed and self-distributed channels).
+
 ## 0.3.0 — 2026-10-29
 
 - New: "Show results as a grid" (Search results) lays results out in rows of cards, like the home page.
