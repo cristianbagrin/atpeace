@@ -46,6 +46,8 @@ From then on Zen checks for updates itself, about once a day. To check now: `abo
 
 ## Shipping an update (what Claude does)
 
+After each release Claude also gives the user the built zip and the version notes (see `CLAUDE.md`), so the user can upload it to the store.
+
 1. Make the change. Add a line about it under `## Unreleased` in `CHANGELOG.md` (the release is refused without one). Commit.
 2. `npm run release -- patch`. Use `minor` for new settings or features, `major` for a break, or an exact `x.y.z`. It refuses on a dirty tree, runs lint, unit tests and `verify:package`, raises the version in `manifest.json`, `package.json` and `package-lock.json`, turns `Unreleased` into `## x.y.z — date`, and makes the commit `Release x.y.z`. It pushes nothing. `-- patch --dry-run` shows what it would do without changing anything.
 3. `git push`. That publishes it, fully automatic: **Release** (github.com/cristianbagrin/at-peace, **Actions**) sees that `manifest.json` holds a version that the public `updates.json` does not list yet, set by a `Release x.y.z` commit, and takes a few minutes:
