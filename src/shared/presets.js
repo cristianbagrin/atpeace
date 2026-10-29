@@ -33,7 +33,7 @@
     {
       id: 'gentle',
       name: 'Gentle',
-      description: 'Ads, Shorts and AI extras go. Your feeds stay.',
+      description: 'Promotions, Shorts and AI extras go. Your feeds stay.',
       tags: ['ads', 'shorts', 'ai'],
       set: {
         // Shorts everywhere is hidden, but a shared Shorts link still opens in the normal player.

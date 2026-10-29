@@ -27,10 +27,10 @@ const loosens = (id, a, b) => L.isLoosening(def(id), a, b);
 
 describe('isLoosening: toggles', () => {
   test('on → off loosens, off → on does not, no change does not', () => {
-    assert.equal(loosens('yt.general.hideAds', true, false), true);
-    assert.equal(loosens('yt.general.hideAds', false, true), false);
-    assert.equal(loosens('yt.general.hideAds', true, true), false);
-    assert.equal(loosens('yt.general.hideAds', false, false), false);
+    assert.equal(loosens('yt.general.hidePremiumUpsells', true, false), true);
+    assert.equal(loosens('yt.general.hidePremiumUpsells', false, true), false);
+    assert.equal(loosens('yt.general.hidePremiumUpsells', true, true), false);
+    assert.equal(loosens('yt.general.hidePremiumUpsells', false, false), false);
   });
 
   test('the master switch, the pause and "no early exit" follow the same rule', () => {
@@ -254,24 +254,24 @@ describe('guardPatch', () => {
   const NOW = 1_000_000;
 
   test('does nothing when there is no lock', () => {
-    assert.deepEqual(L.guardPatch({ 'yt.general.hideAds': false }, { 'yt.general.hideAds': true }, { mode: 'none', unlockedUntil: 0 }, NOW), { allowed: true, blocked: [] });
+    assert.deepEqual(L.guardPatch({ 'yt.general.hidePremiumUpsells': false }, { 'yt.general.hidePremiumUpsells': true }, { mode: 'none', unlockedUntil: 0 }, NOW), { allowed: true, blocked: [] });
     assert.deepEqual(L.guardPatch({ 'general.enabled': false }, {}, undefined, NOW), { allowed: true, blocked: [] });
   });
 
   test('refuses loosening patches while locked and names every refused id', () => {
-    const current = { 'yt.general.hideAds': true, 'yt.comments.hideAll': true, 'yt.general.thumbnails': 'blur' };
-    const verdict = L.guardPatch({ 'yt.general.hideAds': false, 'yt.comments.hideAll': false, 'yt.general.thumbnails': 'hide' }, current, locked, NOW);
-    assert.deepEqual(verdict, { allowed: false, blocked: ['yt.general.hideAds', 'yt.comments.hideAll'] });
+    const current = { 'yt.general.hidePremiumUpsells': true, 'yt.comments.hideAll': true, 'yt.general.thumbnails': 'blur' };
+    const verdict = L.guardPatch({ 'yt.general.hidePremiumUpsells': false, 'yt.comments.hideAll': false, 'yt.general.thumbnails': 'hide' }, current, locked, NOW);
+    assert.deepEqual(verdict, { allowed: false, blocked: ['yt.general.hidePremiumUpsells', 'yt.comments.hideAll'] });
   });
 
   test('allows tightening patches while locked', () => {
-    const patch = { 'yt.general.hideAds': true, 'yt.general.thumbnails': 'blur', 'yt.shorts.mode': 'block', 'pause.enabled': true, 'focus.dailyMinutes': 30 };
+    const patch = { 'yt.general.hidePremiumUpsells': true, 'yt.general.thumbnails': 'blur', 'yt.shorts.mode': 'block', 'pause.enabled': true, 'focus.dailyMinutes': 30 };
     assert.deepEqual(L.guardPatch(patch, {}, locked, NOW), { allowed: true, blocked: [] });
   });
 
   test('a missing current value counts as the default', () => {
     assert.deepEqual(L.guardPatch({ 'general.enabled': false }, {}, locked, NOW).blocked, ['general.enabled'], 'default is on, so off loosens');
-    assert.deepEqual(L.guardPatch({ 'yt.general.hideAds': false }, {}, locked, NOW).allowed, true, 'default is off: nothing changes');
+    assert.deepEqual(L.guardPatch({ 'yt.general.hidePremiumUpsells': false }, {}, locked, NOW).allowed, true, 'default is off: nothing changes');
   });
 
   test('an unlock that is still running lets everything through; an expired one does not', () => {
@@ -282,7 +282,7 @@ describe('guardPatch', () => {
   });
 
   test('unknown ids and unusable values are left to save() (it drops or reports them)', () => {
-    assert.deepEqual(L.guardPatch({ 'nope.nothing': 1, 'yt.general.hideAds': 'yes' }, { 'yt.general.hideAds': true }, locked, NOW), { allowed: true, blocked: [] });
+    assert.deepEqual(L.guardPatch({ 'nope.nothing': 1, 'yt.general.hidePremiumUpsells': 'yes' }, { 'yt.general.hidePremiumUpsells': true }, locked, NOW), { allowed: true, blocked: [] });
     assert.deepEqual(L.guardPatch(null, {}, locked, NOW), { allowed: true, blocked: [] });
   });
 
@@ -321,8 +321,8 @@ describe('guardPatch', () => {
   });
 
   test('presetPatch covers exactly the settings presets may touch (not theme, schedules, the lock…)', () => {
-    const patch = L.presetPatch({ 'yt.general.hideAds': true });
-    assert.equal(patch['yt.general.hideAds'], true);
+    const patch = L.presetPatch({ 'yt.general.hidePremiumUpsells': true });
+    assert.equal(patch['yt.general.hidePremiumUpsells'], true);
     assert.equal(patch['yt.guide.hideFooter'], false);
     for (const id of ['general.theme', 'focus.schedules', 'advanced.lock', 'pause.breathSeconds', 'advanced.customRules']) assert.equal(id in patch, false, id);
   });
@@ -426,25 +426,25 @@ describe('guarded wrappers around AP.settings', () => {
   const stored = async () => (await fake.storage.local.get('settings')).settings ?? {};
 
   test('save: tightening goes through while locked, loosening is refused and nothing is written', async () => {
-    await fake.storage.local.set({ settings: { 'yt.general.hideAds': true } });
+    await fake.storage.local.set({ settings: { 'yt.general.hidePremiumUpsells': true } });
     await lockIn({ mode: 'friction', waitSeconds: 60 });
     const ok = await L.save({ 'yt.comments.hideAll': true });
     assert.equal(ok.ok, true);
     assert.deepEqual(ok.report.changed, ['yt.comments.hideAll']);
-    const refused = await L.save({ 'yt.general.hideAds': false, 'yt.guide.hideFooter': true });
-    assert.deepEqual(refused, { ok: false, blocked: ['yt.general.hideAds'], report: null });
+    const refused = await L.save({ 'yt.general.hidePremiumUpsells': false, 'yt.guide.hideFooter': true });
+    assert.deepEqual(refused, { ok: false, blocked: ['yt.general.hidePremiumUpsells'], report: null });
     const now = await stored();
-    assert.equal(now['yt.general.hideAds'], true);
+    assert.equal(now['yt.general.hidePremiumUpsells'], true);
     assert.equal(now['yt.guide.hideFooter'], undefined, 'a patch is all or nothing');
   });
 
   test('save: allowed once unlocked, and again refused when the unlock has run out', async () => {
-    await fake.storage.local.set({ settings: { 'yt.general.hideAds': true } });
+    await fake.storage.local.set({ settings: { 'yt.general.hidePremiumUpsells': true } });
     await lockIn({ mode: 'friction' }, Date.now() + 60_000);
-    assert.equal((await L.save({ 'yt.general.hideAds': false })).ok, true);
-    await L.save({ 'yt.general.hideAds': true });
+    assert.equal((await L.save({ 'yt.general.hidePremiumUpsells': false })).ok, true);
+    await L.save({ 'yt.general.hidePremiumUpsells': true });
     await lockIn({ mode: 'friction' }, Date.now() - 1);
-    assert.equal((await L.save({ 'yt.general.hideAds': false })).ok, false);
+    assert.equal((await L.save({ 'yt.general.hidePremiumUpsells': false })).ok, false);
   });
 
   test('applyPreset: refused when it would loosen, allowed from a quieter state; unknown presets say so', async () => {
@@ -462,35 +462,35 @@ describe('guarded wrappers around AP.settings', () => {
   });
 
   test('reset: a full reset needs an unlock; resetting ids is judged like a patch of defaults', async () => {
-    await fake.storage.local.set({ settings: { 'yt.general.hideAds': true, 'general.theme': 'dark' } });
+    await fake.storage.local.set({ settings: { 'yt.general.hidePremiumUpsells': true, 'general.theme': 'dark' } });
     await lockIn({ mode: 'friction' });
     assert.deepEqual(await L.reset(), { ok: false, changed: [], error: 'locked' });
-    const some = await L.reset(['yt.general.hideAds']);
+    const some = await L.reset(['yt.general.hidePremiumUpsells']);
     assert.equal(some.ok, false);
-    assert.deepEqual(some.blocked, ['yt.general.hideAds']);
+    assert.deepEqual(some.blocked, ['yt.general.hidePremiumUpsells']);
     assert.equal((await L.reset(['general.theme'])).ok, true, 'the theme is cosmetic');
     await lockIn({ mode: 'friction' }, Date.now() + 60_000);
     const done = await L.reset();
     assert.equal(done.ok, true);
-    assert.ok(done.changed.includes('yt.general.hideAds'));
+    assert.ok(done.changed.includes('yt.general.hidePremiumUpsells'));
     assert.deepEqual((await stored())['advanced.lock'], { mode: 'friction' }, 'the lock survives a reset');
   });
 
   test('importAll: refused while locked, runs once unlocked', async () => {
-    const backup = JSON.stringify({ app: 'at-peace', schemaVersion: 1, settings: { 'yt.general.hideAds': true } });
+    const backup = JSON.stringify({ app: 'at-peace', schemaVersion: 1, settings: { 'yt.general.hidePremiumUpsells': true } });
     await lockIn({ mode: 'friction' });
     const refused = await L.importAll(backup);
     assert.equal(refused.ok, false);
     assert.equal(refused.error, 'locked');
-    assert.equal((await stored())['yt.general.hideAds'], undefined);
+    assert.equal((await stored())['yt.general.hidePremiumUpsells'], undefined);
     await lockIn({ mode: 'friction' }, Date.now() + 60_000);
     assert.equal((await L.importAll(backup)).ok, true);
-    assert.equal((await stored())['yt.general.hideAds'], true);
+    assert.equal((await stored())['yt.general.hidePremiumUpsells'], true);
   });
 
   test('with no lock everything simply passes through', async () => {
-    assert.equal((await L.save({ 'yt.general.hideAds': true })).ok, true);
-    assert.equal((await L.save({ 'yt.general.hideAds': false })).ok, true);
+    assert.equal((await L.save({ 'yt.general.hidePremiumUpsells': true })).ok, true);
+    assert.equal((await L.save({ 'yt.general.hidePremiumUpsells': false })).ok, true);
     assert.equal((await L.reset()).ok, true);
   });
 

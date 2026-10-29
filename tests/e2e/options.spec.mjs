@@ -371,7 +371,7 @@ test('presets: new from current settings, update, rename, delete with undo', asy
 
 test('presets: while locked, a preset that would show something again asks for the unlock; one that only hides more does not', async () => {
   const lock = { mode: 'friction', waitSeconds: 10 };
-  const page = await openOptions({ seed: { settings: { 'advanced.lock': lock, 'yt.general.hideAds': true, 'yt.comments.hideAll': true, 'yt.home.feedMode': 'hide' } } });
+  const page = await openOptions({ seed: { settings: { 'advanced.lock': lock, 'yt.general.hidePremiumUpsells': true, 'yt.comments.hideAll': true, 'yt.home.feedMode': 'hide' } } });
   // "Untouched" shows everything again: refused with the unlock dialog; cancelling leaves things as they are.
   await presetRow(page, 'Untouched').getByRole('button', { name: 'Apply Untouched' }).click();
   await confirmDialog(page).click(); // the settings are a hand-made mix: the question first
@@ -400,7 +400,7 @@ test('presets section screenshot', async () => {
 });
 
 test('backup: export, reset, import restores the settings and presets; the report is shown', async () => {
-  const page = await openOptions({ seed: { settings: { 'yt.general.hideAds': true, 'yt.comments.hideAll': true, 'pause.enabled': true, 'pause.breathSeconds': 9, 'general.theme': 'dark' } } });
+  const page = await openOptions({ seed: { settings: { 'yt.general.hidePremiumUpsells': true, 'yt.comments.hideAll': true, 'pause.enabled': true, 'pause.breathSeconds': 9, 'general.theme': 'dark' } } });
   await page.evaluate(() => globalThis.AtPeace.settings.saveCustomPreset('Mine', { 'yt.general.grayscale': true }));
   const before = await settings();
 
@@ -411,7 +411,7 @@ test('backup: export, reset, import restores the settings and presets; the repor
   await download.saveAs(file);
   const exported = JSON.parse(readFileSync(file, 'utf8'));
   assert.equal(exported.app, 'at-peace');
-  assert.equal(exported.settings['yt.general.hideAds'], true);
+  assert.equal(exported.settings['yt.general.hidePremiumUpsells'], true);
   assert.equal(exported.customPresets.length, 1);
 
   // Reset all: asks first.
@@ -424,7 +424,7 @@ test('backup: export, reset, import restores the settings and presets; the repor
   await pageUntil(page, async () => Object.keys((await chrome.storage.local.get('settings')).settings ?? {}).length === 0);
   assert.equal((await getStorage('customPresets')).customPresets.length, 1, 'presets survive a reset');
   await page.waitForFunction(() => document.documentElement.dataset.theme === 'light'); // the theme went back to the default
-  await page.waitForFunction(() => !document.querySelector('.row[data-id="yt.general.hideAds"] input.switch').checked);
+  await page.waitForFunction(() => !document.querySelector('.row[data-id="yt.general.hidePremiumUpsells"] input.switch').checked);
 
   // Import the file back.
   await page.setInputFiles('.backup input[type="file"]', file);
@@ -433,7 +433,7 @@ test('backup: export, reset, import restores the settings and presets; the repor
   await page.waitForSelector('.report:not([hidden])');
   assert.match(await page.locator('.report-head').textContent(), /^Imported \d+ settings?\.$/);
   assert.deepEqual(await settings(), before);
-  await page.waitForFunction(() => document.querySelector('.row[data-id="yt.general.hideAds"] input.switch').checked);
+  await page.waitForFunction(() => document.querySelector('.row[data-id="yt.general.hidePremiumUpsells"] input.switch').checked);
   await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
 
   // A file that is not a backup is refused with a reason, and changes nothing.
@@ -592,7 +592,7 @@ test('keyboard: the table of contents, search and a switch can be used without a
 
 test('screenshots: light and dark, top / a long section / search', async () => {
   for (const theme of ['light', 'dark']) {
-    const page = await openOptions({ seed: { settings: { 'general.theme': theme, 'yt.general.hideAds': true, 'yt.comments.hideAll': true, 'yt.shorts.mode': 'watch' } } });
+    const page = await openOptions({ seed: { settings: { 'general.theme': theme, 'yt.general.hidePremiumUpsells': true, 'yt.comments.hideAll': true, 'yt.shorts.mode': 'watch' } } });
     await page.screenshot({ path: join(SHOTS, `options-top-${theme}.png`) });
 
     await page.locator('#show-advanced').check();

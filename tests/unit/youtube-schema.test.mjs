@@ -8,14 +8,14 @@ import { loadAtPeace, installFakeBrowser, uninstallFakeBrowser, CORE_SCRIPTS, SC
 
 /** Every YouTube setting that must exist: section → ids without the "yt.<section>." prefix. Keep in sync on purpose. */
 const EXPECTED = {
-  general: ['grayscale', 'thumbnails', 'thumbnailFrame', 'disableHoverPreview', 'hideViewCounts', 'hideUploadDates', 'hideDurations', 'hideChannelAvatars', 'hideBadges', 'hideWatchedProgress', 'hideWatched', 'hideAds', 'hidePremiumUpsells', 'hideMixes', 'hidePlayables'],
-  masthead: ['hideSearchSuggestions', 'hideSearchHistory', 'hideVoiceSearch', 'hideSearchBar', 'hideCreate', 'hideNotifications', 'hideGuideButton', 'hideAICompanion', 'hideCountryCode', 'hideDoodle', 'hideMastheadAd'],
+  general: ['grayscale', 'thumbnails', 'thumbnailFrame', 'disableHoverPreview', 'hideViewCounts', 'hideUploadDates', 'hideDurations', 'hideChannelAvatars', 'hideBadges', 'hideWatchedProgress', 'hideWatched', 'hidePremiumUpsells', 'hideMixes', 'hidePlayables'],
+  masthead: ['hideSearchSuggestions', 'hideSearchHistory', 'hideVoiceSearch', 'hideSearchBar', 'hideCreate', 'hideNotifications', 'hideGuideButton', 'hideAICompanion', 'hideCountryCode', 'hideDoodle'],
   guide: ['hideAll', 'hideMini', 'hideHome', 'hideShorts', 'hideSubscriptionsEntry', 'hideYouEntry', 'hideHistory', 'hidePlaylists', 'hideYourVideos', 'hideWatchLater', 'hideLiked', 'hideDownloads', 'hideCourses', 'hideSubscriptionsSection', 'hideExploreSection', 'hideMoreFromYouTube', 'hideSettingsSection', 'hideFooter', 'hideSignInPromo'],
   home: ['feedMode', 'redirectUrl', 'hideChips', 'hideShortsShelf', 'hideNewsShelf', 'hidePostsShelf', 'hideOtherShelves', 'disableInfiniteScroll', 'hideFeedNudge'],
-  watch: ['hideRelated', 'hideRelatedShorts', 'hideRelatedChips', 'hideLiveChat', 'hidePlayerAds', 'hideShoppingShelf', 'hideMerch', 'hideTickets', 'hideFundraiser', 'hideHashtags', 'hideOwnerAvatar', 'hideSubscriberCount', 'hideSubscribe', 'hideJoinButton', 'hideLikeCounts', 'hideLikeButtons', 'hideShare', 'hideDownload', 'hideClip', 'hideThanks', 'hideSave', 'hideAsk', 'hideAnimatedButton', 'hideMoreActions', 'hideViewCount', 'hideUploadDate', 'hideDescription', 'hideAISummary', 'hideChapters', 'hideDescriptionExtras', 'hideInfoPanels', 'hideAmbientMode', 'disableAutoplay', 'noAutoStart', 'autoTheater', 'defaultSpeed', 'dismissStillWatching'],
+  watch: ['hideRelated', 'hideRelatedShorts', 'hideRelatedChips', 'hideLiveChat', 'hideShoppingShelf', 'hideMerch', 'hideTickets', 'hideFundraiser', 'hideHashtags', 'hideOwnerAvatar', 'hideSubscriberCount', 'hideSubscribe', 'hideJoinButton', 'hideLikeCounts', 'hideLikeButtons', 'hideShare', 'hideDownload', 'hideClip', 'hideThanks', 'hideSave', 'hideAsk', 'hideAnimatedButton', 'hideMoreActions', 'hideViewCount', 'hideUploadDate', 'hideDescription', 'hideAISummary', 'hideChapters', 'hideDescriptionExtras', 'hideInfoPanels', 'hideAmbientMode', 'disableAutoplay', 'noAutoStart', 'autoTheater', 'defaultSpeed', 'dismissStillWatching'],
   player: ['hideEndscreenCards', 'hideEndscreenWall', 'hideInfoCards', 'hidePauseOverlay', 'hideWatermark', 'hidePaidPromotion', 'hideAutoplayToggle', 'hideNextButton', 'hideMiniplayerButton', 'hideCastButton', 'hideSubtitlesButton', 'hideChapterTitle', 'hideProgressPreviews'],
   comments: ['hideAll', 'hideTeaser', 'hideCount', 'hideAvatars', 'hideLikeCounts', 'hideReplies', 'hideCreatorHearts'],
-  search: ['hideShorts', 'hideShelves', 'hideRelatedSearches', 'hideAds', 'hideAISummary', 'hideChannelResults', 'hideSnippets', 'hideFilterChips'],
+  search: ['hideShorts', 'hideShelves', 'hideRelatedSearches', 'hideAISummary', 'hideChannelResults', 'hideSnippets', 'hideFilterChips'],
   shorts: ['mode', 'hideComments', 'hideLikeCounts', 'hideRemix', 'hideSubscribe'],
   subs: ['hideShorts', 'hidePosts', 'hideLive', 'hideUpcoming', 'hideWatched'],
   channel: ['openVideosTab', 'hideTrailer', 'hideHomeShelves', 'hideRowShorts', 'hideRowPosts', 'hideRowMembers', 'hideRowLive', 'hideRowPopular', 'hideRowPlaylists', 'hideRowChannels', 'hideBanner', 'hideHeaderButtons', 'hideLinks', 'hideAwards', 'hideJoinButton', 'hideSubscriberCount', 'hideShortsTab', 'hideLiveTab', 'hidePodcastsTab', 'hidePlaylistsTab', 'hidePostsTab', 'hideStoreTab', 'hideShowsTab', 'hideCoursesTab', 'hideMembersTab', 'hideReleasesTab'],
@@ -151,12 +151,14 @@ describe('catalog shape', () => {
     assert.equal(S.bulkValue(S.get('yt.home.feedMode')), 'hide');
     assert.equal(S.bulkValue(S.get('yt.general.thumbnails')), 'blur');
     assert.equal(S.bulkValue(S.get('yt.shorts.mode')), 'block');
-    for (const tag of ['shorts', 'ads', 'ai', 'comments', 'metrics', 'recommendations', 'clutter']) {
+    for (const tag of ['shorts', 'ai', 'comments', 'metrics', 'recommendations', 'clutter']) {
       assert.ok(S.byTag(tag).length >= 3, `tag ${tag} has settings`);
     }
     // Shorts that are allowed are not hidden by the "comments"/"shorts" tags accidentally: only shorts.mode carries the select.
     assert.deepEqual(S.byTag('shorts').filter((d) => d.type === 'select').map((d) => d.id), ['yt.shorts.mode']);
-    assert.ok(S.byTag('ads').length >= 5 && S.byTag('ai').length >= 4);
+    assert.ok(S.byTag('ads').length >= 1 && S.byTag('ai').length >= 4);
+    // Nothing hides ads: CSS-hidden ad slots trip YouTube's ad-blocker wall (schema/general.js).
+    assert.deepEqual(S.byTag('ads').map((d) => d.id), ['yt.general.hidePremiumUpsells']);
   });
 
   test('every preset id (Gentle, Focused, Deep work) resolves against this catalog', () => {

@@ -8,6 +8,13 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 
 ## Unreleased
 
+- Fixed: YouTube's "Ad blockers violate YouTube's Terms of Service" wall, which blocked playback. It was
+  set off by At Peace hiding ad slots with CSS: YouTube checks that the ads it served were shown.
+- Removed: the four "hide ads" toggles (ad slots and sponsored cards, ad panels beside the video,
+  sponsored search results, the banner ad). Leave ads to a real ad blocker such as uBlock Origin, which
+  stops them before YouTube serves them and does not trip the wall. Their saved values are ignored.
+- "Hide Premium and Music promotions" now also hides YouTube's own promo banners on the home page.
+
 ## 0.2.1 — 2026-10-09
 
 - New: "Stop infinite scroll" on the home page (infinite scroll off).

@@ -234,7 +234,7 @@ test('All: every YouTube section is a group, the first open; the header says how
   assert.equal(await group(page, 'yt.general').locator('.grp-count').textContent(), '0 hidden');
 
   // What is set shows in the header count.
-  await setStorage({ settings: { 'yt.general.grayscale': true, 'yt.general.hideAds': true, 'yt.comments.hideAll': true } });
+  await setStorage({ settings: { 'yt.general.grayscale': true, 'yt.general.hidePremiumUpsells': true, 'yt.comments.hideAll': true } });
   await page.waitForFunction(() => document.querySelector('.grp[data-section="yt.general"] .grp-count').textContent === '2 hidden');
   assert.equal(await group(page, 'yt.comments').locator('.grp-count').textContent(), '1 hidden');
   assert.equal(await group(page, 'general').locator('.grp-count').textContent(), '', 'General has no count');
@@ -564,11 +564,11 @@ test('presets: save as new with an inline name field (no browser prompt), apply 
   await page.waitForFunction((id) => document.querySelector('#preset-select').value === id, saved.id);
 
   // Change something: the menu offers to update the preset that was saved last.
-  await row(page, 'yt.general.hideAds').locator('.row-label').click();
+  await row(page, 'yt.general.hidePremiumUpsells').locator('.row-label').click();
   await page.waitForFunction(() => document.querySelector('#preset-select').value === '');
   assert.equal(await page.locator('#preset-select option[value="::update"]').textContent(), 'Update “Evening”');
   await page.locator('#preset-select').selectOption('::update');
-  await pageUntil(page, async () => (await chrome.storage.local.get('customPresets')).customPresets?.[0]?.values?.['yt.general.hideAds'] === true);
+  await pageUntil(page, async () => (await chrome.storage.local.get('customPresets')).customPresets?.[0]?.values?.['yt.general.hidePremiumUpsells'] === true);
   assert.equal((await customPresets())[0].id, saved.id, 'the same preset, new values');
   await page.waitForFunction((id) => document.querySelector('#preset-select').value === id, saved.id);
   assert.equal(await page.locator('#preset-select option[value="::update"]').count(), 0, 'nothing left to update');
@@ -851,7 +851,7 @@ test('shortcuts in the tooltips: Mac glyphs on a Mac, the assigned keys everywhe
 });
 
 test('no tab renders a bare "true", "false", "null" or "undefined" as text (a boolean handed to replaceChildren would)', async () => {
-  const page = await openPopup({ seed: { settings: { 'advanced.lock': { mode: 'friction', waitSeconds: 10 }, 'yt.general.hideAds': true }, customPresets: [{ id: 'preset_a', name: 'A', values: {}, createdAt: 1 }] }, activeUrl: 'https://www.youtube.com/watch?v=abc' });
+  const page = await openPopup({ seed: { settings: { 'advanced.lock': { mode: 'friction', waitSeconds: 10 }, 'yt.general.hidePremiumUpsells': true }, customPresets: [{ id: 'preset_a', name: 'A', values: {}, createdAt: 1 }] }, activeUrl: 'https://www.youtube.com/watch?v=abc' });
   const bare = () =>
     page.evaluate(() => {
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -984,7 +984,7 @@ test('screenshots: each tab, light and dark (to tests/e2e/artifacts/round1/7a/)'
   for (const theme of ['light', 'dark']) {
     await evalInExtension(() => chrome.storage.local.clear());
     await setStorage({
-      settings: { 'general.theme': theme, 'yt.general.hideAds': true, 'yt.general.grayscale': true, 'yt.shorts.mode': 'block', 'yt.watch.hideRelated': true, 'yt.comments.hideAll': true, 'focus.unlockFriction': 'none', 'pause.enabled': true },
+      settings: { 'general.theme': theme, 'yt.general.hidePremiumUpsells': true, 'yt.general.grayscale': true, 'yt.shorts.mode': 'block', 'yt.watch.hideRelated': true, 'yt.comments.hideAll': true, 'focus.unlockFriction': 'none', 'pause.enabled': true },
       customPresets: [{ id: 'preset_evening', name: 'Evening', values: { 'yt.general.grayscale': true }, createdAt: 1 }],
       stats: { [todayKey()]: { youtube: { activeSec: 25 * 60, opens: 6, turnedBack: 2, continued: 4, blockedHits: 0 } } },
     });

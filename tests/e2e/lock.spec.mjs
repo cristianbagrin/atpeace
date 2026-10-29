@@ -15,7 +15,7 @@ const OPTIONS = 'src/pages/options/options.html';
 const POPUP = 'src/pages/popup/popup.html';
 const BLOCKED = 'src/pages/blocked/blocked.html';
 const PASSWORD = 'correct horse';
-const HIDE_ADS = 'yt.general.hideAds';
+const HIDE_PROMOS = 'yt.general.hidePremiumUpsells';
 const HIDE_COMMENTS = 'yt.comments.hideAll';
 
 before(async () => {
@@ -71,7 +71,7 @@ const theme = (name) => ({ 'general.theme': name });
 // ---------------------------------------------------------------------------------------------
 
 test('options: set a password lock, loosening is refused calmly, tightening is not, unlock, loosen, relock', async () => {
-  const page = await openOptions({ seed: { settings: { [HIDE_ADS]: true } }, hash: '#section=advanced' });
+  const page = await openOptions({ seed: { settings: { [HIDE_PROMOS]: true } }, hash: '#section=advanced' });
   assert.equal(await lockBar(page).isHidden(), true, 'no lock yet: no bar');
 
   // --- set up (screenshots: the setup renderer) ---
@@ -107,13 +107,13 @@ test('options: set a password lock, loosening is refused calmly, tightening is n
   assert.equal(await unlockedUntil(), 0);
 
   // --- loosening is refused: the switch goes back, a calm note appears ---
-  await flip(page, HIDE_ADS);
-  const note = row(page, HIDE_ADS).locator('.row-lock');
+  await flip(page, HIDE_PROMOS);
+  const note = row(page, HIDE_PROMOS).locator('.row-lock');
   await note.waitFor();
   assert.match(await note.textContent(), /^Locked\./);
-  assert.equal(await switchOf(page, HIDE_ADS).isChecked(), true, 'the switch is back where it was');
-  assert.equal((await stored())[HIDE_ADS], true, 'nothing changed in storage');
-  assert.equal(await row(page, HIDE_ADS).locator('.row-error').isHidden(), true, 'not an error, a note');
+  assert.equal(await switchOf(page, HIDE_PROMOS).isChecked(), true, 'the switch is back where it was');
+  assert.equal((await stored())[HIDE_PROMOS], true, 'nothing changed in storage');
+  assert.equal(await row(page, HIDE_PROMOS).locator('.row-error').isHidden(), true, 'not an error, a note');
 
   // --- tightening is not ---
   await flip(page, HIDE_COMMENTS);
@@ -141,8 +141,8 @@ test('options: set a password lock, loosening is refused calmly, tightening is n
   assert.equal(await note.isHidden(), true, 'the note goes away with the lock');
 
   // --- unlocked: loosening works ---
-  await flip(page, HIDE_ADS);
-  await until(async () => (await stored())[HIDE_ADS] === false);
+  await flip(page, HIDE_PROMOS);
+  await until(async () => (await stored())[HIDE_PROMOS] === false);
   await page.screenshot({ path: join(SHOTS, 'options-unlocked-light.png') });
 
   // --- lock now ---
@@ -158,7 +158,7 @@ test('options: set a password lock, loosening is refused calmly, tightening is n
 
 test('options: the lock itself cannot be changed or removed without an unlock; removing it frees everything', async () => {
   const lock = await passwordLock();
-  const page = await openOptions({ seed: { settings: { 'advanced.lock': lock, [HIDE_ADS]: true } }, hash: '#section=advanced' });
+  const page = await openOptions({ seed: { settings: { 'advanced.lock': lock, [HIDE_PROMOS]: true } }, hash: '#section=advanced' });
   const lockRow = row(page, 'advanced.lock');
   await lockRow.scrollIntoViewIfNeeded();
   assert.match(await lockRow.locator('.lock-state').textContent(), /Locked with a password/);
@@ -179,14 +179,14 @@ test('options: the lock itself cannot be changed or removed without an unlock; r
   await until(async () => (await stored())['advanced.lock']?.mode === 'none');
   await lockRow.getByRole('button', { name: 'Turn on the lock' }).waitFor();
   await lockBar(page).waitFor({ state: 'hidden' });
-  await flip(page, HIDE_ADS); // no lock: free
-  await until(async () => (await stored())[HIDE_ADS] === false);
+  await flip(page, HIDE_PROMOS); // no lock: free
+  await until(async () => (await stored())[HIDE_PROMOS] === false);
   assert.deepEqual(page.errors, []);
   await page.close();
 });
 
 test('options: friction lock set up with a wait of 10 seconds; unlocking waits, then asks for the sentence', async () => {
-  const page = await openOptions({ seed: { settings: { [HIDE_ADS]: true } }, hash: '#section=advanced' });
+  const page = await openOptions({ seed: { settings: { [HIDE_PROMOS]: true } }, hash: '#section=advanced' });
   const lockRow = row(page, 'advanced.lock');
   await lockRow.locator('label.lock-choice', { hasText: 'A moment of friction' }).click();
   await lockRow.locator('#lock-wait').fill('3');
@@ -200,9 +200,9 @@ test('options: friction lock set up with a wait of 10 seconds; unlocking waits, 
 
   // a fresh page with a controllable clock: the wait is 10 s, we do not sit through it
   const p2 = await openOptions({ clock: true, hash: '#section=advanced' });
-  await flip(p2, HIDE_ADS);
-  await row(p2, HIDE_ADS).locator('.row-lock').waitFor();
-  await row(p2, HIDE_ADS).getByRole('button', { name: 'Unlock…' }).click();
+  await flip(p2, HIDE_PROMOS);
+  await row(p2, HIDE_PROMOS).locator('.row-lock').waitFor();
+  await row(p2, HIDE_PROMOS).getByRole('button', { name: 'Unlock…' }).click();
   await dialog(p2).waitFor();
   const sentence = (await dialog(p2).locator('.unlock-sentence').textContent()).trim();
   assert.ok(sentence.endsWith('.') && sentence.length > 15);
@@ -224,8 +224,8 @@ test('options: friction lock set up with a wait of 10 seconds; unlocking waits, 
   await dialog(p2).getByRole('button', { name: 'Unlock', exact: true }).click();
   await dialog(p2).waitFor({ state: 'detached' });
   assert.ok((await unlockedUntil()) > Date.now());
-  await flip(p2, HIDE_ADS);
-  await until(async () => (await stored())[HIDE_ADS] === false);
+  await flip(p2, HIDE_PROMOS);
+  await until(async () => (await stored())[HIDE_PROMOS] === false);
   assert.deepEqual(p2.errors, []);
   await p2.close();
 });
@@ -247,13 +247,13 @@ test('options: a preset that would show things again needs the unlock; one that 
 });
 
 test('options: import and reset ask for the unlock while locked', async () => {
-  const page = await openOptions({ seed: { settings: { 'advanced.lock': { mode: 'friction', waitSeconds: 10 }, [HIDE_ADS]: true } }, hash: '#section=backup' });
+  const page = await openOptions({ seed: { settings: { 'advanced.lock': { mode: 'friction', waitSeconds: 10 }, [HIDE_PROMOS]: true } }, hash: '#section=backup' });
   await page.getByRole('button', { name: 'Reset…' }).click();
   await dialog(page).getByRole('button', { name: 'Reset settings' }).click();
   await dialog(page).locator('.unlock-sentence').waitFor();
   await dialog(page).getByRole('button', { name: 'Cancel' }).click();
   await dialog(page).waitFor({ state: 'detached' });
-  assert.equal((await stored())[HIDE_ADS], true, 'nothing was reset');
+  assert.equal((await stored())[HIDE_PROMOS], true, 'nothing was reset');
   assert.deepEqual((await stored())['advanced.lock'], { mode: 'friction', waitSeconds: 10 });
   await page.close();
 });
@@ -264,7 +264,7 @@ test('options: import and reset ask for the unlock while locked', async () => {
 
 test('popup: locked, a loosening is refused with a note, tightening works, the unlock is inline', async () => {
   const lock = await passwordLock();
-  const page = await openPopup({ seed: { settings: { 'advanced.lock': lock, 'yt.general.hideAds': true, 'yt.watch.hideRelated': false } } });
+  const page = await openPopup({ seed: { settings: { 'advanced.lock': lock, 'yt.general.hidePremiumUpsells': true, 'yt.watch.hideRelated': false } } });
   const bar = lockBar(page);
   await bar.waitFor();
   assert.match(await bar.textContent(), /Locked/);
@@ -280,7 +280,7 @@ test('popup: locked, a loosening is refused with a note, tightening works, the u
   await page.screenshot({ path: join(SHOTS, 'popup-locked-refused-light.png') });
 
   // a toggle that is on: refused; one that is off: allowed
-  const on = 'yt.general.hideAds';
+  const on = 'yt.general.hidePremiumUpsells';
   const off = 'yt.general.grayscale';
   await page.locator(`.row[data-id="${on}"] .row-label`).click();
   await sleep(150);
@@ -426,7 +426,7 @@ test('no section, popup or welcome page renders a bare "true", "false", "null" o
   const today = new Date();
   const dayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const seed = {
-    settings: { 'advanced.lock': { mode: 'friction', waitSeconds: 10 }, 'yt.general.hideAds': true, 'advanced.customRules': [{ id: 'r1', selector: '#a', page: null, note: 'x', createdAt: 1 }] },
+    settings: { 'advanced.lock': { mode: 'friction', waitSeconds: 10 }, 'yt.general.hidePremiumUpsells': true, 'advanced.customRules': [{ id: 'r1', selector: '#a', page: null, note: 'x', createdAt: 1 }] },
     stats: { [dayKey]: { youtube: { activeSec: 300, opens: 2, turnedBack: 1, continued: 1, blockedHits: 0 } } },
   };
   const bare = (page, root) =>
@@ -461,25 +461,25 @@ test('no section, popup or welcome page renders a bare "true", "false", "null" o
 
 test('screenshots in dark: setup, locked row, unlock dialogs, locked popup', async () => {
   const lock = await passwordLock();
-  let page = await openOptions({ seed: { settings: { ...theme('dark'), [HIDE_ADS]: true } }, hash: '#section=advanced' });
+  let page = await openOptions({ seed: { settings: { ...theme('dark'), [HIDE_PROMOS]: true } }, hash: '#section=advanced' });
   await row(page, 'advanced.lock').scrollIntoViewIfNeeded();
   await page.screenshot({ path: join(SHOTS, 'lock-setup-dark.png') });
   await page.close();
 
   await evalInExtension(() => chrome.storage.local.clear());
-  page = await openOptions({ seed: { settings: { ...theme('dark'), 'advanced.lock': lock, [HIDE_ADS]: true } }, hash: '#section=advanced' });
+  page = await openOptions({ seed: { settings: { ...theme('dark'), 'advanced.lock': lock, [HIDE_PROMOS]: true } }, hash: '#section=advanced' });
   await page.screenshot({ path: join(SHOTS, 'lock-summary-dark.png') });
-  await page.goto(`${extUrl(OPTIONS)}#setting=${HIDE_ADS}`);
+  await page.goto(`${extUrl(OPTIONS)}#setting=${HIDE_PROMOS}`);
   await page.waitForSelector('body[data-ready="true"]');
-  await flip(page, HIDE_ADS);
-  await row(page, HIDE_ADS).locator('.row-lock').waitFor();
+  await flip(page, HIDE_PROMOS);
+  await row(page, HIDE_PROMOS).locator('.row-lock').waitFor();
   await page.screenshot({ path: join(SHOTS, 'options-locked-refused-dark.png') });
-  await row(page, HIDE_ADS).getByRole('button', { name: 'Unlock…' }).click();
+  await row(page, HIDE_PROMOS).getByRole('button', { name: 'Unlock…' }).click();
   await dialog(page).waitFor();
   await page.screenshot({ path: join(SHOTS, 'unlock-dialog-password-dark.png') });
   await page.close();
 
-  const popup = await openPopup({ seed: { settings: { ...theme('dark'), 'advanced.lock': lock, [HIDE_ADS]: true } } });
+  const popup = await openPopup({ seed: { settings: { ...theme('dark'), 'advanced.lock': lock, [HIDE_PROMOS]: true } } });
   await lockBar(popup).waitFor();
   await popup.locator('#master input.switch').click();
   await popup.waitForFunction(() => document.querySelector('.lock-bar').classList.contains('is-flash'));

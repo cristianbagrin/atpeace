@@ -321,14 +321,14 @@ test('popup: presets, in Firefox: save as new with an inline field, apply, updat
   await until(() => run((id) => document.getElementById('preset-select').value === id, saved.id), { what: 'the new preset selected', retryErrors: true });
   await shot('popup-preset-saved-light');
 
-  await css(`${row('yt.general.hideAds')} .row-label`).click();
+  await css(`${row('yt.general.hidePremiumUpsells')} .row-label`).click();
   await until(() => run(() => document.getElementById('preset-select').value === ''), { what: 'a changed mix', retryErrors: true });
   assert.equal(await run(() => document.querySelector('#preset-select option[value="::update"]')?.textContent), 'Update “Evening”');
   await select('::update');
-  await until(async () => (await ff.getStorage('customPresets')).customPresets[0].values['yt.general.hideAds'] === true, { what: 'the preset updated', retryErrors: true });
+  await until(async () => (await ff.getStorage('customPresets')).customPresets[0].values['yt.general.hidePremiumUpsells'] === true, { what: 'the preset updated', retryErrors: true });
 
   // a hand-made mix is replaced only after the question
-  await css(`${row('yt.general.hideAds')} .row-label`).click();
+  await css(`${row('yt.general.hidePremiumUpsells')} .row-label`).click();
   await until(() => run(() => document.getElementById('preset-select').value === ''), { what: 'a changed mix again', retryErrors: true });
   await select('focused');
   await until(() => run(() => !document.getElementById('sheet').hidden), { what: 'the question', retryErrors: true });

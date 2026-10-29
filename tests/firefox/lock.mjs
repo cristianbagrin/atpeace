@@ -16,7 +16,7 @@ const OPTIONS = extUrl('src/pages/options/options.html');
 const POPUP = extUrl('src/pages/popup/popup.html');
 const WELCOME_PATH = '/src/pages/welcome/welcome.html';
 const PASSWORD = 'correct horse';
-const HIDE_ADS = 'yt.general.hideAds';
+const HIDE_PROMOS = 'yt.general.hidePremiumUpsells';
 
 let ff;
 let driver;
@@ -117,7 +117,7 @@ test('welcome: the first install opens it, Gentle is applied, choices are saved,
 });
 
 test('options: password lock — refused loosening shows a calm note, wrong password, right password, loosen, lock now', async () => {
-  await reset({ settings: { [HIDE_ADS]: true } });
+  await reset({ settings: { [HIDE_PROMOS]: true } });
   await open(`${OPTIONS}#section=advanced`);
 
   await run(() => document.querySelector('#lock-password').scrollIntoView({ block: 'center' }));
@@ -132,15 +132,15 @@ test('options: password lock — refused loosening shows a calm note, wrong pass
   await until(() => run(() => /Locked\./.test(document.querySelector('.lock-bar')?.textContent ?? '') && !document.querySelector('.lock-bar').hidden), { what: 'the lock bar', retryErrors: true });
 
   // loosening: refused, the switch goes back
-  const label = `.row[data-id="${HIDE_ADS}"] .row-label`;
+  const label = `.row[data-id="${HIDE_PROMOS}"] .row-label`;
   await click(label);
-  await until(() => run((id) => !document.querySelector(`.row[data-id="${id}"] .row-lock`).hidden, HIDE_ADS), { what: 'the locked note', retryErrors: true });
-  assert.equal((await settings())[HIDE_ADS], true);
-  assert.equal(await run((id) => document.querySelector(`.row[data-id="${id}"] input.switch`).checked, HIDE_ADS), true);
+  await until(() => run((id) => !document.querySelector(`.row[data-id="${id}"] .row-lock`).hidden, HIDE_PROMOS), { what: 'the locked note', retryErrors: true });
+  assert.equal((await settings())[HIDE_PROMOS], true);
+  assert.equal(await run((id) => document.querySelector(`.row[data-id="${id}"] input.switch`).checked, HIDE_PROMOS), true);
   await shot('options-refused');
 
   // unlock: wrong, then right
-  await click(`.row[data-id="${HIDE_ADS}"] .row-lock button`);
+  await click(`.row[data-id="${HIDE_PROMOS}"] .row-lock button`);
   await until(() => run(() => document.querySelector('dialog[open] input[type="password"]') !== null), { what: 'the dialog', retryErrors: true });
   await shot('unlock-dialog');
   await css('dialog[open] input[type="password"]').sendKeys('wrong', Key.ENTER);
@@ -155,15 +155,15 @@ test('options: password lock — refused loosening shows a calm note, wrong pass
 
   // now it goes through; "Lock now" closes it again
   await click(label);
-  await until(async () => (await settings())[HIDE_ADS] === false, { what: 'hideAds off', retryErrors: true });
+  await until(async () => (await settings())[HIDE_PROMOS] === false, { what: 'hidePremiumUpsells off', retryErrors: true });
   await run(() => window.scrollTo(0, 0));
   await click(await byText('button', 'Lock now'));
   await until(async () => ((await state()).lockUnlockedUntil ?? 0) === 0, { what: 'relocked', retryErrors: true });
   await click(label);
-  await until(async () => (await settings())[HIDE_ADS] === true, { what: 'turning it on is allowed while locked', retryErrors: true });
+  await until(async () => (await settings())[HIDE_PROMOS] === true, { what: 'turning it on is allowed while locked', retryErrors: true });
   await click(label);
-  await until(() => run((id) => !document.querySelector(`.row[data-id="${id}"] .row-lock`).hidden, HIDE_ADS), { what: 'the note again', retryErrors: true });
-  assert.equal((await settings())[HIDE_ADS], true);
+  await until(() => run((id) => !document.querySelector(`.row[data-id="${id}"] .row-lock`).hidden, HIDE_PROMOS), { what: 'the note again', retryErrors: true });
+  assert.equal((await settings())[HIDE_PROMOS], true);
   assert.deepEqual((await ff.ourScriptErrors()).filter((e) => !NAVIGATION_NOISE.test(e)), []); // the browser's note about a page that navigated away mid-read is not ours
 });
 

@@ -60,23 +60,6 @@
       since: '0.1.0',
     },
     {
-      id: 'yt.search.hideAds',
-      group: 'Extras between results',
-      label: 'Hide sponsored results',
-      type: 'toggle',
-      default: false,
-      tags: ['ads'],
-      page: 'search',
-      hide: [
-        'ytd-search ytd-ad-slot-renderer',
-        'ytd-search ytd-search-pyv-renderer',
-        'ytd-search ytd-promoted-sparkles-web-renderer',
-        'ytd-search ytd-promoted-video-renderer',
-        'ytd-search ytd-in-feed-ad-layout-renderer',
-      ],
-      since: '0.1.0',
-    },
-    {
       id: 'yt.search.hideAISummary',
       group: 'Extras between results',
       label: 'Hide AI summaries',

@@ -127,23 +127,5 @@
       ],
       since: '0.1.0',
     },
-
-    // ---- Ads -----------------------------------------------------------------------------------
-    {
-      id: 'yt.masthead.hideMastheadAd',
-      group: 'Ads',
-      label: 'Hide the banner ad',
-      type: 'toggle',
-      default: false,
-      tags: ['ads'],
-      hide: [
-        '#masthead-ad',
-        'ytd-statement-banner-renderer',
-        'ytd-brand-video-singleton-renderer',
-        'ytd-brand-video-shelf-renderer',
-        'ytd-primetime-promo-renderer',
-      ],
-      since: '0.1.0',
-    },
   ]);
 })();

@@ -558,12 +558,9 @@ group('watch: related videos, buttons, details, comments and player controls', a
   assert.ok((await rect('#movie_player')).w > 500, 'player size unchanged by control rules');
 
   // Panels and shelves under/next to the video: empty hosts exist; each rule must reach them.
-  await apply({ 'yt.watch.hideLiveChat': true, 'yt.watch.hideShoppingShelf': true, 'yt.watch.hideTickets': true, 'yt.watch.hideMerch': true, 'yt.watch.hideFundraiser': true, 'yt.watch.hideInfoPanels': true, 'yt.watch.hidePlayerAds': true, 'yt.watch.hideAmbientMode': true });
-  await expectHidden('panels and shelves', ['ytd-watch-flexy #chat-container', '#shopping-timely-shelf', 'ytd-watch-flexy #ticket-shelf', 'ytd-watch-flexy #donation-shelf', 'ytd-watch-flexy #clarify-box', '#player-ads', 'ytd-watch-flexy #cinematics-container'], { optional: true });
+  await apply({ 'yt.watch.hideLiveChat': true, 'yt.watch.hideShoppingShelf': true, 'yt.watch.hideTickets': true, 'yt.watch.hideMerch': true, 'yt.watch.hideFundraiser': true, 'yt.watch.hideInfoPanels': true, 'yt.watch.hideAmbientMode': true });
+  await expectHidden('panels and shelves', ['ytd-watch-flexy #chat-container', '#shopping-timely-shelf', 'ytd-watch-flexy #ticket-shelf', 'ytd-watch-flexy #donation-shelf', 'ytd-watch-flexy #clarify-box', 'ytd-watch-flexy #cinematics-container'], { optional: true });
   await expectShown('related videos and player stay', ['#related', '#movie_player']);
-  await apply({ 'yt.general.hideAds': true });
-  await expectHidden('ad slots', ['#player-ads']);
-  await expectShown('related videos stay with ads hidden', ['#related ytd-item-section-renderer, #related yt-lockup-view-model']);
 
   // Everything off again: the page is as it was.
   await apply({});

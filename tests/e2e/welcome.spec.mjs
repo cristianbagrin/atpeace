@@ -43,7 +43,7 @@ test('a fresh install opens the welcome page by itself, with the Gentle preset a
   assert.match(installTab.url(), /\/src\/pages\/welcome\/welcome\.html$/);
   await installTab.waitForSelector('body[data-ready="true"]');
   const gentle = await stored();
-  assert.equal(gentle['yt.general.hideAds'], true);
+  assert.equal(gentle['yt.general.hidePremiumUpsells'], true);
   assert.equal(gentle['yt.shorts.mode'], 'watch');
   assert.equal((await meta()).onboarded, false);
   assert.equal(await installTab.locator('input[name="preset"]:checked').inputValue(), 'gentle', 'Gentle is preselected');
@@ -106,7 +106,7 @@ test('the shortcuts are written for the platform: ⌥⇧P on a Mac, one key cap 
 });
 
 test('choosing a preset applies it, and Deep work switches the pause on in step 2', async () => {
-  const page = await openWelcome({ seed: { settings: { 'yt.general.hideAds': true } } });
+  const page = await openWelcome({ seed: { settings: { 'yt.general.hidePremiumUpsells': true } } });
   assert.equal(await page.locator('input[name="preset"]:checked').count(), 0, 'a hand-made mix matches no preset');
   assert.match(await page.locator('#step-1-intro').textContent(), /Your own mix/);
   assert.equal(await page.locator('#step-1-intro').isVisible(), true);
@@ -129,7 +129,7 @@ test('choosing a preset applies it, and Deep work switches the pause on in step 
 
   await page.locator('label.choice', { hasText: 'Untouched' }).click();
   await until(async () => (await stored())['yt.home.feedMode'] === undefined && (await stored())['pause.enabled'] === undefined);
-  assert.equal((await stored())['yt.general.hideAds'], undefined, 'nothing hidden');
+  assert.equal((await stored())['yt.general.hidePremiumUpsells'], undefined, 'nothing hidden');
   await page.waitForFunction(() => !document.querySelector('#pause input.switch').checked);
   assert.equal(await page.locator('#pause .row').nth(1).evaluate((r) => r.classList.contains('is-disabled')), true, 'the breath waits for the switch');
   assert.deepEqual(page.errors, []);
@@ -185,7 +185,7 @@ test('the whole flow: Focused, a breath of 9 seconds, 30-minute sessions, Finish
 
 test('while the settings are locked a loosening choice is refused calmly and the radio goes back', async () => {
   const lock = { mode: 'friction', waitSeconds: 10 };
-  const page = await openWelcome({ seed: { settings: { 'advanced.lock': lock, 'yt.home.feedMode': 'hide', 'yt.general.hideAds': true, 'yt.comments.hideAll': true } } });
+  const page = await openWelcome({ seed: { settings: { 'advanced.lock': lock, 'yt.home.feedMode': 'hide', 'yt.general.hidePremiumUpsells': true, 'yt.comments.hideAll': true } } });
   await page.locator('label.choice', { hasText: 'Untouched' }).click();
   await page.locator('dialog[open] button[value="confirm"]').click(); // a hand-made mix: the question comes first
   await page.locator('.toast.is-visible').waitFor();
@@ -204,7 +204,7 @@ test('while the settings are locked a loosening choice is refused calmly and the
 });
 
 test('dark: welcome before and after Finish', async () => {
-  const page = await openWelcome({ seed: { settings: { 'general.theme': 'dark', 'yt.general.hideAds': true } } });
+  const page = await openWelcome({ seed: { settings: { 'general.theme': 'dark', 'yt.general.hidePremiumUpsells': true } } });
   await page.locator('label.choice', { hasText: 'Focused' }).click();
   await page.locator('dialog[open] button[value="confirm"]').click();
   await until(async () => (await stored())['yt.home.feedMode'] === 'hide');

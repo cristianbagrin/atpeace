@@ -288,34 +288,10 @@
     },
 
     // ---- Promotions ----------------------------------------------------------------------------
-    {
-      id: 'yt.general.hideAds',
-      group: 'Promotions',
-      label: 'Hide ad slots and sponsored cards',
-      description: 'Ads inside videos are not touched.',
-      type: 'toggle',
-      default: false,
-      tags: ['ads'],
-      hide: [
-        'ytd-ad-slot-renderer',
-        // The grid cell that wraps an ad slot, otherwise an empty card stays behind.
-        'ytd-rich-item-renderer:has(> #content > ytd-ad-slot-renderer)',
-        'ytd-rich-section-renderer:has(> #content > ytd-ad-slot-renderer)',
-        'ytd-in-feed-ad-layout-renderer',
-        'ytd-promoted-sparkles-web-renderer',
-        'ytd-promoted-video-renderer',
-        'ytd-display-ad-renderer',
-        'ytd-carousel-ad-renderer',
-        'ytd-action-companion-ad-renderer',
-        'ytd-search-pyv-renderer',
-        'ytd-compact-promoted-item-renderer',
-        '#masthead-ad',
-        '#player-ads',
-        'ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-ads"]',
-        '#shorts-inner-container > .ytd-shorts:has(> .ytd-reel-video-renderer > ytd-ad-slot-renderer)',
-      ],
-      since: '0.1.0',
-    },
+    // No setting hides ads (ad slots, sponsored cards, the banner ad, ad panels beside the video).
+    // YouTube checks that the ads it served were shown; ad slots hidden with CSS trip its ad-blocker
+    // wall ("Ad blockers violate YouTube's Terms of Service"), which blocks playback. Ads are left
+    // to a real ad blocker, which stops them before they are served.
     {
       id: 'yt.general.hidePremiumUpsells',
       group: 'Promotions',
@@ -327,6 +303,8 @@
         'ytd-mealbar-promo-renderer',
         'yt-mealbar-promo-renderer',
         'ytd-banner-promo-renderer',
+        'ytd-statement-banner-renderer',
+        'ytd-primetime-promo-renderer',
         'ytd-guide-entry-renderer:has(> a#endpoint[href="/premium"])',
         'ytd-mini-guide-entry-renderer:has(a#endpoint[href="/premium"])',
         '.ytp-quality-menu .ytp-menuitem:has(.ytp-premium-label)',
