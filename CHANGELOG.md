@@ -8,6 +8,8 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 
 ## Unreleased
 
+## 0.3.3 — 2026-10-29
+
 - Fixed: YouTube's "Ad blockers violate YouTube's Terms of Service" wall, which blocked playback. It was
   set off by At Peace hiding ad slots with CSS: YouTube checks that the ads it served were shown.
 - Removed: the four "hide ads" toggles (ad slots and sponsored cards, ad panels beside the video,
