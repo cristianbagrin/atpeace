@@ -8,6 +8,8 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 
 ## Unreleased
 
+## 0.3.0 — 2026-10-29
+
 - New: "Show results as a grid" (Search results) lays results out in rows of cards, like the home page.
 - New: "Keep playing through a playlist" (Video page, with "Do not start videos by themselves"): once
   you press play in a playlist, the next videos start by themselves, so an album plays through.
