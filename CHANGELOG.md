@@ -8,6 +8,8 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 
 ## Unreleased
 
+- Same as 0.3.3, as a new version number for the addons.mozilla.org listing.
+
 ## 0.3.3 — 2026-10-29
 
 - Fixed: YouTube's "Ad blockers violate YouTube's Terms of Service" wall, which blocked playback. It was
