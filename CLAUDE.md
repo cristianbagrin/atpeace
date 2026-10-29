@@ -13,6 +13,9 @@ ships goes out as a new version. When you finish a change the user will ship, al
    - the zip, `at-peace-<version>.zip`;
    - the version notes: that version's section of `CHANGELOG.md`, as `at-peace-<version>-notes.md`.
    Also paste the notes in the reply, so they can be copied into the store's "Version notes" field.
-4. Push the release commit to the working branch. Do not open a pull request unless asked.
+4. Push straight to the repo's default branch (`claude/at-peace-youtube-extension-upptts`, there is no
+   `main`), and to the working branch. Never open a pull request: the user does not want to approve
+   anything by hand. Before releasing, fetch and merge the default branch, and check `manifest.json`'s
+   version is newer than the latest published one (a version number can be used only once).
 
 Write the notes for people, not developers: what changed for them, in plain words.
