@@ -43,6 +43,10 @@
   --r-button: 8px;
   --r-pill: 14px;
 
+  /* The one resting shadow: the chosen tile of a segmented control lifts off its track. */
+  --tile-shadow: 0 1px 2px rgb(16 18 63 / 0.12), 0 0 0 0.5px rgb(16 18 63 / 0.06);
+  --track: #DCE1EA;       /* the popup tabs track (= --panel-line in light) */
+
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --t-quick: 160ms;
   --t-slow: 400ms;
@@ -68,6 +72,8 @@
   --amber-text: #F2A54A;
   --danger: #FF6B73;
   --veil: rgb(4 5 22 / 0.6);
+  --tile-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+  --track: #080A26;       /* tab track: darker than the ground, so the chosen (panel) tile reads as raised */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -91,6 +97,8 @@
     --amber-text: #F2A54A;
     --danger: #FF6B73;
     --veil: rgb(4 5 22 / 0.6);
+    --tile-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+    --track: #080A26;
   }
 }
 

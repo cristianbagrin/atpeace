@@ -8,14 +8,33 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 
 ## Unreleased
 
-## 0.2.2 — 2026-10-29
-
 - Fixed: YouTube's "Ad blockers violate YouTube's Terms of Service" wall, which blocked playback. It was
   set off by At Peace hiding ad slots with CSS: YouTube checks that the ads it served were shown.
 - Removed: the four "hide ads" toggles (ad slots and sponsored cards, ad panels beside the video,
   sponsored search results, the banner ad). Leave ads to a real ad blocker such as uBlock Origin, which
   stops them before YouTube serves them and does not trip the wall. Their saved values are ignored.
 - "Hide Premium and Music promotions" now also hides YouTube's own promo banners on the home page.
+
+## 0.3.2 — 2026-10-29
+
+- Same as 0.3.0, as a new version number for the addons.mozilla.org listing.
+
+## 0.3.1 — 2026-10-29
+
+- Same as 0.3.0, as the version for the public addons.mozilla.org listing (a version number can be used
+  only once across the listed and self-distributed channels).
+
+## 0.3.0 — 2026-10-29
+
+- New: "Show results as a grid" (Search results) lays results out in rows of cards, like the home page.
+- New: "Keep playing through a playlist" (Video page, with "Do not start videos by themselves"): once
+  you press play in a playlist, the next videos start by themselves, so an album plays through.
+  Single videos still wait for you.
+- Popup and settings: controls answer the moment you press them (buttons sink a little, the switch knob
+  stretches), the chosen tab lifts off its track (in dark too), dialogs fade and scale in, and the
+  settings bar is frosted so rows scroll under it instead of being cut off. Fixed the unit next to a
+  number in the popup ("6 seconds") touching its field, and the pause-sites list now lines up with the
+  rows around it. More contrast is honoured on panel edges.
 
 ## 0.2.1 — 2026-10-09
 

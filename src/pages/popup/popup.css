@@ -58,7 +58,7 @@ body {
   margin: 0 14px 8px;
   padding: 2px;
   border-radius: 9px;
-  background: var(--panel-line);
+  background: var(--track);
 }
 
 .tab {
@@ -81,6 +81,11 @@ body {
 .tab[aria-selected="true"] {
   background: var(--panel);
   color: var(--act);
+  box-shadow: var(--tile-shadow);
+}
+
+.tab:active:not([aria-selected="true"]) {
+  background: color-mix(in srgb, var(--panel) 50%, transparent);
 }
 
 .tab:focus-visible {
@@ -310,7 +315,9 @@ body {
 
 /* A number: the field, then its unit. */
 .row .number-field {
+  display: inline-flex;
   flex: none;
+  align-items: center;
   gap: 6px;
 }
 
@@ -324,6 +331,7 @@ body {
 .row .unit {
   min-width: 0;
   font-size: 12px;
+  color: var(--text-2);
 }
 
 /* An "Edit" row: the label, what is in it, a link. */

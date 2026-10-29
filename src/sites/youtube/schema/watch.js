@@ -470,6 +470,18 @@
       since: '0.1.0',
     },
     {
+      id: 'yt.watch.playlistAutoStart',
+      group: 'Playback',
+      label: 'Keep playing through a playlist',
+      description: 'After you press play once, the next videos start.',
+      type: 'toggle',
+      default: false,
+      requires: 'yt.watch.noAutoStart',
+      page: 'watch',
+      feature: 'autoplay',
+      since: '0.3.0',
+    },
+    {
       id: 'yt.watch.autoTheater',
       group: 'Playback',
       label: 'Open videos in theater mode',

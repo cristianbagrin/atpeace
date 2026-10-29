@@ -21,8 +21,9 @@ anything the settings missed and keeps it hidden.
 playlists or a page of your own. Shorts can open in the normal player or be blocked. Channels can open on
 their Videos tab.
 
-**Behave.** Turn autoplay off, stop videos from starting by themselves, open videos in theater mode,
-start every video at a speed you chose, and skip "Are you still watching?".
+**Behave.** Turn autoplay off, stop videos from starting by themselves (while a playlist you started
+keeps playing, if you like), open videos in theater mode, start every video at a speed you chose, skip
+"Are you still watching?", and show search results as a grid like the home page.
 
 **Mindful Pause.** Before YouTube (or any site you add) opens, a breathing screen shows how many times
 you opened it today. Then you choose **Close** or **Continue for N minutes**. When the minutes run out
@@ -229,6 +230,7 @@ statement, what is stored and how to clear it: [PRIVACY.md](PRIVACY.md).
 - [docs/PERFORMANCE.md](docs/PERFORMANCE.md): what it costs on a page.
 - [docs/IDEAS.md](docs/IDEAS.md): what could come next.
 - [docs/RELEASING.md](docs/RELEASING.md): signing, auto-updates and how to ship a version.
+- [docs/PUBLISHING.md](docs/PUBLISHING.md): putting it on addons.mozilla.org (the public listing).
 - [CHANGELOG.md](CHANGELOG.md).
 
 ## Licence

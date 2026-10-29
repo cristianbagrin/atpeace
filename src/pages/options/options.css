@@ -94,12 +94,24 @@
   padding: 0 40px 112px 24px;
 }
 
+/* A frosted bar: the rows scroll under it and stay faintly visible, instead of being cut off at a
+   hard edge. Solid when the system asks for less transparency. */
 .topbar {
   position: sticky;
   top: 0;
   z-index: 10;
   padding: 20px 0 8px;
-  background: var(--ground);
+  background: color-mix(in srgb, var(--ground) 80%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .topbar {
+    background: var(--ground);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 .topbar-row {
@@ -718,9 +730,14 @@
 
 /* ------------------------------------------------------------------ custom editors (renderers/*.js) */
 
-.pause-sites,
 .schedules,
 .custom-rules {
+  max-width: 640px;
+}
+
+/* The site list runs the full width of its panel so each site's switch lines up with the
+   switches of the rows around it; only the field that adds a site keeps a readable width. */
+.pause-sites .adder {
   max-width: 640px;
 }
 

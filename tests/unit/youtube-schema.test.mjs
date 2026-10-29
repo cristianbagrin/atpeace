@@ -12,10 +12,10 @@ const EXPECTED = {
   masthead: ['hideSearchSuggestions', 'hideSearchHistory', 'hideVoiceSearch', 'hideSearchBar', 'hideCreate', 'hideNotifications', 'hideGuideButton', 'hideAICompanion', 'hideCountryCode', 'hideDoodle'],
   guide: ['hideAll', 'hideMini', 'hideHome', 'hideShorts', 'hideSubscriptionsEntry', 'hideYouEntry', 'hideHistory', 'hidePlaylists', 'hideYourVideos', 'hideWatchLater', 'hideLiked', 'hideDownloads', 'hideCourses', 'hideSubscriptionsSection', 'hideExploreSection', 'hideMoreFromYouTube', 'hideSettingsSection', 'hideFooter', 'hideSignInPromo'],
   home: ['feedMode', 'redirectUrl', 'hideChips', 'hideShortsShelf', 'hideNewsShelf', 'hidePostsShelf', 'hideOtherShelves', 'disableInfiniteScroll', 'hideFeedNudge'],
-  watch: ['hideRelated', 'hideRelatedShorts', 'hideRelatedChips', 'hideLiveChat', 'hideShoppingShelf', 'hideMerch', 'hideTickets', 'hideFundraiser', 'hideHashtags', 'hideOwnerAvatar', 'hideSubscriberCount', 'hideSubscribe', 'hideJoinButton', 'hideLikeCounts', 'hideLikeButtons', 'hideShare', 'hideDownload', 'hideClip', 'hideThanks', 'hideSave', 'hideAsk', 'hideAnimatedButton', 'hideMoreActions', 'hideViewCount', 'hideUploadDate', 'hideDescription', 'hideAISummary', 'hideChapters', 'hideDescriptionExtras', 'hideInfoPanels', 'hideAmbientMode', 'disableAutoplay', 'noAutoStart', 'autoTheater', 'defaultSpeed', 'dismissStillWatching'],
+  watch: ['hideRelated', 'hideRelatedShorts', 'hideRelatedChips', 'hideLiveChat', 'hideShoppingShelf', 'hideMerch', 'hideTickets', 'hideFundraiser', 'hideHashtags', 'hideOwnerAvatar', 'hideSubscriberCount', 'hideSubscribe', 'hideJoinButton', 'hideLikeCounts', 'hideLikeButtons', 'hideShare', 'hideDownload', 'hideClip', 'hideThanks', 'hideSave', 'hideAsk', 'hideAnimatedButton', 'hideMoreActions', 'hideViewCount', 'hideUploadDate', 'hideDescription', 'hideAISummary', 'hideChapters', 'hideDescriptionExtras', 'hideInfoPanels', 'hideAmbientMode', 'disableAutoplay', 'noAutoStart', 'playlistAutoStart', 'autoTheater', 'defaultSpeed', 'dismissStillWatching'],
   player: ['hideEndscreenCards', 'hideEndscreenWall', 'hideInfoCards', 'hidePauseOverlay', 'hideWatermark', 'hidePaidPromotion', 'hideAutoplayToggle', 'hideNextButton', 'hideMiniplayerButton', 'hideCastButton', 'hideSubtitlesButton', 'hideChapterTitle', 'hideProgressPreviews'],
   comments: ['hideAll', 'hideTeaser', 'hideCount', 'hideAvatars', 'hideLikeCounts', 'hideReplies', 'hideCreatorHearts'],
-  search: ['hideShorts', 'hideShelves', 'hideRelatedSearches', 'hideAISummary', 'hideChannelResults', 'hideSnippets', 'hideFilterChips'],
+  search: ['gridLayout', 'hideShorts', 'hideShelves', 'hideRelatedSearches', 'hideAISummary', 'hideChannelResults', 'hideSnippets', 'hideFilterChips'],
   shorts: ['mode', 'hideComments', 'hideLikeCounts', 'hideRemix', 'hideSubscribe'],
   subs: ['hideShorts', 'hidePosts', 'hideLive', 'hideUpcoming', 'hideWatched'],
   channel: ['openVideosTab', 'hideTrailer', 'hideHomeShelves', 'hideRowShorts', 'hideRowPosts', 'hideRowMembers', 'hideRowLive', 'hideRowPopular', 'hideRowPlaylists', 'hideRowChannels', 'hideBanner', 'hideHeaderButtons', 'hideLinks', 'hideAwards', 'hideJoinButton', 'hideSubscriberCount', 'hideShortsTab', 'hideLiveTab', 'hidePodcastsTab', 'hidePlaylistsTab', 'hidePostsTab', 'hideStoreTab', 'hideShowsTab', 'hideCoursesTab', 'hideMembersTab', 'hideReleasesTab'],
@@ -117,7 +117,7 @@ describe('catalog shape', () => {
       }
       assert.doesNotMatch(def.label, /\p{Extended_Pictographic}/u, `${def.id}: no emoji`);
       assert.ok(def.group && def.group.trim() !== '', `${def.id} needs a group`);
-      assert.match(def.since, /^0\.[12]\.0$/, `${def.id} since`);
+      assert.match(def.since, /^0\.[123]\.0$/, `${def.id} since`);
     }
     // Most settings have none: the label says it. A growing list here means the rule is slipping.
     const described = catalog.filter((d) => d.description !== undefined);

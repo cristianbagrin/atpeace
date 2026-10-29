@@ -12,6 +12,11 @@
 //   in the player after this navigation began. After that the user is never fought: replays,
 //   seeking and every later play are left alone.
 //
+// playlistAutoStart (needs noAutoStart): inside a playlist the user has started, the next videos may
+//   start by themselves, so an album plays through. The first video of a playlist still waits for a
+//   press of play; "started" = a video with this `list=` played with the user's consent in this tab.
+//   Leaving the playlist (a watch page without that list) forgets it.
+//
 // Not verifiable without playback (no video in the cloud sandbox): the `play`/`ended` behaviour.
 // The toggle click and the decision logic are tested (tests/unit/features.test.mjs, tests/e2e/features.spec.mjs).
 (() => {
@@ -22,6 +27,7 @@
 
   const AUTOPLAY = 'yt.watch.disableAutoplay';
   const NO_START = 'yt.watch.noAutoStart';
+  const PLAYLIST = 'yt.watch.playlistAutoStart';
 
   /** Per video: at most this many toggle clicks (a toggle that keeps coming back is not ours to fight forever). */
   const MAX_CLICKS = 4;
@@ -34,14 +40,25 @@
 
   /**
    * Should this `play` event be paused? Once per video, and only when the user did not ask for it.
-   * @param {{ videoId: string|null, handledFor: string|null, intentAt: number, navStartedAt: number }} s
+   * @param {{ videoId: string|null, handledFor: string|null, intentAt: number, navStartedAt: number, inStartedList?: boolean }} s
    *        intentAt: time of the latest trusted click/play key in the player (0 = none);
-   *        navStartedAt: time the navigation to this video began
+   *        navStartedAt: time the navigation to this video began;
+   *        inStartedList: the video belongs to a playlist the user already started and playlistAutoStart is on
    * @returns {boolean}
    */
-  function shouldPauseOnPlay({ videoId, handledFor, intentAt, navStartedAt }) {
-    if (!videoId || videoId === handledFor) return false;
+  function shouldPauseOnPlay({ videoId, handledFor, intentAt, navStartedAt, inStartedList = false }) {
+    if (!videoId || videoId === handledFor || inStartedList) return false;
     return !(intentAt >= navStartedAt && intentAt > 0);
+  }
+
+  /** The playlist id a watch URL carries (`list=`), or null. */
+  function listIdOf(url) {
+    try {
+      const list = new URL(url, 'https://www.youtube.com').searchParams.get('list');
+      return list && /^[\w-]{2,64}$/.test(list) ? list : null;
+    } catch {
+      return null;
+    }
   }
 
   // ---- state -----------------------------------------------------------------------------------------------------
@@ -57,9 +74,14 @@
   let handledFor = null;
   let navStartedAt = Date.now();
   let verifyTimer = null;
+  // playlistAutoStart: the playlist a video of which played with the user's consent (null = none)
+  let startedList = null;
   let listening = false;
 
   const on = (id) => current?.settings?.[id] === true;
+
+  /** Is the page on a video of the playlist the user already started (and may it continue)? */
+  const continuesPlaylist = () => on(PLAYLIST) && startedList !== null && listIdOf(location.href) === startedList;
 
   // ---- disableAutoplay -------------------------------------------------------------------------------------------
 
@@ -94,7 +116,7 @@
 
   /** The "Up next" countdown overlay's cancel button, when it is showing. */
   function cancelCountdown() {
-    if (!on(AUTOPLAY)) return;
+    if (!on(AUTOPLAY) || continuesPlaylist()) return;
     const overlay = document.querySelector('ytd-watch-flexy .ytp-autonav-endscreen-countdown-overlay');
     if (!overlay) return;
     const cancel = overlay.querySelector('.ytp-autonav-endscreen-upnext-cancel-button') ?? overlay.querySelector('.ytp-autonav-endscreen-upnext-button:not(.ytp-autonav-endscreen-upnext-play-button)');
@@ -117,9 +139,14 @@
     try {
       if (!on(NO_START) || current?.page !== 'watch' || !isMainVideo(event.target)) return;
       const id = shared.videoIdOf(location.href);
-      const decision = shouldPauseOnPlay({ videoId: id, handledFor, intentAt: shared.inputs.lastPlayIntentAt, navStartedAt });
+      const intentAt = shared.inputs.lastPlayIntentAt;
+      const inStartedList = continuesPlaylist();
+      const decision = shouldPauseOnPlay({ videoId: id, handledFor, intentAt, navStartedAt, inStartedList });
       if (!id) return;
       handledFor = id;
+      // The user pressed play (or is inside a playlist they started): that playlist may now continue by
+      // itself. The player restarting on its own after our pause is not consent, so it does not count.
+      if (inStartedList || (intentAt > 0 && intentAt >= navStartedAt)) startedList = listIdOf(location.href);
       if (!decision) return;
       const video = event.target;
       pauseNow(video);
@@ -137,6 +164,11 @@
     navStartedAt = Date.now();
     resetBudgets();
   };
+
+  /** A watch page outside the started playlist ends it; other pages (search, home) leave it be. */
+  function forgetLeftPlaylist(url) {
+    if (startedList !== null && shared.videoIdOf(url) && listIdOf(url) !== startedList) startedList = null;
+  }
 
   /**
    * A video starts playing: the player builds its controls then. In Firefox an unstarted player keeps them
@@ -184,7 +216,7 @@
 
   AP.yt.features.push({
     id: 'autoplay',
-    settings: [AUTOPLAY, NO_START],
+    settings: [AUTOPLAY, NO_START, PLAYLIST],
     observes: true,
     init(ctx) {
       current = ctx;
@@ -193,6 +225,7 @@
     },
     onNavigate(ctx) {
       current = ctx;
+      forgetLeftPlaylist(ctx.url);
       const id = shared.videoIdOf(ctx.url);
       if (id !== videoId) {
         videoId = id;
@@ -217,5 +250,5 @@
     },
   });
 
-  AP.yt.autoplay = { shouldPauseOnPlay };
+  AP.yt.autoplay = { shouldPauseOnPlay, listIdOf };
 })();
