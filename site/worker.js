@@ -5,7 +5,7 @@
 //
 // The Chrome listing lives only here. Set CHROME to false and every page drops its Chrome button
 // (the HTML is rewritten on the way out), and /chrome sends people home.
-const CHROME = true;
+const CHROME = false; // true once the Chrome Web Store approves At Peace
 const CHROME_STORE = 'https://chromewebstore.google.com/detail/at-peace/ejplinicdjdifcdagflblibbeldpfoig';
 const FIREFOX_STORE = 'https://addons.mozilla.org/firefox/addon/atpeace/';
 

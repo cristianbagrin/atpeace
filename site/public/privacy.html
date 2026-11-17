@@ -30,7 +30,7 @@
     </ul>
 
     <h2>The optional account</h2>
-    <p>Settings, then <strong>Account</strong>, lets you sign in with the same account as Chris's other apps (<a href="https://account.cristianbagrin.com/">account.cristianbagrin.com</a>), so your settings and presets follow you to every browser. Firefox asks first, because signing in sends data (<code>authenticationInfo</code>, <code>personallyIdentifyingInfo</code> in the manifest). If you sign in:</p>
+    <p>Settings, then <strong>Account</strong>, lets you sign in with the same account as Chris's other apps (<a href="https://account.cristianbagrin.com/">account.cristianbagrin.com</a>), so your settings and presets follow you to every browser. In Firefox, the browser asks first, because signing in sends data (<code>authenticationInfo</code>, <code>personallyIdentifyingInfo</code> in the manifest). If you sign in:</p>
     <ul>
       <li>Your <strong>email</strong> and <strong>password</strong> go to account.cristianbagrin.com to sign you in. The server keeps a salted PBKDF2 hash of the password, never the password itself.</li>
       <li>Your <strong>settings</strong> and <strong>presets you saved</strong> are stored with your account and sent to your other signed-in browsers. The <strong>settings lock</strong> is never sent, and neither are usage stats or run state.</li>
@@ -41,12 +41,12 @@
     <h2>What it can see</h2>
     <ul>
       <li><strong>youtube.com.</strong> The extension runs on <code>www.youtube.com</code> so it can hide parts of the page, follow navigation and apply the behaviors you chose. It reads the page only to do that. Page content is never stored or sent.</li>
-      <li><strong>Other sites.</strong> Only if you add a site to Mindful Pause. The browser then asks for permission for that one site, and you can take it back in <code>about:addons</code> at any time.</li>
+      <li><strong>Other sites.</strong> Only if you add a site to Mindful Pause. The browser then asks for permission for that one site, and you can take it back on the browser's extensions page at any time.</li>
       <li><strong>Browsing history.</strong> At Peace does not read it and does not have the permission to.</li>
     </ul>
 
     <h2>What is stored, and where</h2>
-    <p>Everything lives in the browser's own extension storage (<code>storage.local</code>) for this add-on, inside your Firefox or Zen profile. Settings and presets are also kept with your account if you signed in (see above).</p>
+    <p>Everything lives in the browser's own extension storage (<code>storage.local</code>) for this add-on, inside your browser profile. Settings and presets are also kept with your account if you signed in (see above).</p>
     <table class="table">
       <thead>
         <tr><th scope="col">What</th><th scope="col">Why</th><th scope="col">How long</th></tr>
@@ -90,7 +90,7 @@
     <ul>
       <li><strong>Usage stats:</strong> Settings, then "Your week", then <strong>Clear usage history…</strong>. It also resets today's count against the daily limit, so it needs an unlock if the settings lock is on.</li>
       <li><strong>Settings:</strong> Settings, then Export / Import / Reset, then <strong>Reset…</strong>. Presets you saved stay; delete them in the Presets section.</li>
-      <li><strong>Everything:</strong> remove the add-on in <code>about:addons</code>. Firefox deletes its storage with it.</li>
+      <li><strong>Everything:</strong> remove the extension. The browser deletes its storage with it.</li>
     </ul>
 
     <h2>Backups</h2>

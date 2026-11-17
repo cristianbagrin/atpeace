@@ -10,7 +10,7 @@ At Peace keeps everything on your computer. Unless you sign in to the optional a
 ## The optional account
 
 Settings, then **Account**, lets you sign in with the same account as Chris's other apps
-(account.cristianbagrin.com), so your settings and presets follow you to every browser. Firefox asks
+(account.cristianbagrin.com), so your settings and presets follow you to every browser. In Firefox, the browser asks
 first, because signing in sends data (`authenticationInfo`, `personallyIdentifyingInfo` in the manifest).
 If you sign in:
 
@@ -28,13 +28,13 @@ If you sign in:
   navigation and apply the behaviours you chose. It reads the page only to do that. Page content is
   never stored or sent.
 - **Other sites.** Only if you add a site to Mindful Pause. The browser then asks for permission for
-  that one site, and you can take it back in `about:addons` at any time.
+  that one site, and you can take it back on the browser's extensions page at any time.
 - **Browsing history.** At Peace does not read it and does not have the permission to.
 
 ## What is stored, and where
 
 Everything lives in the browser's own extension storage (`storage.local`) for this add-on, inside your
-Firefox or Zen profile. Settings and presets are also kept with your account if you signed in (see above).
+browser profile. Settings and presets are also kept with your account if you signed in (see above).
 
 | What | Why | How long |
 |---|---|---|
@@ -54,7 +54,7 @@ guard use the page's `sessionStorage` for the current tab only; both are gone wh
   resets today's count against the daily limit, so it needs an unlock if the settings lock is on.
 - **Settings:** Settings, then Export / Import / Reset, then **Reset…**. Presets you saved stay; delete
   them in the Presets section.
-- **Everything:** remove the add-on in `about:addons`. Firefox deletes its storage with it.
+- **Everything:** remove the extension. The browser deletes its storage with it.
 
 ## Backups
 
