@@ -8,6 +8,8 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 
 ## Unreleased
 
+## 0.5.0 — 2026-11-17
+
 - New: Hide movies for sale (Settings → All of YouTube → Promotions). Hides YouTube's "Buy or rent" movie rows and cards, like the movie row at the top of some searches. The Gentle, Focused and Deep work presets include it.
 - Chrome: At Peace asks for permission to run on other sites only when you add one to Mindful Pause.
 
