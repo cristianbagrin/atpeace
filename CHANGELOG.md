@@ -8,6 +8,8 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 
 ## Unreleased
 
+## 0.4.0 — 2026-11-17
+
 - New: an optional account (Settings → Account). Sign in and your settings and saved presets follow you to every browser you use. It's the same account as Chinese Brain, Money in Order and Ten Dollar Words. Your settings lock and your stats stay on each computer, and while the lock is on, changes from your other browsers wait until you unlock.
 - Fixed: with "Hide profile pictures" on, clicking "Read more" on a comment opened its replies instead of the full comment.
 
