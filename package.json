@@ -20,6 +20,7 @@
     "verify:package": "npm run build --silent && node tools/verify-package.mjs",
     "sign": "web-ext sign --channel=unlisted",
     "build:listed": "node tools/build-listed.mjs",
+    "build:chrome": "node tools/build-chrome.mjs",
     "release": "node tools/release.mjs"
   },
   "devDependencies": {
