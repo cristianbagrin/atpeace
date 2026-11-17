@@ -1,0 +1,19 @@
+// The At Peace website: https://atpeace.cristianbagrin.com
+//   public/    the pages, served as they are (index, privacy, 404)
+//   worker.js  /chrome and /firefox (the store links; the Chrome on/off switch is at its top) and the headers
+// Deploy from the repo root: `npm run site:deploy` (= npx wrangler deploy -c site/wrangler.jsonc).
+{
+  "name": "atpeace",
+  "main": "worker.js",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": true
+  },
+  "routes": [
+    { "pattern": "atpeace.cristianbagrin.com", "custom_domain": true }
+  ],
+  "workers_dev": false
+}

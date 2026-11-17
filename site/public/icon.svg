@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>At Peace</title>
+  <!-- The dial: an indigo disc, a thin light ring (a sixteenth of the size, so it is one pixel at 16 px),
+       and a mint dot in the middle. Reads on light and on dark toolbars. -->
+  <circle cx="64" cy="64" r="62" fill="#16186F"/>
+  <circle cx="64" cy="64" r="46" fill="none" stroke="#F2F3FF" stroke-width="8"/>
+  <circle cx="64" cy="64" r="19" fill="#3FF1C0"/>
+</svg>

@@ -13,6 +13,9 @@ export default {
     'tools/**',
     'docs',
     'docs/**',
+    // The website (atpeace.cristianbagrin.com), deployed on its own.
+    'site',
+    'site/**',
     '*.md',
     // Not needed by Mozilla for a self-distributed (unlisted) add-on.
     'LICENSE',

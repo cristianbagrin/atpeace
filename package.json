@@ -21,7 +21,9 @@
     "sign": "web-ext sign --channel=unlisted",
     "build:listed": "node tools/build-listed.mjs",
     "build:chrome": "node tools/build-chrome.mjs",
-    "release": "node tools/release.mjs"
+    "release": "node tools/release.mjs",
+    "site:dev": "wrangler dev -c site/wrangler.jsonc",
+    "site:deploy": "wrangler deploy -c site/wrangler.jsonc"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
