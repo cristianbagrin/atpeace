@@ -20,3 +20,8 @@ ships goes out as a new version. When you finish a change the user will ship, al
    version is newer than the latest published one (a version number can be used only once).
 
 Write the notes for people, not developers: what changed for them, in plain words.
+
+## Testing in a real browser
+
+- Chrome: `npm run build:chrome`, unzip, then start Chrome with `--headless=new --enable-unsafe-extension-debugging --remote-debugging-port=<port>` and load it over CDP with `Extensions.loadUnpacked`.
+- Firefox/Zen: start it headless with `--remote-debugging-port` and drive it over WebDriver BiDi (`webExtension.install`). Pin the extension's UUID in the profile's `user.js` (`extensions.webextensions.uuids`). Call `browsingContext.activate` on the YouTube tab first, or the welcome tab keeps focus and the page never scrolls or loads comments.
