@@ -28,7 +28,7 @@ describe('update manifest (updates.json)', () => {
           updates: [
             {
               version: '0.2.0',
-              update_link: 'https://raw.githubusercontent.com/cristianbagrin/at-peace-updates/main/xpi/at-peace-0.2.0.xpi',
+              update_link: 'https://raw.githubusercontent.com/cristianbagrin/atpeaceupdates/main/xpi/at-peace-0.2.0.xpi',
               update_hash: `sha256:${HASH_A}`,
             },
           ],
@@ -95,7 +95,7 @@ describe('update manifest (updates.json)', () => {
   test("the manifest's update_url is the file this tool maintains", () => {
     const gecko = JSON.parse(read('manifest.json')).browser_specific_settings.gecko;
     assert.equal(gecko.update_url, UPDATE_URL);
-    assert.equal(UPDATE_URL, 'https://raw.githubusercontent.com/cristianbagrin/at-peace-updates/main/updates.json');
+    assert.equal(UPDATE_URL, 'https://raw.githubusercontent.com/cristianbagrin/atpeaceupdates/main/updates.json');
   });
 
   test('the CLI hashes the .xpi and can run twice', () => {
@@ -517,7 +517,7 @@ describe('release: guards in the repository', () => {
     assert.match(rel, /WEB_EXT_API_KEY: \$\{\{ env\.AMO_ISSUER \}\}/);
     assert.match(rel, /tools\/update-manifest\.mjs --file/);
     assert.match(rel, /unzip -Z1 .*grep -vxE 'manifest\\\.json\|icons\|src\|META-INF'/, 'the signed package is checked for stray top-level entries');
-    assert.match(rel, /UPDATES_REPO: cristianbagrin\/at-peace-updates/);
+    assert.match(rel, /UPDATES_REPO: cristianbagrin\/(at-peace-updates|atpeaceupdates)/); // the workflow still names the old repo, which GitHub redirects
     assert.match(rel, /cancel-in-progress: false/);
     // the order matters: access to the updates repo is checked before the version is spent at Mozilla
     const order = ['Check access to the updates repo', 'Sign with Mozilla', 'Keep the signed file', 'Publish to the updates repo', 'Check the public update files'].map((n) => rel.indexOf(`name: ${n}`));

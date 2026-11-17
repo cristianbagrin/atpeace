@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // update-manifest: keeps updates.json, the Firefox update manifest that tells an installed At Peace
-// where the newest signed .xpi is. The file lives in the public repo cristianbagrin/at-peace-updates;
+// where the newest signed .xpi is. The file lives in the public repo cristianbagrin/atpeaceupdates;
 // manifest.json's browser_specific_settings.gecko.update_url points at it.
 //
 //   node tools/update-manifest.mjs --file updates.json --xpi xpi/at-peace-0.2.0.xpi
@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 /** The public repo that holds only the signed .xpi files and updates.json. */
-export const UPDATES_REPO = 'cristianbagrin/at-peace-updates';
+export const UPDATES_REPO = 'cristianbagrin/atpeaceupdates';
 export const UPDATES_BRANCH = 'main';
 /** What manifest.json's `update_url` must be. */
 export const UPDATE_URL = `https://raw.githubusercontent.com/${UPDATES_REPO}/${UPDATES_BRANCH}/updates.json`;

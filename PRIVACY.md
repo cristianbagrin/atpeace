@@ -1,12 +1,26 @@
 # Privacy
 
-At Peace keeps everything on your computer. Nothing is sent anywhere.
+At Peace keeps everything on your computer. Unless you sign in to the optional account, nothing is sent anywhere.
 
 - No analytics, no telemetry, no crash reports.
-- No accounts, no sync, no server of ours.
 - No remote code, remote fonts or remote images. Everything the extension shows ships inside it.
-- The extension makes no network requests of its own. The manifest declares
+- Without an account the extension makes no network requests of its own. The manifest declares
   `data_collection_permissions: { "required": ["none"] }`, which is Firefox's way of saying so.
+
+## The optional account
+
+Settings, then **Account**, lets you sign in with the same account as Chris's other apps
+(account.cristianbagrin.com), so your settings and presets follow you to every browser. Firefox asks
+first, because signing in sends data (`authenticationInfo`, `personallyIdentifyingInfo` in the manifest).
+If you sign in:
+
+- Your **email** and **password** go to account.cristianbagrin.com to sign you in. The server keeps a
+  salted PBKDF2 hash of the password, never the password itself.
+- Your **settings** and **presets you saved** are stored with your account and sent to your other signed-in
+  browsers. The **settings lock** is never sent, and neither are usage stats or run state.
+- While the settings lock holds, changes from your other browsers wait until you unlock.
+- **Sign out** stops syncing; your settings stay in the browser. Deleting the account on
+  account.cristianbagrin.com removes what the server keeps, right away.
 
 ## What it can see
 
@@ -20,7 +34,7 @@ At Peace keeps everything on your computer. Nothing is sent anywhere.
 ## What is stored, and where
 
 Everything lives in the browser's own extension storage (`storage.local`) for this add-on, inside your
-Firefox or Zen profile. It is not synced to any account.
+Firefox or Zen profile. Settings and presets are also kept with your account if you signed in (see above).
 
 | What | Why | How long |
 |---|---|---|

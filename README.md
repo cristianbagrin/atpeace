@@ -4,7 +4,7 @@ A calm, intentional YouTube. At Peace is a Firefox / Zen Browser extension that 
 of YouTube you don't want to see and puts a little friction (a breath, a timer, a schedule) between you
 and the feed.
 
-Everything runs on your computer. Nothing is sent anywhere: no analytics, no accounts, no remote code.
+Everything runs on your computer: no analytics, no remote code. An optional account (Settings → Account) keeps your settings and presets in step across browsers; without it, nothing is sent anywhere.
 See [PRIVACY.md](PRIVACY.md).
 
 At Peace works on desktop `www.youtube.com`, in Firefox and Zen 140 or newer.

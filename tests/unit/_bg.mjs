@@ -11,6 +11,7 @@ export const BACKGROUND_MODULES = [
   'src/background/sessions.js',
   'src/background/rules.js',
   'src/background/guards.js',
+  'src/background/account.js',
   'src/background/background.js',
 ];
 

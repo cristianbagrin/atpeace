@@ -35,6 +35,11 @@ describe('AP.msg.TYPES', () => {
       'LOCK_RELOCK',
       'STATS_CLEAR',
       'ONBOARDING_DONE',
+      'ACCOUNT_STATUS',
+      'ACCOUNT_SIGN_IN',
+      'ACCOUNT_SIGN_OUT',
+      'ACCOUNT_FORGOT',
+      'ACCOUNT_SYNC',
     ];
     assert.deepEqual(Object.keys(AP.msg.TYPES).sort(), [...expected].sort());
     for (const name of expected) assert.equal(AP.msg.TYPES[name], name);

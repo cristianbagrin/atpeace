@@ -1,6 +1,6 @@
 # Releasing At Peace
 
-Mozilla signs each version privately (unlisted: no public page on addons.mozilla.org). The signed `.xpi` goes to a small public repo, `cristianbagrin/at-peace-updates`, together with `updates.json`. Zen and Firefox read that file once a day and update by themselves. The source repo, `cristianbagrin/at-peace`, stays private.
+Mozilla signs each version privately (unlisted: no public page on addons.mozilla.org). The signed `.xpi` goes to a small public repo, `cristianbagrin/atpeaceupdates`, together with `updates.json`. Zen and Firefox read that file once a day and update by themselves. The source repo, `cristianbagrin/at-peace`, stays private.
 
 ```
 npm run release -- patch  ->  git push  ->  GitHub Actions: check, sign, publish  ->  Zen updates
@@ -8,7 +8,7 @@ npm run release -- patch  ->  git push  ->  GitHub Actions: check, sign, publish
 
 ## One-time setup (about 10 minutes, by you)
 
-**1. The updates repo.** github.com, click **+** (top right), **New repository**. Owner `cristianbagrin`, name `at-peace-updates`, **Public**, tick **Add a README file**, **Create repository**. (The README makes the `main` branch exist; the workflow needs it.) Suggested README text: "Signed builds and update list for the At Peace browser extension. Nothing else is here."
+**1. The updates repo.** github.com, click **+** (top right), **New repository**. Owner `cristianbagrin`, name `atpeaceupdates`, **Public**, tick **Add a README file**, **Create repository**. (The README makes the `main` branch exist; the workflow needs it.) Suggested README text: "Signed builds and update list for the At Peace browser extension. Nothing else is here."
 
 **2. Mozilla API credentials.**
 - Open https://addons.mozilla.org/developers/ and sign in with your Mozilla account. If it asks you to accept the Firefox Add-on Distribution Agreement, accept it; signing is refused until you do.
@@ -17,8 +17,8 @@ npm run release -- patch  ->  git push  ->  GitHub Actions: check, sign, publish
 
 **3. A GitHub token that can write to the updates repo only.**
 - github.com, your profile picture (top right), **Settings**, then **Developer settings** (bottom of the left list), **Personal access tokens**, **Fine-grained tokens**, **Generate new token**.
-- Token name `at-peace-updates`. Expiration: the longest offered (the token stops working then; see Troubleshooting). Resource owner: `cristianbagrin`.
-- **Repository access**: **Only select repositories**, choose `at-peace-updates`.
+- Token name `atpeaceupdates`. Expiration: the longest offered (the token stops working then; see Troubleshooting). Resource owner: `cristianbagrin`.
+- **Repository access**: **Only select repositories**, choose `atpeaceupdates`.
 - **Permissions**, **Repository permissions**, **Contents**: **Read and write**. Nothing else.
 - **Generate token** and copy it. It is shown once.
 
@@ -37,7 +37,7 @@ Then push this repo to `cristianbagrin/at-peace` as usual. The workflows live in
 ## First install in Zen
 
 1. Wait for the first release run to finish (Actions tab, **Release**, green).
-2. In Zen open `https://raw.githubusercontent.com/cristianbagrin/at-peace-updates/main/xpi/at-peace-<version>.xpi` (the newest file in the `xpi/` folder of `at-peace-updates`).
+2. In Zen open `https://raw.githubusercontent.com/cristianbagrin/atpeaceupdates/main/xpi/at-peace-<version>.xpi` (the newest file in the `xpi/` folder of `atpeaceupdates`).
 3. Zen asks to add At Peace. Click **Add**. Done.
 
 If Zen downloads the file instead of asking, open `about:addons`, click the gear, **Install Add-on From File...** and pick the downloaded file. The same file is kept on each release run's page in the source repo (**Actions**, **Release**, the run, **Artifacts**).
@@ -54,7 +54,7 @@ After each release Claude also gives the user the built zip and the version note
    - checks the versions agree and that the extension files are exactly those of the `Release x.y.z` commit, runs lint, tests and `verify:package`;
    - checks it can write to the updates repo (before Mozilla is involved);
    - `web-ext sign --channel=unlisted` (waits up to 10 minutes for validation and 25 for approval); if Mozilla already signed this version in an earlier run, it downloads that file instead;
-   - adds `xpi/at-peace-<version>.xpi` to `at-peace-updates` and rewrites `updates.json`;
+   - adds `xpi/at-peace-<version>.xpi` to `atpeaceupdates` and rewrites `updates.json`;
    - checks that the two public URLs serve the new files.
 4. Zen picks up the new version within a day, or at once with **Check for Updates**.
 
@@ -70,18 +70,18 @@ GitHub Actions on a private repo uses the monthly free minutes of the account. A
 
 **"Waiting for Mozilla" or timed out waiting for approval.** The submission is at Mozilla but not signed yet. Re-run the job later; once Mozilla has signed it, the run downloads that file and publishes it. (https://addons.mozilla.org/developers/addons, **At Peace**, shows the version's state.)
 
-**"Cannot push to the updates repo", "Cannot read the updates repo", or a 401/403 from GitHub.** The token expired, was deleted, or lacks **Contents: Read and write** on `at-peace-updates`. Make a new token (step 3), then **Settings**, **Secrets and variables**, **Actions**, the secret that holds it (`MOZILLA_GITHUB` or `UPDATES_REPO_TOKEN`), the pencil, paste, **Update secret**. Then open the failed run and **Re-run all jobs**.
+**"Cannot push to the updates repo", "Cannot read the updates repo", or a 401/403 from GitHub.** The token expired, was deleted, or lacks **Contents: Read and write** on `atpeaceupdates`. Make a new token (step 3), then **Settings**, **Secrets and variables**, **Actions**, the secret that holds it (`MOZILLA_GITHUB` or `UPDATES_REPO_TOKEN`), the pencil, paste, **Update secret**. Then open the failed run and **Re-run all jobs**.
 
 **A 401 from Mozilla, or "refused by addons.mozilla.org".** The API credentials were revoked. Generate new ones (step 2) and put them in the secret (step 4).
 
 **"Missing: ..." in Check the secrets exist.** A credential was not found in any of the secrets; add it (step 4). Run **Release setup check** to see what each secret holds.
 
-**The last step says the files are not public.** Is `at-peace-updates` public? `raw.githubusercontent.com` can lag a few minutes; the step already waits 5 minutes. Re-run the failed job if it was only a delay.
+**The last step says the files are not public.** Is `atpeaceupdates` public? `raw.githubusercontent.com` can lag a few minutes; the step already waits 5 minutes. Re-run the failed job if it was only a delay.
 
-**Zen does not update.** Check `https://raw.githubusercontent.com/cristianbagrin/at-peace-updates/main/updates.json` in a browser: the new version must be listed last. In `about:addons`, click At Peace: **Automatic Updates** must be **Default** or **On**. The gear's **Check for Updates** forces a check.
+**Zen does not update.** Check `https://raw.githubusercontent.com/cristianbagrin/atpeaceupdates/main/updates.json` in a browser: the new version must be listed last. In `about:addons`, click At Peace: **Automatic Updates** must be **Default** or **On**. The gear's **Check for Updates** forces a check.
 
 ## Good to know
 
 - The signed `.xpi` is the plain JavaScript of the extension, in a public repo: anyone who finds it can read it. [LICENSE](../LICENSE) (all rights reserved) still applies.
-- Without GitHub Actions you can sign by hand: `WEB_EXT_API_KEY=... WEB_EXT_API_SECRET=... npm run sign` writes the signed file to `web-ext-artifacts/`; then add it to `at-peace-updates` as in "Signed, but not published".
+- Without GitHub Actions you can sign by hand: `WEB_EXT_API_KEY=... WEB_EXT_API_SECRET=... npm run sign` writes the signed file to `web-ext-artifacts/`; then add it to `atpeaceupdates` as in "Signed, but not published".
 - `updates.json` lists every release, oldest first; Firefox takes the newest one it can install. Each entry carries the file's SHA-256, which Firefox checks before installing.

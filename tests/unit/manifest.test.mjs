@@ -19,7 +19,8 @@ describe('manifest.json', () => {
     const gecko = manifest.browser_specific_settings.gecko;
     assert.equal(gecko.id, 'at-peace@cristianbagrin');
     assert.equal(gecko.strict_min_version, '140.0');
-    assert.deepEqual(gecko.data_collection_permissions, { required: ['none'] });
+    // Nothing is collected unless you sign in to the optional account (Settings → Account).
+    assert.deepEqual(gecko.data_collection_permissions, { required: ['none'], optional: ['authenticationInfo', 'personallyIdentifyingInfo'] });
   });
 
   test('permissions', () => {

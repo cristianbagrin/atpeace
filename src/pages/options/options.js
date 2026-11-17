@@ -4,6 +4,7 @@
 import { buildRow, slug } from './rows.js';
 import { buildWeek } from './week.js';
 import { buildBackup } from './backup.js';
+import { buildAccount } from './account.js';
 import { buildPresets } from './presets-section.js';
 
 const AP = globalThis.AtPeace;
@@ -23,6 +24,7 @@ const NAV_GROUPS = [
 const EXTRA_SECTIONS = [
   { id: 'presets', title: 'Presets', order: 20 },
   { id: 'week', title: 'Your week', order: 920 },
+  { id: 'account', title: 'Account', order: 990 },
   { id: 'backup', title: 'Backup & reset', order: 1000 },
 ];
 
@@ -140,6 +142,7 @@ function buildSections() {
   const entries = [...withSettings, ...EXTRA_SECTIONS].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   const week = buildWeek();
   const backup = buildBackup();
+  const account = buildAccount();
   const presets = buildPresets({
     onCurrentName: (name) => {
       state.presetName = name;
@@ -155,6 +158,7 @@ function buildSections() {
     let body;
     if (section.id === 'week') body = week.el;
     else if (section.id === 'backup') body = backup.el;
+    else if (section.id === 'account') body = account.el;
     else if (section.id === 'presets') body = presets.el;
     else {
       built = buildSettingsSection(section);

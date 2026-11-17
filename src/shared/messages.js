@@ -24,6 +24,11 @@
     LOCK_RELOCK: 'LOCK_RELOCK', // {} → state.lockUnlockedUntil = 0
     STATS_CLEAR: 'STATS_CLEAR', // {} → the background clears the usage history (needs an unlock while the settings lock is on)
     ONBOARDING_DONE: 'ONBOARDING_DONE', // {} → meta.onboarded = true (only the background writes meta)
+    ACCOUNT_STATUS: 'ACCOUNT_STATUS', // {} → { email, signedIn, at, error, held, pending } (src/background/account.js)
+    ACCOUNT_SIGN_IN: 'ACCOUNT_SIGN_IN', // { email, password, create } → status, or { ok: false, error }
+    ACCOUNT_SIGN_OUT: 'ACCOUNT_SIGN_OUT', // {} → status
+    ACCOUNT_FORGOT: 'ACCOUNT_FORGOT', // { email } → { ok } or { ok: false, error }
+    ACCOUNT_SYNC: 'ACCOUNT_SYNC', // {} → status after a sync
   });
 
   // Chrome and Firefox both say "Could not establish connection. Receiving end does not exist."

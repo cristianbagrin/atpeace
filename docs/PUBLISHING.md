@@ -12,7 +12,7 @@ addons.mozilla.org, "Add to Firefox" for everyone, updates delivered by Mozilla.
   duplicate). 0.2.1 went out unlisted, so the first listed version is 0.2.2, bumped by hand in a commit that is
   not named "Release x.y.z" so the unlisted workflow does not take the number. After that, one version per
   channel: build the next number once and either release it unlisted (`npm run release`) or submit it listed.
-- Copies installed from the unlisted `.xpi` keep updating from `at-peace-updates`. To move them to the AMO
+- Copies installed from the unlisted `.xpi` keep updating from `atpeaceupdates`. To move them to the AMO
   copy, install from the AMO page once; after that Mozilla updates it.
 
 ## Steps
@@ -38,7 +38,7 @@ a timer or a schedule between you and the feed.
 **Description:**
 
 > At Peace makes YouTube quieter and puts a little friction between you and the feed. Everything runs on
-> your computer; nothing is sent anywhere.
+> your computer. An optional account keeps your settings in step across browsers; without it, nothing is sent anywhere.
 >
 > DECLUTTER: about 140 switches, each hiding one thing: the home feed, Shorts, comments, related videos,
 > the sidebar, buttons under a video, view counts, upload dates, ads and Premium promos, AI summaries, end
@@ -60,7 +60,7 @@ a timer or a schedule between you and the feed.
 >
 > OWN IT: four built-in presets and your own, export and import, light and dark theme, keyboard shortcuts.
 >
-> PRIVACY: no analytics, no accounts, no remote code. Usage numbers stay in your browser for 90 days.
+> PRIVACY: no analytics, no remote code. The account is optional and syncs only settings and presets. Usage numbers stay in your browser for 90 days.
 > Other sites are only touched if you add them to Mindful Pause, and the browser asks first.
 
 **Support email:** cristianbagrin1@gmail.com

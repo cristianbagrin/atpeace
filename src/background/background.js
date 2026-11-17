@@ -132,6 +132,12 @@
     [T.LOCK_RELOCK]: onLockRelock,
     [T.STATS_CLEAR]: onStatsClear,
     [T.ONBOARDING_DONE]: onOnboardingDone,
+    // The account: only our own pages may sign in or out (src/background/account.js).
+    [T.ACCOUNT_STATUS]: (_p, sender) => (fromExtensionPage(sender) ? bg.account.status() : { ok: false, error: 'not-allowed' }),
+    [T.ACCOUNT_SIGN_IN]: (p, sender) => (fromExtensionPage(sender) ? bg.account.signIn(p) : { ok: false, error: 'not-allowed' }),
+    [T.ACCOUNT_SIGN_OUT]: (_p, sender) => (fromExtensionPage(sender) ? bg.account.signOut() : { ok: false, error: 'not-allowed' }),
+    [T.ACCOUNT_FORGOT]: (p, sender) => (fromExtensionPage(sender) ? bg.account.forgot(p) : { ok: false, error: 'not-allowed' }),
+    [T.ACCOUNT_SYNC]: async (_p, sender) => (fromExtensionPage(sender) ? (await bg.account.now(), bg.account.status()) : { ok: false, error: 'not-allowed' }),
 
     [T.HEARTBEAT]: async (payload) => {
       const siteKey = payload?.siteKey;
@@ -305,11 +311,13 @@
   }, 30);
   api.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== 'local') return;
+    bg.account?.onStorage(changes);
     for (const key of STORAGE_KEYS_THAT_MATTER) if (key in changes) pendingKeys.add(key);
     if (pendingKeys.size > 0) onStorageSettled();
   });
 
-  api.alarms?.onAlarm?.addListener(() => {
+  api.alarms?.onAlarm?.addListener((alarm) => {
+    bg.account?.onAlarm(alarm);
     sessions()
       .reconcile()
       .catch((err) => AP.warn('alarm handling failed', err));

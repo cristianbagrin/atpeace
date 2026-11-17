@@ -6,10 +6,11 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "at-peace@cristianbagrin",
-      "update_url": "https://raw.githubusercontent.com/cristianbagrin/at-peace-updates/main/updates.json",
+      "update_url": "https://raw.githubusercontent.com/cristianbagrin/atpeaceupdates/main/updates.json",
       "strict_min_version": "140.0",
       "data_collection_permissions": {
-        "required": ["none"]
+        "required": ["none"],
+        "optional": ["authenticationInfo", "personallyIdentifyingInfo"]
       }
     },
     "gecko_android": {
@@ -58,6 +59,7 @@
       "src/background/sessions.js",
       "src/background/rules.js",
       "src/background/guards.js",
+      "src/background/account.js",
       "src/background/background.js"
     ]
   },

@@ -32,5 +32,6 @@ importScripts(
   './sessions.js',
   './rules.js',
   './guards.js',
+  './account.js',
   './background.js',
 );

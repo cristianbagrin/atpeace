@@ -1032,3 +1032,26 @@
     column-gap: 14px;
   }
 }
+
+/* ------------------------------------------------------------------ account */
+
+.account .lock-fields {
+  margin-top: 0;
+}
+
+.account-msg:empty {
+  display: none;
+}
+
+.btn-link {
+  border-color: transparent;
+  background: none;
+  color: var(--text-2);
+  padding-inline: 4px;
+}
+
+.btn-link:hover:not(:disabled) {
+  background: none;
+  border-color: transparent;
+  color: var(--text);
+}
