@@ -63,6 +63,11 @@
         'ytd-comments ytd-comment-view-model #author-thumbnail',
         'ytd-comments ytd-comment-simplebox-renderer #author-thumbnail',
         'ytd-comments ytd-comment-renderer #author-thumbnail',
+        // The reply line and its invisible click area (it opens and closes the replies) live in the
+        // avatar column. Without the avatars the comment text moves under that area, and a click on
+        // "Read more" opened the replies instead.
+        'ytd-comments ytd-comment-thread-renderer .thread-hitbox',
+        'ytd-comments ytd-comment-view-model .threadline',
       ],
       since: '0.1.0',
     },
