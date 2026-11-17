@@ -54,6 +54,8 @@
     return bg.store.queue('guards', async () => {
       const scripting = AP.api.scripting;
       if (!scripting?.registerContentScripts || !AP.api.permissions?.contains) return { registered: [] };
+      // The Chrome build asks for `scripting` only when a site is added (tools/build-chrome.mjs).
+      if (!(await AP.api.permissions.contains({ permissions: ['scripting'] }).catch(() => false))) return { registered: [] };
       const patterns = await wantedPatterns(await AP.settings.effective());
       const existing = (await scripting.getRegisteredContentScripts({ ids: [GUARD_ID] }))[0];
       if (patterns.length === 0) {

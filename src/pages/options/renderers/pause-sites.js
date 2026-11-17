@@ -15,6 +15,11 @@
   const ROOT_CLASS = 'pause-sites';
 
   const patternFor = (domain) => `*://*.${domain}/*`;
+  /** What a site needs: its host access, plus `scripting` where that is optional (the Chrome build). */
+  const accessFor = (domain) => {
+    const optional = AP.api.runtime.getManifest().optional_permissions ?? [];
+    return { origins: [patternFor(domain)], ...(optional.includes('scripting') ? { permissions: ['scripting'] } : {}) };
+  };
 
   /**
    * Turns what the person typed ("https://www.reddit.com/r/x", "Reddit.com") into a site, or says
@@ -89,7 +94,7 @@
 
       const checkAccess = async (site) => {
         try {
-          access.set(site.domain, await api.permissions.contains({ origins: [patternFor(site.domain)] }));
+          access.set(site.domain, await api.permissions.contains(accessFor(site.domain)));
         } catch {
           access.set(site.domain, false);
         }
@@ -98,7 +103,7 @@
 
       /** Asks for access; must be called straight from a click handler (no await before it). */
       const grant = (site, button) => {
-        const request = api.permissions.request({ origins: [patternFor(site.domain)] });
+        const request = api.permissions.request(accessFor(site.domain));
         button.disabled = true;
         request.then(
           (granted) => {
@@ -169,7 +174,7 @@
           return;
         }
         // The permission request comes FIRST and synchronously: browsers only allow it inside a user gesture.
-        const request = api.permissions.request({ origins: [patternFor(parsed.domain)] });
+        const request = api.permissions.request(accessFor(parsed.domain));
         busy = true;
         showError(null);
         draw();

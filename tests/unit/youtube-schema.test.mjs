@@ -8,7 +8,7 @@ import { loadAtPeace, installFakeBrowser, uninstallFakeBrowser, CORE_SCRIPTS, SC
 
 /** Every YouTube setting that must exist: section → ids without the "yt.<section>." prefix. Keep in sync on purpose. */
 const EXPECTED = {
-  general: ['grayscale', 'thumbnails', 'thumbnailFrame', 'disableHoverPreview', 'hideViewCounts', 'hideUploadDates', 'hideDurations', 'hideChannelAvatars', 'hideBadges', 'hideWatchedProgress', 'hideWatched', 'hidePremiumUpsells', 'hideMixes', 'hidePlayables'],
+  general: ['grayscale', 'thumbnails', 'thumbnailFrame', 'disableHoverPreview', 'hideViewCounts', 'hideUploadDates', 'hideDurations', 'hideChannelAvatars', 'hideBadges', 'hideWatchedProgress', 'hideWatched', 'hidePremiumUpsells', 'hideMoviesForSale', 'hideMixes', 'hidePlayables'],
   masthead: ['hideSearchSuggestions', 'hideSearchHistory', 'hideVoiceSearch', 'hideSearchBar', 'hideCreate', 'hideNotifications', 'hideGuideButton', 'hideAICompanion', 'hideCountryCode', 'hideDoodle'],
   guide: ['hideAll', 'hideMini', 'hideHome', 'hideShorts', 'hideSubscriptionsEntry', 'hideYouEntry', 'hideHistory', 'hidePlaylists', 'hideYourVideos', 'hideWatchLater', 'hideLiked', 'hideDownloads', 'hideCourses', 'hideSubscriptionsSection', 'hideExploreSection', 'hideMoreFromYouTube', 'hideSettingsSection', 'hideFooter', 'hideSignInPromo'],
   home: ['feedMode', 'redirectUrl', 'hideChips', 'hideShortsShelf', 'hideNewsShelf', 'hidePostsShelf', 'hideOtherShelves', 'disableInfiniteScroll', 'hideFeedNudge'],
@@ -117,7 +117,7 @@ describe('catalog shape', () => {
       }
       assert.doesNotMatch(def.label, /\p{Extended_Pictographic}/u, `${def.id}: no emoji`);
       assert.ok(def.group && def.group.trim() !== '', `${def.id} needs a group`);
-      assert.match(def.since, /^0\.[123]\.0$/, `${def.id} since`);
+      assert.match(def.since, /^0\.\d+\.\d+$/, `${def.id} since`);
     }
     // Most settings have none: the label says it. A growing list here means the rule is slipping.
     const described = catalog.filter((d) => d.description !== undefined);
@@ -157,8 +157,8 @@ describe('catalog shape', () => {
     // Shorts that are allowed are not hidden by the "comments"/"shorts" tags accidentally: only shorts.mode carries the select.
     assert.deepEqual(S.byTag('shorts').filter((d) => d.type === 'select').map((d) => d.id), ['yt.shorts.mode']);
     assert.ok(S.byTag('ads').length >= 1 && S.byTag('ai').length >= 4);
-    // Nothing hides ads: CSS-hidden ad slots trip YouTube's ad-blocker wall (schema/general.js).
-    assert.deepEqual(S.byTag('ads').map((d) => d.id), ['yt.general.hidePremiumUpsells']);
+    // Nothing hides ad slots: CSS-hidden ones trip YouTube's ad-blocker wall (schema/general.js). Promotions are fine.
+    assert.deepEqual(S.byTag('ads').map((d) => d.id), ['yt.general.hidePremiumUpsells', 'yt.general.hideMoviesForSale']);
   });
 
   test('every preset id (Gentle, Focused, Deep work) resolves against this catalog', () => {

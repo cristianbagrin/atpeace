@@ -311,6 +311,23 @@
       ],
       since: '0.1.0',
     },
+    {
+      id: 'yt.general.hideMoviesForSale',
+      group: 'Promotions',
+      label: 'Hide movies for sale',
+      description: '"Buy or rent" movie rows and cards.',
+      type: 'toggle',
+      default: false,
+      tags: ['ads'],
+      hide: [
+        'ytd-shelf-renderer:has(ytd-grid-movie-renderer)',
+        'ytd-shelf-renderer:has(ytd-horizontal-movie-list-renderer)',
+        'ytd-horizontal-movie-list-renderer',
+        'ytd-movie-renderer',
+        'ytd-grid-movie-renderer',
+      ],
+      since: '0.5.0',
+    },
 
     // ---- Extras --------------------------------------------------------------------------------
     {

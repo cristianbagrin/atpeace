@@ -20,6 +20,11 @@ const manifest = JSON.parse(await readFile(join(ROOT, 'manifest.json'), 'utf8'))
 manifest.background = { service_worker: 'src/background/sw-chrome.js' };
 delete manifest.browser_specific_settings;
 manifest.minimum_chrome_version = '120';
+// Chrome's review rejects a permission the extension doesn't use from the start. `scripting` is only
+// needed once someone adds a site to Mindful Pause, so Chrome asks for it then, together with that
+// site (src/pages/options/renderers/pause-sites.js).
+manifest.permissions = manifest.permissions.filter((p) => p !== 'scripting');
+manifest.optional_permissions = [...new Set([...(manifest.optional_permissions ?? []), 'scripting'])];
 
 const stage = await mkdtemp(join(tmpdir(), 'at-peace-chrome-'));
 try {

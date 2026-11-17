@@ -8,6 +8,9 @@ version (see [docs/RELEASING.md](docs/RELEASING.md)).
 
 ## Unreleased
 
+- New: Hide movies for sale (Settings → All of YouTube → Promotions). Hides YouTube's "Buy or rent" movie rows and cards, like the movie row at the top of some searches. The Gentle, Focused and Deep work presets include it.
+- Chrome: At Peace asks for permission to run on other sites only when you add one to Mindful Pause.
+
 ## 0.4.0 — 2026-11-17
 
 - New: an optional account (Settings → Account). Sign in and your settings and saved presets follow you to every browser you use. It's the same account as Chinese Brain, Money in Order and Ten Dollar Words. Your settings lock and your stats stay on each computer, and while the lock is on, changes from your other browsers wait until you unlock.
