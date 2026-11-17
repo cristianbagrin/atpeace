@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>At Peace: a calm YouTube</title>
+  <meta name="description" content="A browser extension for a calm YouTube. Hide what you don't want to see, like Shorts, thumbnails, or the home feed.">
+  <meta name="theme-color" content="#EEF1F6">
+  <link rel="canonical" href="https://atpeace.cristianbagrin.com/">
+  <meta property="og:title" content="At Peace">
+  <meta property="og:description" content="A browser extension for a calm YouTube. Hide what you don't want to see, like Shorts, thumbnails, or the home feed.">
+  <meta property="og:url" content="https://atpeace.cristianbagrin.com/">
+  <meta property="og:image" content="https://atpeace.cristianbagrin.com/img/home-after.webp">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon-128.png">
+  <link rel="preload" href="/fonts/literata-500.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/site.js" defer></script>
+</head>
+<body>
+  <header class="bar wrap">
+    <a class="mark" href="/" aria-label="At Peace, home"><img src="/icon.svg" alt="" width="28" height="28">At Peace</a>
+    <nav class="bar-links">
+      <a href="/privacy">Privacy</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero wrap">
+      <h1>A browser extension for a calm YouTube.</h1>
+      <p class="lede">Hide what you don't want to see, like Shorts, thumbnails, or the home feed.</p>
+      <div class="get" data-get>
+        <a class="btn" data-store="firefox" href="/firefox">Add to Firefox</a>
+        <a class="btn" data-store="chrome" href="/chrome">Add to Chrome</a>
+      </div>
+      <p class="fine">Free. No account needed.</p>
+    </section>
+
+    <!-- The master switch from the extension's popup. A real checkbox: flip it and the page goes back to YouTube as it is. -->
+    <section class="flip wrap wide" aria-label="YouTube's home page, with and without At Peace">
+      <input class="flip-input" type="checkbox" id="flip-home" checked>
+      <div class="flip-bar">
+        <label class="switch" for="flip-home">
+          <span class="switch-name"><span class="dot" aria-hidden="true"></span>At Peace</span>
+          <span class="switch-state" aria-hidden="true"><span class="on">On</span><span class="off">Off</span></span>
+          <span class="switch-track" aria-hidden="true"><span class="switch-knob"></span></span>
+        </label>
+      </div>
+      <figure class="shot">
+        <img class="shot-after" src="/img/home-after.webp" srcset="/img/home-after-720.webp 720w, /img/home-after.webp 1280w" sizes="(min-width: 1180px) 1100px, 100vw" width="1280" height="956" alt="YouTube's home page with At Peace: no Shorts, no sidebar, just a grid of videos.">
+        <img class="shot-before" src="/img/home-before.webp" srcset="/img/home-before-720.webp 720w, /img/home-before.webp 1280w" sizes="(min-width: 1180px) 1100px, 100vw" width="1280" height="956" alt="YouTube's home page as it comes: a row of Shorts, the sidebar, view counts on every card." loading="lazy">
+      </figure>
+    </section>
+
+    <section class="tour wrap">
+      <div class="tour-text">
+        <h2>A short tour</h2>
+        <p>Chris, who made At Peace, shows what it does.</p>
+        <p class="fine">Plays from YouTube when you press it.</p>
+      </div>
+      <a class="video" href="https://youtu.be/iof4XKpFQ1E" data-video="iof4XKpFQ1E">
+        <img src="https://i.ytimg.com/vi_webp/iof4XKpFQ1E/sddefault.webp" width="640" height="480" alt="" loading="lazy">
+        <span class="play"><span class="play-icon" aria-hidden="true"></span>Play the tour</span>
+      </a>
+    </section>
+
+    <section class="feature wrap">
+      <div class="feature-text">
+        <h2>Just the video</h2>
+        <p>Comments, related videos, the buttons under the player. Each one has its own switch, about 140 in all.</p>
+      </div>
+      <div class="flip">
+        <input class="flip-input" type="checkbox" id="flip-watch" checked>
+        <div class="flip-bar">
+          <label class="switch" for="flip-watch">
+            <span class="switch-name"><span class="dot" aria-hidden="true"></span>At Peace</span>
+            <span class="switch-state" aria-hidden="true"><span class="on">On</span><span class="off">Off</span></span>
+            <span class="switch-track" aria-hidden="true"><span class="switch-knob"></span></span>
+          </label>
+        </div>
+        <figure class="shot">
+          <img class="shot-after" src="/img/watch-after.webp" srcset="/img/watch-after-720.webp 720w, /img/watch-after.webp 1280w" sizes="(min-width: 1180px) 1100px, 100vw" width="1280" height="700" alt="A video page with At Peace: the video, its title and description, nothing beside it." loading="lazy">
+          <img class="shot-before" src="/img/watch-before.webp" srcset="/img/watch-before-720.webp 720w, /img/watch-before.webp 1280w" sizes="(min-width: 1180px) 1100px, 100vw" width="1280" height="700" alt="The same video page as it comes: a column of recommended videos and a subscribe button." loading="lazy">
+        </figure>
+      </div>
+    </section>
+
+    <section class="feature split wrap">
+      <div class="feature-text">
+        <h2>Pick what goes</h2>
+        <p>Open the popup on any YouTube page and switch off what you don't need there. Or start from a preset: Gentle, Focused, Deep work.</p>
+      </div>
+      <img class="popup" src="/img/popup.webp" width="381" height="599" alt="The At Peace popup: switches for grayscale, thumbnails, view counts, upload dates and more." loading="lazy">
+    </section>
+
+    <!-- The Mindful Pause, drawn like the extension's own pause page. -->
+    <section class="pause" aria-labelledby="pause-title">
+      <div class="wrap pause-inner">
+        <div class="pause-text">
+          <h2 id="pause-title">A breath before YouTube</h2>
+          <p>Before it opens, a breathing screen shows how many times you opened it today. Then you choose. When your minutes are up, the video pauses.</p>
+        </div>
+        <div class="pause-screen" aria-hidden="true">
+          <div class="dial"><span class="sun"></span></div>
+          <div class="pause-copy">
+            <p class="kicker">Opened 3 times today</p>
+            <p class="question">Open YouTube?</p>
+            <p class="pause-actions"><span class="pbtn pbtn-primary">Close</span><span class="pbtn">Continue for</span></p>
+            <p class="seg"><span class="seg-on">5 min</span><span>15 min</span><span>30 min</span></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="feature split wrap">
+      <div class="feature-text">
+        <h2>Block it for a while</h2>
+        <p>One click blocks YouTube for 25 minutes, an hour, or the rest of the day. Weekly schedules and a daily limit do it for you.</p>
+      </div>
+      <div class="panel focus" aria-hidden="true">
+        <p class="panel-title">Block YouTube for</p>
+        <p class="tiles"><span class="tile">25 min</span><span class="tile">1 h</span><span class="tile">4 h</span><span class="tile">Rest of day</span></p>
+        <p class="row"><span>Ending a block early</span><span class="row-value">Wait 30 seconds</span></p>
+        <p class="row"><span>Daily limit</span><span class="row-value">45 min</span></p>
+      </div>
+    </section>
+
+    <section class="feature split wrap">
+      <div class="feature-text">
+        <h2>Lock your own settings</h2>
+        <p>Hiding more always works. Showing anything again takes your password, or a short wait and one sentence typed out.</p>
+      </div>
+      <div class="panel lock" aria-hidden="true">
+        <p class="panel-title">Unlock settings</p>
+        <p class="lock-line">Type this to unlock:</p>
+        <p class="lock-sentence">This is a calm choice, not a habit.</p>
+        <p class="field">Type it here</p>
+      </div>
+    </section>
+
+    <section class="install wrap" id="install">
+      <h2>Make YouTube quiet</h2>
+      <div class="get" data-get>
+        <a class="btn" data-store="firefox" href="/firefox">Add to Firefox</a>
+        <a class="btn" data-store="chrome" href="/chrome">Add to Chrome</a>
+      </div>
+      <p class="fine">Free. No account needed. An optional <a href="https://account.cristianbagrin.com/">account</a> keeps your settings in step across browsers.</p>
+    </section>
+  </main>
+
+  <footer class="foot wrap">
+    <a class="maker" href="https://cristianbagrin.com/"><img src="/img/chris.webp" width="48" height="48" alt="" loading="lazy">Made by Chris</a>
+    <nav class="foot-links">
+      <a href="mailto:chris@cristianbagrin.com?subject=At%20Peace">Send feedback</a>
+      <a href="https://account.cristianbagrin.com/">Account</a>
+      <a href="/privacy">Privacy</a>
+    </nav>
+  </footer>
+</body>
+</html>

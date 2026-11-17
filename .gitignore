@@ -6,3 +6,4 @@ tests/e2e/artifacts/
 .DS_Store
 .amo-upload-uuid
 .web-extension-id
+.wrangler/

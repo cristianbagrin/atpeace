@@ -35,7 +35,7 @@ const srcRules = {
 
 export default [
   {
-    ignores: ['node_modules/', 'web-ext-artifacts/', 'tests/e2e/artifacts/', '.cache/', '**/*.xpi'],
+    ignores: ['node_modules/', '.wrangler/', 'site/.wrangler/', 'web-ext-artifacts/', 'tests/e2e/artifacts/', '.cache/', '**/*.xpi'],
   },
 
   js.configs.recommended,
@@ -93,6 +93,16 @@ export default [
   {
     files: ['tests/firefox/**/*.mjs'],
     languageOptions: { globals: { Services: 'readonly', Ci: 'readonly', ChromeUtils: 'readonly', WebExtensionPolicy: 'readonly' } },
+  },
+
+  // The website: a page script and a Cloudflare Worker (ES module).
+  {
+    files: ['site/public/**/*.js'],
+    languageOptions: { ecmaVersion: 2022, sourceType: 'script', globals: { ...globals.browser } },
+  },
+  {
+    files: ['site/worker.js'],
+    languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.serviceworker, HTMLRewriter: 'readonly' } },
   },
 
   // Browser-driven tests pass functions to page.evaluate / executeScript; those run in the

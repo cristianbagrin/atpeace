@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy · At Peace</title>
+  <meta name="description" content="At Peace keeps everything on your computer. Unless you sign in to the optional account, nothing is sent anywhere.">
+  <meta name="theme-color" content="#EEF1F6">
+  <link rel="canonical" href="https://atpeace.cristianbagrin.com/privacy">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="preload" href="/fonts/literata-500.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="bar wrap">
+    <a class="mark" href="/" aria-label="At Peace, home"><img src="/icon.svg" alt="" width="28" height="28">At Peace</a>
+    <nav class="bar-links">
+      <a href="/">Home</a>
+    </nav>
+  </header>
+
+  <!-- Kept in step with PRIVACY.md at the repository root. -->
+  <main class="doc wrap">
+    <h1>Privacy</h1>
+    <p class="lede">At Peace keeps everything on your computer. Unless you sign in to the optional account, nothing is sent anywhere.</p>
+    <ul>
+      <li>No analytics, no telemetry, no crash reports.</li>
+      <li>No remote code, remote fonts or remote images. Everything the extension shows ships inside it.</li>
+      <li>Without an account the extension makes no network requests of its own. The manifest declares <code>data_collection_permissions: { "required": ["none"] }</code>, which is Firefox's way of saying so.</li>
+    </ul>
+
+    <h2>The optional account</h2>
+    <p>Settings, then <strong>Account</strong>, lets you sign in with the same account as Chris's other apps (<a href="https://account.cristianbagrin.com/">account.cristianbagrin.com</a>), so your settings and presets follow you to every browser. Firefox asks first, because signing in sends data (<code>authenticationInfo</code>, <code>personallyIdentifyingInfo</code> in the manifest). If you sign in:</p>
+    <ul>
+      <li>Your <strong>email</strong> and <strong>password</strong> go to account.cristianbagrin.com to sign you in. The server keeps a salted PBKDF2 hash of the password, never the password itself.</li>
+      <li>Your <strong>settings</strong> and <strong>presets you saved</strong> are stored with your account and sent to your other signed-in browsers. The <strong>settings lock</strong> is never sent, and neither are usage stats or run state.</li>
+      <li>While the settings lock holds, changes from your other browsers wait until you unlock.</li>
+      <li><strong>Sign out</strong> stops syncing; your settings stay in the browser. Deleting the account on account.cristianbagrin.com removes what the server keeps, right away.</li>
+    </ul>
+
+    <h2>What it can see</h2>
+    <ul>
+      <li><strong>youtube.com.</strong> The extension runs on <code>www.youtube.com</code> so it can hide parts of the page, follow navigation and apply the behaviors you chose. It reads the page only to do that. Page content is never stored or sent.</li>
+      <li><strong>Other sites.</strong> Only if you add a site to Mindful Pause. The browser then asks for permission for that one site, and you can take it back in <code>about:addons</code> at any time.</li>
+      <li><strong>Browsing history.</strong> At Peace does not read it and does not have the permission to.</li>
+    </ul>
+
+    <h2>What is stored, and where</h2>
+    <p>Everything lives in the browser's own extension storage (<code>storage.local</code>) for this add-on, inside your Firefox or Zen profile. Settings and presets are also kept with your account if you signed in (see above).</p>
+    <table class="table">
+      <thead>
+        <tr><th scope="col">What</th><th scope="col">Why</th><th scope="col">How long</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row"><strong>Settings</strong> (every toggle you changed, the elements you hid, filter words, schedules, the list of pause sites)</th>
+          <td data-label="Why">So your choices survive restarts</td>
+          <td data-label="How long">Until you reset or uninstall</td>
+        </tr>
+        <tr>
+          <th scope="row"><strong>Presets you saved</strong></th>
+          <td data-label="Why">So you can switch between your own setups</td>
+          <td data-label="How long">Until you delete them</td>
+        </tr>
+        <tr>
+          <th scope="row"><strong>Settings lock</strong> (if you set one): a mode, and for a password lock a salted PBKDF2 hash</th>
+          <td data-label="Why">So the lock can check a password without storing it</td>
+          <td data-label="How long">Until you remove the lock</td>
+        </tr>
+        <tr>
+          <th scope="row"><strong>Run state</strong> (when a Pause session or a focus block ends, extra time you asked for today)</th>
+          <td data-label="Why">So blocks and sessions keep working after a restart</td>
+          <td data-label="How long">Short lived; it only describes what is in force right now</td>
+        </tr>
+        <tr>
+          <th scope="row"><strong>Usage stats</strong>: per day, minutes active on a site, how many times it was opened, how many times you turned back or continued, how many times a block stopped you</th>
+          <td data-label="Why">The numbers in the popup and "Your week" in the settings, and the daily limit</td>
+          <td data-label="How long"><strong>90 days</strong>, then older days are removed</td>
+        </tr>
+        <tr>
+          <th scope="row"><strong>Install bookkeeping</strong> (install time, whether the welcome page was finished, the version)</th>
+          <td data-label="Why">So the welcome page shows once and settings can be upgraded</td>
+          <td data-label="How long">Until you uninstall</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Two small things live outside the extension's storage. The Pause breath counter and a redirect loop guard use the page's <code>sessionStorage</code> for the current tab only; both are gone when the tab closes.</p>
+
+    <h2>How to clear it</h2>
+    <ul>
+      <li><strong>Usage stats:</strong> Settings, then "Your week", then <strong>Clear usage history…</strong>. It also resets today's count against the daily limit, so it needs an unlock if the settings lock is on.</li>
+      <li><strong>Settings:</strong> Settings, then Export / Import / Reset, then <strong>Reset…</strong>. Presets you saved stay; delete them in the Presets section.</li>
+      <li><strong>Everything:</strong> remove the add-on in <code>about:addons</code>. Firefox deletes its storage with it.</li>
+    </ul>
+
+    <h2>Backups</h2>
+    <p><strong>Export</strong> writes a file with your settings and presets to wherever you save it. At Peace does not read or send that file; treat it like any other file on your disk. It never contains usage stats or the settings lock.</p>
+
+    <h2>Questions</h2>
+    <p>Email <a href="mailto:chris@cristianbagrin.com?subject=At%20Peace%20privacy">chris@cristianbagrin.com</a>.</p>
+  </main>
+
+  <footer class="foot wrap">
+    <a class="maker" href="https://cristianbagrin.com/"><img src="/img/chris.webp" width="48" height="48" alt="" loading="lazy">Made by Chris</a>
+    <nav class="foot-links">
+      <a href="mailto:chris@cristianbagrin.com?subject=At%20Peace">Send feedback</a>
+      <a href="https://account.cristianbagrin.com/">Account</a>
+      <a href="/privacy">Privacy</a>
+    </nav>
+  </footer>
+</body>
+</html>
