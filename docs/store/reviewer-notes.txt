@@ -1,0 +1,5 @@
+No build step: the package is the plain source (manifest.json, icons/, src/).
+
+Optional account (Settings → Account, off by default): syncs the user's settings and saved presets through https://account.cristianbagrin.com/api/ (the developer's own service). Nothing is sent unless the user signs in; the email and password are sent only to sign in, after Firefox's data_collection consent prompt (optional: authenticationInfo, personallyIdentifyingInfo). Code: src/background/account.js, src/pages/options/account.js.
+
+Other sites are touched only if the user adds them to Mindful Pause; the browser asks for that site first.

@@ -4,6 +4,7 @@
 //
 //   node tools/check-release-setup.mjs            full check (release-check.yml): report, ask Mozilla, test the token
 //   node tools/check-release-setup.mjs --offline  only which credentials are present (release.yml, first step)
+//   node tools/check-release-setup.mjs --mozilla-only --export   only the Mozilla credentials (the listed release)
 //   node tools/check-release-setup.mjs --export   full check, then hand the credentials to the later steps of
 //                                                 release.yml as AMO_ISSUER, AMO_SECRET and UPDATES_TOKEN
 //
@@ -114,6 +115,8 @@ function checkGitHub(token) {
 async function main(argv) {
   const offline = argv.includes('--offline');
   const exporting = argv.includes('--export');
+  // The listed release (release.yml) needs only Mozilla's credentials, not the updates-repo token.
+  const mozillaOnly = argv.includes('--mozilla-only');
   const inActions = Boolean(process.env.GITHUB_ACTIONS);
 
   // GitHub masks a secret's whole value, not the parts of one that holds several. Mask each part.
@@ -125,7 +128,7 @@ async function main(argv) {
   lines.push('');
 
   let ok = true;
-  const missing = [!found.issuer && 'the Mozilla JWT issuer', !found.secret && 'the Mozilla JWT secret', !found.token && 'a GitHub token for the updates repo'].filter(Boolean);
+  const missing = [!found.issuer && 'the Mozilla JWT issuer', !found.secret && 'the Mozilla JWT secret', !mozillaOnly && !found.token && 'a GitHub token for the updates repo'].filter(Boolean);
   if (missing.length) {
     ok = false;
     lines.push(`- Missing: ${missing.join(', ')}. See docs/RELEASING.md, one-time setup.`);
@@ -136,7 +139,7 @@ async function main(argv) {
       ok &&= m.ok;
       lines.push(`- Mozilla credentials (from ${[...new Set([found.issuer.from, found.secret.from])].join(' and ')}): ${m.ok ? 'OK' : 'FAIL'}, ${m.detail}.`);
     }
-    if (found.token) {
+    if (found.token && !mozillaOnly) {
       const g = checkGitHub(found.token.value);
       ok &&= g.ok;
       lines.push(`- GitHub token (from ${found.token.from}): ${g.ok ? 'OK' : 'FAIL'}, ${g.detail}.`);
@@ -152,7 +155,7 @@ async function main(argv) {
   if (ok && exporting) {
     if (!process.env.GITHUB_ENV) throw new Error('--export only works inside GitHub Actions');
     // Every value matched a strict pattern (no newlines), so plain NAME=value lines are safe here.
-    appendFileSync(process.env.GITHUB_ENV, `AMO_ISSUER=${found.issuer.value}\nAMO_SECRET=${found.secret.value}\nUPDATES_TOKEN=${found.token.value}\n`);
+    appendFileSync(process.env.GITHUB_ENV, `AMO_ISSUER=${found.issuer.value}\nAMO_SECRET=${found.secret.value}\n${found.token && !mozillaOnly ? `UPDATES_TOKEN=${found.token.value}\n` : ''}`);
   }
   process.exitCode = ok ? 0 : 1;
 }

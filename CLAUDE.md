@@ -2,24 +2,17 @@
 
 ## Delivering an update
 
-At Peace is published publicly (signed by Mozilla, listed on addons.mozilla.org), so every change that
-ships goes out as a new version. When you finish a change the user will ship, always:
+Every change that ships goes out as a new version, and releasing is automatic:
 
-1. Add a line under `## Unreleased` in `CHANGELOG.md`, then run `npm run release -- patch` (`minor` for
-   new settings or features). See `docs/RELEASING.md`.
-2. Build the store zip: `npm run build:listed` (writes `web-ext-artifacts/at-peace-<version>-listed.zip`).
-   Never hand over a plain `web-ext build` zip: it carries `update_url`, which addons.mozilla.org rejects
-   for listed add-ons. See `docs/PUBLISHING.md`.
-3. Hand the user, in the same reply, both of these (copy them to the session scratchpad first, so the
-   app can open them, and send them with SendUserFile):
-   - the zip, `at-peace-<version>-listed.zip`;
-   - the version notes: that version's section of `CHANGELOG.md`, as `at-peace-<version>-notes.md`.
-   Also paste the notes in the reply, so they can be copied into the store's "Version notes" field.
-4. Push straight to `main` (the default branch), and to the working branch. Never open a pull request: the user does not want to approve
-   anything by hand. Before releasing, fetch and merge `main`, and check `manifest.json`'s
-   version is newer than the latest published one (a version number can be used only once).
+1. Add a line under `## Unreleased` in `CHANGELOG.md` (for people, not developers: what changed for them, in
+   plain words), then run `npm run release -- patch` (`minor` for new settings or features).
+2. Push `main`. The Release workflow (`.github/workflows/release.yml`) checks the code, submits the listed
+   version to addons.mozilla.org with those notes, uploads and publishes it on the Chrome Web Store, and tags
+   it `vX.Y.Z`. A version number can be used only once. Chrome refuses an upload while an earlier version is
+   in review; send it later with Actions → Release → Run workflow, store = chrome.
 
-Write the notes for people, not developers: what changed for them, in plain words.
+Never open a pull request; push straight to `main`. Keep `docs/store/reviewer-notes.txt` under 3,000
+characters (Mozilla's limit; `tools/amo-metadata.mjs` checks).
 
 ## Testing in a real browser
 
