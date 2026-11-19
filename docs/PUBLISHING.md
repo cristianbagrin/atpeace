@@ -63,7 +63,7 @@ a timer or a schedule between you and the feed.
 > PRIVACY: no analytics, no remote code. The account is optional and syncs only settings and presets. Usage numbers stay in your browser for 90 days.
 > Other sites are only touched if you add them to Mindful Pause, and the browser asks first.
 
-**Support email:** cristianbagrin1@gmail.com
+**Support email:** chris@cristianbagrin.com
 
 **Privacy policy:** paste the text of [PRIVACY.md](../PRIVACY.md) into the "Privacy policy" field.
 
