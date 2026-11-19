@@ -43,6 +43,10 @@ light, dark or system theme.
 
 ## Install in Zen (or Firefox)
 
+[Add At Peace from addons.mozilla.org](https://addons.mozilla.org/firefox/addon/atpeace/), or download
+the file itself, [latest.xpi](https://addons.mozilla.org/firefox/downloads/latest/atpeace/latest.xpi), and
+drop it on a browser window. Either way it updates itself.
+
 ### Try it (temporary)
 
 1. Get the code (`git clone` or download it).
@@ -53,11 +57,10 @@ light, dark or system theme.
 A temporary add-on is removed when the browser restarts; load it again from the same page. The code is
 read straight from the folder, so after editing a file use **Reload** on that page.
 
-### Keep it (permanent)
+### How updates reach people
 
-Zen, like Firefox release, only keeps *signed* add-ons. Mozilla signs each version privately (it is not
-listed publicly) and installed copies then update themselves. How to install the signed file, and how
-a new version is shipped: [docs/RELEASING.md](docs/RELEASING.md).
+Every version goes to addons.mozilla.org and the Chrome Web Store by itself ([docs/RELEASING.md](docs/RELEASING.md)).
+Copies installed from the file update from addons.mozilla.org too.
 
 The add-on id (`at-peace@cristianbagrin`) must not change: Mozilla ties the signature to it, and settings
 are stored per id.

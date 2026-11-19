@@ -12,8 +12,8 @@ addons.mozilla.org, "Add to Firefox" for everyone, updates delivered by Mozilla.
   duplicate). 0.2.1 went out unlisted, so the first listed version is 0.2.2, bumped by hand in a commit that is
   not named "Release x.y.z" so the unlisted workflow does not take the number. After that, one version per
   channel: build the next number once and either release it unlisted (`npm run release`) or submit it listed.
-- Copies installed from the unlisted `.xpi` keep updating from `atpeaceupdates`. To move them to the AMO
-  copy, install from the AMO page once; after that Mozilla updates it.
+- Copies installed from the unlisted `.xpi` (up to 0.3.3) are moved to the AMO 0.5.0 file by the last entry
+  in `atpeaceupdates`; after that Mozilla updates them.
 
 ## Steps
 

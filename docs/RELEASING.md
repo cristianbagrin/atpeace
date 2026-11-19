@@ -26,9 +26,10 @@ Mozilla and Google still review each version; people get it after that, on their
 Each store is skipped while its secrets are missing. Chrome refuses an upload while an earlier version is
 in review: the run carries on, and Actions → Release → Run workflow, store = chrome, sends it later.
 
-## Before 0.6.0
+## Copies installed from a file
 
-Versions up to 0.3.3 were also signed unlisted and published to `cristianbagrin/atpeaceupdates` for copies
-installed from a file; those copies keep 0.3.3 until someone installs At Peace from addons.mozilla.org,
-which replaces them and updates from then on. `tools/check-release-setup.mjs` (without `--mozilla-only`)
-and `tools/update-manifest.mjs` belong to that older route.
+Versions up to 0.3.3 were signed unlisted and updated from `cristianbagrin/atpeaceupdates`. Its last entry
+points those copies at the 0.5.0 file on addons.mozilla.org, which has no `update_url`, so Firefox updates
+them from addons.mozilla.org from then on. Nothing new goes into `atpeaceupdates`. A file downloaded from
+addons.mozilla.org (`latest.xpi`) updates the same way. `tools/check-release-setup.mjs` (without
+`--mozilla-only`) and `tools/update-manifest.mjs` belong to the old route.
