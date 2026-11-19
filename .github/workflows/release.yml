@@ -1,229 +1,101 @@
 name: Release
 
-# Publishes a new version by itself. `npm run release -- patch` makes the commit "Release x.y.z"; pushing it is
-# all it takes. The first job looks whether manifest.json holds a version that the public updates.json does not
-# list yet and that was set by such a "Release x.y.z" commit. If so, the second job checks the code, has Mozilla
-# sign it (unlisted; or fetches the file Mozilla already signed for that version, so a failed run can simply be
-# re-run) and publishes the signed .xpi and updates.json to the public updates repo, from which installed copies
-# update themselves. Secrets and one-time setup: docs/RELEASING.md.
+# Publishes each new version by itself, to addons.mozilla.org (listed) and the Chrome Web Store.
+# `npm run release -- patch` makes the commit "Release x.y.z"; pushing it to main is all it takes.
+# A version is released once: the run tags it vX.Y.Z, and a version that already has a tag is skipped.
+# Each store is skipped while its secrets are missing (docs/RELEASING.md). Chrome refuses an upload while an
+# earlier version is still in review; the run carries on, and "Run workflow" with store = chrome sends it later.
 on:
   push:
-    branches: ['**']
-    # Only when the version can have changed (or this workflow did).
-    paths: ['manifest.json', '.github/workflows/release.yml']
+    branches: [main]
+    paths: ['manifest.json']
   workflow_dispatch:
+    inputs:
+      store:
+        description: Which store
+        type: choice
+        options: [all, chrome]
+        default: all
 
 permissions:
-  contents: read
+  contents: write
 
-env:
-  UPDATES_REPO: cristianbagrin/at-peace-updates
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
-  decide:
-    name: New version?
+  release:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    outputs:
-      release: ${{ steps.decide.outputs.release }}
-      version: ${{ steps.decide.outputs.version }}
-      sha: ${{ steps.decide.outputs.sha }}
+    timeout-minutes: 45
+    env:
+      AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+      AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+      MOZILLA_GITHUB: ${{ secrets.MOZILLA_GITHUB }}
+      CWS_SERVICE_ACCOUNT: ${{ secrets.CWS_SERVICE_ACCOUNT }}
+      CWS_PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
+      CWS_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
     steps:
       - name: Check out
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           fetch-depth: 0
 
-      - name: Is there a version to publish?
-        id: decide
+      - name: Version
+        id: v
         run: |
           version="$(jq -r .version manifest.json)"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          # The public repo is the record of what is published (read straight from git: no CDN delay).
-          git clone --quiet --depth 1 "https://github.com/$UPDATES_REPO.git" "$RUNNER_TEMP/published"
-          if [ -f "$RUNNER_TEMP/published/updates.json" ] && jq -e --arg v "$version" '[.addons[].updates[] | select(.version == $v)] | length > 0' "$RUNNER_TEMP/published/updates.json" > /dev/null; then
-            echo "Version $version is already published. Nothing to do."
-            echo "release=false" >> "$GITHUB_OUTPUT"
-            exit 0
+          if [ "$(jq -r .version package.json)" != "$version" ]; then
+            echo "::error title=Versions differ::package.json and manifest.json disagree. Release with npm run release."
+            exit 1
           fi
-          sha="$(git log -1 --format=%H -S"\"version\": \"$version\"" -- manifest.json)"
-          if [ -z "$sha" ] || [ "$(git log -1 --format=%s "$sha")" != "Release $version" ]; then
-            echo "::notice title=Not publishing::manifest.json is at $version, which is not published, but the commit that set it is not \"Release $version\". A version is published from the commit 'npm run release' makes."
-            echo "release=false" >> "$GITHUB_OUTPUT"
-            exit 0
+          if [ "${{ inputs.store }}" != chrome ] && git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then
+            echo "v$version is already released; nothing to do."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
-          echo "Publishing $version (set by $sha)."
-          { echo "sha=$sha"; echo "release=true"; } >> "$GITHUB_OUTPUT"
-
-  release:
-    name: Sign and publish
-    needs: decide
-    if: needs.decide.outputs.release == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    # One release at a time, and never cancel one halfway.
-    concurrency:
-      group: release
-      cancel-in-progress: false
-    steps:
-      - name: Check out
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
-        with:
-          fetch-depth: 0
 
       - name: Set up Node 22
+        if: steps.v.outputs.skip != 'true'
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: 22
           cache: npm
 
-      - name: Versions agree
-        id: version
-        env:
-          VERSION: ${{ needs.decide.outputs.version }}
-          RELEASE_SHA: ${{ needs.decide.outputs.sha }}
+      - name: Build and check
+        if: steps.v.outputs.skip != 'true'
         run: |
-          for f in manifest.json package.json; do
-            if [ "$(jq -r .version "$f")" != "$VERSION" ]; then
-              echo "::error title=Versions differ::$f says $(jq -r .version "$f"), expected $VERSION. Release with 'npm run release', which keeps them equal."
-              exit 1
-            fi
-          done
-          # Tools may be newer than the release commit; what gets signed must be exactly that commit's extension.
-          if ! git diff --quiet "$RELEASE_SHA" HEAD -- manifest.json icons src; then
-            echo "::error title=Changed after the release commit::manifest.json, icons/ or src/ changed after \"Release $VERSION\" ($RELEASE_SHA). Release those changes as a new version (npm run release -- patch)."
-            exit 1
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          npm ci
+          npm run lint
+          npm test
+          npm run verify:package
+          npm run build:listed
+          npm run build:chrome
+          node tools/amo-metadata.mjs "${{ steps.v.outputs.version }}" > "$RUNNER_TEMP/amo-metadata.json"
+          mkdir -p "$RUNNER_TEMP/listed"
+          unzip -q "web-ext-artifacts/at-peace-${{ steps.v.outputs.version }}-listed.zip" -d "$RUNNER_TEMP/listed"
 
-      # The credentials can be three secrets or one, MOZILLA_GITHUB, holding all three (docs/RELEASING.md).
-      - name: Check the secrets exist
-        env:
-          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
-          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
-          UPDATES_REPO_TOKEN: ${{ secrets.UPDATES_REPO_TOKEN }}
-          MOZILLA_GITHUB: ${{ secrets.MOZILLA_GITHUB }}
-        run: node tools/check-release-setup.mjs --offline
-
-      - name: Install
-        run: npm ci
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Unit tests
-        run: npm test
-
-      - name: Verify the package
-        run: npm run verify:package
-
-      # Asks Mozilla whether the API credentials are accepted and checks the token can push, then hands the
-      # credentials to the steps below as AMO_ISSUER, AMO_SECRET and UPDATES_TOKEN (masked in the log).
-      - name: Load the release credentials
-        env:
-          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
-          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
-          UPDATES_REPO_TOKEN: ${{ secrets.UPDATES_REPO_TOKEN }}
-          MOZILLA_GITHUB: ${{ secrets.MOZILLA_GITHUB }}
-        run: node tools/check-release-setup.mjs --export
-
-      # Before signing: a bad or read-only token must fail here, not after the version is used up at Mozilla.
-      # The clone lives outside the workspace on purpose: web-ext packs everything under the source folder.
-      - name: Check access to the updates repo
+      - name: Mozilla credentials
+        id: amo
+        if: steps.v.outputs.skip != 'true' && inputs.store != 'chrome' && (env.AMO_JWT_ISSUER != '' || env.MOZILLA_GITHUB != '')
         run: |
-          auth="$(printf 'x-access-token:%s' "$UPDATES_TOKEN" | base64 -w0)"
-          echo "::add-mask::$auth"
-          if ! git clone --depth 1 --branch main --config "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
-               "https://github.com/$UPDATES_REPO.git" "$RUNNER_TEMP/updates"; then
-            echo "::error title=Cannot read the updates repo::Does $UPDATES_REPO exist, with a main branch (create it with a README), and can the token read it? See docs/RELEASING.md."
-            exit 1
-          fi
-          if ! git -C "$RUNNER_TEMP/updates" push --dry-run origin HEAD:main; then
-            echo "::error title=Cannot push to the updates repo::The token needs Contents: Read and write on $UPDATES_REPO, and must not have expired. See docs/RELEASING.md."
-            exit 1
-          fi
+          node tools/check-release-setup.mjs --mozilla-only --export
+          echo "ok=true" >> "$GITHUB_OUTPUT"
 
-      - name: Sign with Mozilla (unlisted)
-        env:
-          WEB_EXT_API_KEY: ${{ env.AMO_ISSUER }}
-          WEB_EXT_API_SECRET: ${{ env.AMO_SECRET }}
-          VERSION: ${{ steps.version.outputs.version }}
+      - name: addons.mozilla.org
+        if: steps.amo.outputs.ok == 'true'
+        run: >
+          npx web-ext sign --source-dir "$RUNNER_TEMP/listed" --artifacts-dir "$RUNNER_TEMP/signed"
+          --channel listed --amo-metadata "$RUNNER_TEMP/amo-metadata.json" --approval-timeout 0
+          --api-key "$AMO_ISSUER" --api-secret "$AMO_SECRET" --no-input
+
+      - name: Chrome Web Store
+        continue-on-error: true
+        if: steps.v.outputs.skip != 'true' && env.CWS_SERVICE_ACCOUNT != '' && env.CWS_EXTENSION_ID != ''
+        run: node tools/cws-publish.mjs "web-ext-artifacts/at-peace-${{ steps.v.outputs.version }}-chrome.zip"
+
+      - name: Tag the release
+        if: steps.v.outputs.skip != 'true' && inputs.store != 'chrome'
         run: |
-          # A version Mozilla already signed (an earlier run that failed later) cannot be signed again: use that file.
-          code=0
-          node tools/amo-signed-file.mjs --version "$VERSION" --out "web-ext-artifacts/at-peace-$VERSION-signed.xpi" || code=$?
-          if [ "$code" = 0 ]; then exit 0; fi
-          if [ "$code" = 4 ]; then
-            echo "::error title=Waiting for Mozilla::Mozilla has $VERSION but has not signed it yet. Re-run this job once it is approved."
-            exit 1
-          fi
-          if [ "$code" != 3 ]; then exit 1; fi
-          # Validation up to 10 minutes, approval up to 25. Unlisted versions are normally signed in a minute or two.
-          if ! npx web-ext sign --channel=unlisted --timeout=600000 --approval-timeout=1500000 --no-input; then
-            echo "::error title=Mozilla did not sign this version::See the web-ext output above (validation errors or a timeout). docs/RELEASING.md, Troubleshooting."
-            exit 1
-          fi
-
-      - name: Collect the signed file
-        id: signed
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          shopt -s nullglob
-          files=(web-ext-artifacts/*.xpi)
-          if [ "${#files[@]}" -ne 1 ]; then
-            echo "::error title=No signed file::Expected exactly one .xpi in web-ext-artifacts/ after signing, found ${#files[@]}."
-            exit 1
-          fi
-          mkdir -p dist
-          cp "${files[0]}" "dist/at-peace-$VERSION.xpi"
-          # The signed package must hold exactly what verify:package checked (plus Mozilla's signature folder).
-          unexpected="$(unzip -Z1 "dist/at-peace-$VERSION.xpi" | cut -d/ -f1 | sort -u | grep -vxE 'manifest\.json|icons|src|META-INF' | tr '\n' ' ' || true)"
-          if [ -n "$unexpected" ]; then
-            echo "::error title=Unexpected files in the signed package::$unexpected"
-            exit 1
-          fi
-          echo "sha256=$(sha256sum "dist/at-peace-$VERSION.xpi" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
-
-      # Mozilla will not sign the same version twice, so keep the signed file in case a later step fails.
-      - name: Keep the signed file
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: at-peace-${{ steps.version.outputs.version }}-signed
-          path: dist/at-peace-${{ steps.version.outputs.version }}.xpi
-          if-no-files-found: error
-
-      - name: Publish to the updates repo
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          updates="$RUNNER_TEMP/updates"
-          mkdir -p "$updates/xpi"
-          cp "dist/at-peace-$VERSION.xpi" "$updates/xpi/at-peace-$VERSION.xpi"
-          node tools/update-manifest.mjs --file "$updates/updates.json" --xpi "$updates/xpi/at-peace-$VERSION.xpi"
-          cd "$updates"
-          git config user.name "at-peace release"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add xpi updates.json
-          git diff --cached --quiet || git commit -m "At Peace $VERSION"
-          git push origin HEAD:main
-
-      # An installed copy only updates if these two public URLs serve what was just pushed.
-      - name: Check the public update files
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          SHA256: ${{ steps.signed.outputs.sha256 }}
-        run: |
-          base="https://raw.githubusercontent.com/$UPDATES_REPO/main"
-          for attempt in $(seq 1 20); do
-            ok=1
-            curl -fsSL "$base/xpi/at-peace-$VERSION.xpi" -o "$RUNNER_TEMP/check.xpi" || ok=0
-            [ "$ok" = 1 ] && [ "$(sha256sum "$RUNNER_TEMP/check.xpi" | cut -d' ' -f1)" = "$SHA256" ] || ok=0
-            [ "$ok" = 1 ] && curl -fsSL "$base/updates.json" | jq -e --arg v "$VERSION" --arg h "sha256:$SHA256" \
-              '[.addons[].updates[] | select(.version == $v and .update_hash == $h)] | length == 1' > /dev/null || ok=0
-            if [ "$ok" = 1 ]; then echo "Published: $base/updates.json lists $VERSION"; exit 0; fi
-            echo "Not visible yet (attempt $attempt of 20), waiting 15 s"
-            sleep 15
-          done
-          echo "::error title=Update files not public::$base did not serve version $VERSION. Is $UPDATES_REPO public? raw.githubusercontent.com can also lag a few minutes."
-          exit 1
+          git tag "v${{ steps.v.outputs.version }}"
+          git push origin "v${{ steps.v.outputs.version }}"
