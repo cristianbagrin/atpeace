@@ -495,36 +495,22 @@ describe('release: guards in the repository', () => {
     assert.ok(!ci.includes('secrets.'));
   });
 
-  test('release.yml: publishes a new "Release x.y.z" commit by itself; checks, signs unlisted (or reuses Mozilla\'s file), publishes', () => {
+  test('release.yml: a new version goes to addons.mozilla.org (listed) and the Chrome Web Store, once, then is tagged', () => {
     const rel = read('.github/workflows/release.yml');
-    assert.match(rel, /^on:\n {2}push:\n {4}branches: \['\*\*'\]\n(?: {4}#.*\n)? {4}paths: \['manifest\.json', '\.github\/workflows\/release\.yml'\]\n {2}workflow_dispatch:/m);
-    // the decide job: only a version the public updates.json does not list yet, set by the "Release x.y.z" commit
-    assert.match(rel, /select\(\.version == \$v\)/);
-    assert.ok(rel.includes('!= "Release $version"'), 'only the release commit publishes');
-    assert.match(rel, /if: needs\.decide\.outputs\.release == 'true'/);
-    assert.ok(rel.includes('git diff --quiet "$RELEASE_SHA" HEAD -- manifest.json icons src'), 'what is signed is exactly the release commit\'s extension');
-    assert.match(rel, /^permissions:\n {2}contents: read$/m);
-    assert.ok(!/contents: write|gh release|git\/refs|GITHUB_TOKEN/.test(rel), 'no tags or GitHub Releases: a workflow token cannot tag here');
+    assert.match(rel, /^on:\n {2}push:\n {4}branches: \[main\]\n {4}paths: \['manifest\.json'\]\n {2}workflow_dispatch:/m);
+    assert.match(rel, /git ls-remote --exit-code --tags origin "refs\/tags\/v\$version"/, 'a tagged version is never sent again');
+    assert.match(rel, /^permissions:\n {2}contents: write$/m);
     assert.match(rel, /node-version: 22/);
-    for (const cmd of ['npm ci', 'npm run lint', 'npm test', 'npm run verify:package']) assert.ok(rel.includes(`run: ${cmd}`), cmd);
-    assert.match(rel, /web-ext sign --channel=unlisted/);
-    assert.ok(rel.indexOf('tools/amo-signed-file.mjs') > 0 && rel.indexOf('tools/amo-signed-file.mjs') < rel.indexOf('web-ext sign'), 'a version Mozilla already signed is fetched, not signed again');
-    for (const secret of ['AMO_JWT_ISSUER', 'AMO_JWT_SECRET', 'UPDATES_REPO_TOKEN', 'MOZILLA_GITHUB']) assert.ok(rel.includes(`secrets.${secret}`), secret);
-    // presence is checked before anything is installed; the credentials are tested and loaded only after the checks
-    const at = (text) => rel.indexOf(text);
-    assert.ok(at('check-release-setup.mjs --offline') > 0 && at('check-release-setup.mjs --offline') < at('run: npm ci'));
-    assert.ok(at('run: npm run verify:package') < at('check-release-setup.mjs --export') && at('check-release-setup.mjs --export') < at('name: Check access to the updates repo'));
-    assert.match(rel, /WEB_EXT_API_KEY: \$\{\{ env\.AMO_ISSUER \}\}/);
-    assert.match(rel, /tools\/update-manifest\.mjs --file/);
-    assert.match(rel, /unzip -Z1 .*grep -vxE 'manifest\\\.json\|icons\|src\|META-INF'/, 'the signed package is checked for stray top-level entries');
-    assert.match(rel, /UPDATES_REPO: cristianbagrin\/(at-peace-updates|atpeaceupdates)/); // the workflow still names the old repo, which GitHub redirects
+    for (const cmd of ['npm ci', 'npm run lint', 'npm test', 'npm run verify:package', 'npm run build:listed', 'npm run build:chrome']) assert.ok(rel.includes(cmd), cmd);
+    for (const secret of ['AMO_JWT_ISSUER', 'AMO_JWT_SECRET', 'MOZILLA_GITHUB', 'CWS_SERVICE_ACCOUNT', 'CWS_PUBLISHER_ID', 'CWS_EXTENSION_ID']) assert.ok(rel.includes(`secrets.${secret}`), secret);
+    assert.match(rel, /--channel listed --amo-metadata/);
+    assert.ok(rel.includes('check-release-setup.mjs --mozilla-only --export'));
+    assert.ok(rel.includes('tools/cws-publish.mjs'));
     assert.match(rel, /cancel-in-progress: false/);
-    // the order matters: access to the updates repo is checked before the version is spent at Mozilla
-    const order = ['Check access to the updates repo', 'Sign with Mozilla', 'Keep the signed file', 'Publish to the updates repo', 'Check the public update files'].map((n) => rel.indexOf(`name: ${n}`));
+    const at = (text) => rel.indexOf(`name: ${text}`);
+    const order = ['Build and check', 'addons.mozilla.org', 'Chrome Web Store', 'Tag the release'].map(at);
     assert.ok(order.every((i) => i > 0), `missing step: ${order}`);
     assert.deepEqual([...order].sort((a, b) => a - b), order);
-    // nothing but the source tree may sit in the folder web-ext packs
-    assert.ok(!/path:\s*updates/.test(rel), 'do not check the updates repo out inside the workspace');
   });
 
   test('licence: all rights reserved, UNLICENSED, and not shipped', async () => {
